@@ -1,0 +1,108 @@
+
+<PerkCards>:
+    name: 'perkcards'
+    ScrollCards:
+
+<ScrollCards@MDScrollView>:
+    CardsView:
+
+<SearchBar>:
+    MDBoxLayout:
+        orientation: "vertical"
+        spacing: "14dp"
+        padding: "20dp"
+
+        MDTextField:
+            id: search_field
+            mode: "outlined"
+            on_text: root.set_list_md_icons(self.text, True)
+
+            MDTextFieldLeadingIcon:
+                icon: "magnify"
+
+            MDTextFieldHintText:
+                text: "Search icon"
+
+<CardsView>:
+    orientation: 'vertical'
+    padding: '10dp', '40dp', '10dp', '40dp'
+    spacing: '12dp'
+    size_hint_y: None
+    height: self.minimum_height
+
+
+<Cards>:
+    spacing: '10dp'
+    size_hint_y: None
+    height: self.minimum_height
+
+
+<Card>:
+    name: root.card_name
+    orientation: 'vertical'
+    size_hint: 1, 1
+    spacing: '5dp'
+
+    Button:
+        canvas.before:
+            Color:
+                rgba: 1, 1, 1, 1
+            RoundedRectangle:
+                size: self.size
+                pos: self.pos
+                radius: [20,]
+                source: root.image_source
+        on_press:
+            root.on_clicked_card()
+        background_color: (0, 0, 0, 0)
+        background_normal: ''
+        color: (0, 0, 0, 1)
+
+    MDLabel:
+        text: root.card_title
+        size_hint: 1, .4
+        font_size: '10sp'
+        theme_font_name: "Custom"
+        font_name: "assets/fonts/OpenSans-Regular"
+        text_size: self.width, None
+        halign: 'center'
+        color: (0,0,0, 1)
+
+<CardExplanation>:
+    canvas.before:
+        Color:
+            rgba: 51/255, 51/255, 51/255, 1
+        RoundedRectangle:
+            size: self.size
+            pos: self.pos
+            radius: [30,]
+    MDBoxLayout:
+        orientation: 'vertical'
+        spacing: '15dp'
+        padding: '30dp'
+        MDBoxLayout:
+            Image:
+                source: root.image_source
+                size_hint: 1, 1
+                # size: dp(100), dp(100)
+                fit_mode: "contain"
+                pos_hint: {'center_x': 0.5, 'center_y': 0.5}
+            MDLabel:
+                text: root.card_title
+                text_size: self.width, None
+                halign: 'center'
+                font_size: '100sp'
+                pos_hint: {'center_y': .5}
+                color: (1, 1, 1, 1)
+        MDScrollView:
+            pos_hint: {'top': 0.75}
+            MDLabel:
+                text: root.card_description
+                size_hint: 1, None
+                color: (1, 1, 1, 1)
+                font_size: '14sp'
+                halign: 'justify'
+                height: self.texture_size[1] # para que vaya al principio del texto el scroll
+
+<CardExplanation>:
+    size_hint: .8, .6
