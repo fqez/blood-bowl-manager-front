@@ -1,2 +1,10 @@
-kivy
-requests
+# UI Framework
+kivy>=2.3.0
+kivymd>=1.2.0
+
+# HTTP Client
+requests>=2.32.0
+urllib3>=2.2.0
+
+# Utilities
+pillow>=10.4.0

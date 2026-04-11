@@ -1,0 +1,257 @@
+import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../domain/models/team.dart';
+
+class PlayerRow extends StatelessWidget {
+  final Character character;
+  final VoidCallback? onTap;
+
+  const PlayerRow({
+    super.key,
+    required this.character,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      color: AppColors.card,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: _getBorderColor(),
+          width: character.status == PlayerStatus.dead || character.status == PlayerStatus.injured ? 2 : 1,
+        ),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              _buildNumber(),
+              const SizedBox(width: 12),
+              _buildAvatar(),
+              const SizedBox(width: 12),
+              Expanded(child: _buildInfo()),
+              _buildStats(),
+              const SizedBox(width: 8),
+              Icon(
+                PhosphorIcons.caretRight(PhosphorIconsStyle.bold),
+                color: AppColors.textMuted,
+                size: 16,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNumber() {
+    return Container(
+      width: 32,
+      height: 32,
+      decoration: BoxDecoration(
+        color: AppColors.surfaceLight,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Center(
+        child: Text(
+          '#${character.number}',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAvatar() {
+    return Stack(
+      children: [
+        Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            shape: BoxShape.circle,
+            border: Border.all(color: AppColors.surfaceLight),
+          ),
+          child: ClipOval(
+            child: _buildPlaceholderAvatar(),
+          ),
+        ),
+        if (character.status == PlayerStatus.dead) _buildStatusBadge(PhosphorIcons.skull(PhosphorIconsStyle.fill), AppColors.textMuted),
+        if (character.status == PlayerStatus.injured && character.status != PlayerStatus.dead)
+          _buildStatusBadge(PhosphorIcons.firstAid(PhosphorIconsStyle.fill), AppColors.warning),
+        if (character.missNextGame && character.status != PlayerStatus.dead && character.status != PlayerStatus.injured)
+          _buildStatusBadge(PhosphorIcons.prohibit(PhosphorIconsStyle.fill), AppColors.error),
+      ],
+    );
+  }
+
+  Widget _buildPlaceholderAvatar() {
+    return Center(
+      child: Text(
+        character.name.substring(0, 1).toUpperCase(),
+        style: TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+          color: AppColors.textMuted,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusBadge(IconData icon, Color color) {
+    return Positioned(
+      right: 0,
+      bottom: 0,
+      child: Container(
+        padding: const EdgeInsets.all(2),
+        decoration: BoxDecoration(
+          color: AppColors.card,
+          shape: BoxShape.circle,
+        ),
+        child: Icon(icon, size: 14, color: color),
+      ),
+    );
+  }
+
+  Widget _buildInfo() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Flexible(
+              child: Text(
+                character.name,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: character.status == PlayerStatus.dead
+                      ? AppColors.textMuted
+                      : AppColors.textPrimary,
+                  decoration: character.status == PlayerStatus.dead ? TextDecoration.lineThrough : null,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 2),
+        Text(
+          character.position,
+          style: TextStyle(
+            fontSize: 12,
+            color: AppColors.textMuted,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Row(
+          children: [
+            _buildLevelBadge(),
+            const SizedBox(width: 8),
+            if (character.skills.isNotEmpty) ...[
+              Icon(PhosphorIcons.sparkle(PhosphorIconsStyle.fill),
+                  size: 12, color: AppColors.info),
+              const SizedBox(width: 2),
+              Text(
+                '${character.skills.length} habs',
+                style: TextStyle(fontSize: 11, color: AppColors.info),
+              ),
+            ],
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLevelBadge() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: _getLevelColor().withOpacity(0.2),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        'Nv.${character.level}',
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+          color: _getLevelColor(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStats() {
+    final stats = character.stats;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildStatItem('M', stats.ma),
+          _buildStatItem('F', stats.st),
+          _buildStatItem('A', stats.ag),
+          _buildStatItem('P', stats.pa),
+          _buildStatItem('D', stats.av),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatItem(String label, int value) {
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Column(
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 9,
+              color: AppColors.textMuted,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          Text(
+            '$value',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _getBorderColor() {
+    if (character.status == PlayerStatus.dead) return AppColors.textMuted.withOpacity(0.5);
+    if (character.status == PlayerStatus.injured) return AppColors.warning;
+    if (character.missNextGame) return AppColors.error;
+    return AppColors.surfaceLight;
+  }
+
+  Color _getLevelColor() {
+    if (character.level >= 6) return AppColors.accent;
+    if (character.level >= 4) return AppColors.info;
+    if (character.level >= 2) return AppColors.success;
+    return AppColors.textMuted;
+  }
+}
