@@ -193,6 +193,19 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
                         color: AppColors.textPrimary,
                       ),
                     ),
+                    if (_currentStep == 1 && _selectedRace != null) ...[
+                      const SizedBox(width: 12),
+                      Icon(PhosphorIcons.caretRight(PhosphorIconsStyle.bold),
+                          size: 14, color: AppColors.textMuted),
+                      const SizedBox(width: 8),
+                      Text(
+                        _teamName.isNotEmpty ? _teamName : 'Nuevo Equipo',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
                     const Spacer(),
                     _buildDesktopNavigationButtons(),
                   ],
@@ -201,7 +214,12 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
               // Contenido scrolleable
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(32),
+                  padding: EdgeInsets.only(
+                    left: _currentStep == 1 ? 0 : 32,
+                    right: _currentStep == 1 ? 0 : 32,
+                    top: _currentStep == 1 ? 0 : 32,
+                    bottom: 32,
+                  ),
                   child: _buildCurrentStep(true),
                 ),
               ),
@@ -694,146 +712,516 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
   }
 
   Widget _buildRosterStep(bool isWide) {
-    // Si estamos cargando el detalle de la raza, mostrar indicador
     if (_loadingRaceDetail) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    final race = _selectedRace;
+    final positions = race?.positions ?? <BasePosition>[];
+    final rerollCost = race?.rerollCost ?? 50000;
+
+    // ── Cabecera banner ──────────────────────────────────────────────────────
+    Widget buildHeader() {
+      if (race == null) return const SizedBox.shrink();
+      return Container(
+        height: 320,
+        width: double.infinity,
+        clipBehavior: Clip.hardEdge,
+        decoration: const BoxDecoration(),
+        child: Stack(
+          clipBehavior: Clip.none,
           children: [
-            CircularProgressIndicator(color: AppColors.primary),
-            const SizedBox(height: 16),
-            Text(
-              'Cargando posiciones...',
-              style: TextStyle(color: AppColors.textSecondary),
+            // Fondo oscuro base
+            Container(color: AppColors.background),
+            // Wallpaper/personajes emergiendo desde la derecha
+            Positioned(
+              right: -20,
+              top: -30,
+              bottom: -20,
+              child: Image.asset(
+                'assets/teams/${race.id}/wallpaper.png',
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+              ),
+            ),
+            // Degradado lateral para fusionar el personaje con el fondo
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  stops: const [0.0, 0.45, 0.75, 1.0],
+                  colors: [
+                    AppColors.background,
+                    AppColors.background.withOpacity(0.6),
+                    AppColors.background.withOpacity(0.1),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+            // Degradado inferior para fundir con el contenido
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                height: 80,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.transparent,
+                      AppColors.background,
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            // Info card top-left
+            Positioned(
+              top: 20,
+              left: 24,
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.card.withOpacity(0.85),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppColors.surfaceLight),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: Image.asset(
+                        'assets/teams/${race.id}/logo.png',
+                        width: 36,
+                        height: 36,
+                        errorBuilder: (_, __, ___) => Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withOpacity(0.3),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Icon(PhosphorIcons.shield(PhosphorIconsStyle.fill),
+                              color: AppColors.primary, size: 20),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          race.name,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Row(
+                          children: [
+                            _buildTierBadge(race.tier ?? 2),
+                            const SizedBox(width: 8),
+                            Text(
+                              'RR ${rerollCost ~/ 1000}k',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textMuted,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            // Nombre del equipo grande centrado/izquierda
+            Positioned(
+              left: 24,
+              right: 200,
+              bottom: 24,
+              child: Text(
+                (_teamName.isNotEmpty ? _teamName : race.name).toUpperCase(),
+                style: TextStyle(
+                  fontFamily: 'Teko',
+                  fontSize: 52,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                  letterSpacing: 2,
+                  height: 1,
+                  shadows: [
+                    Shadow(
+                      color: Colors.black.withOpacity(0.8),
+                      blurRadius: 12,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ],
         ),
       );
     }
 
-    // Usar las posiciones del equipo seleccionado desde el backend
-    final positions = _selectedRace?.positions ?? <BasePosition>[];
-
-    // Wallpaper del equipo - composición con imagen emergente
-    Widget buildTeamWallpaper() {
-      if (_selectedRace == null) return const SizedBox.shrink();
+    // ── Tabla de reclutamiento ────────────────────────────────────────────────
+    Widget buildRecruitmentTable() {
       return Container(
-        height: 280,
-        width: double.infinity,
-        margin: const EdgeInsets.only(bottom: 24),
-        child: Stack(
-          clipBehavior: Clip.none,
+        decoration: BoxDecoration(
+          color: AppColors.card,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.surfaceLight),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Imagen del equipo posicionada a la derecha, emergiendo
-            Positioned(
-              right: -40,
-              top: -20,
-              bottom: -40,
-              child: Image.asset(
-                'assets/teams/${_selectedRace!.id}/wallpaper.png',
-                height: 340,
-                fit: BoxFit.contain,
-                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+            // Cabecera de tabla
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: 5,
+                    child: Text(
+                      'RECLUTAMIENTO DE JUGADORES',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: (_rosterCount >= 11 ? AppColors.success : AppColors.warning)
+                          .withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: _rosterCount >= 11 ? AppColors.success : AppColors.warning,
+                        width: 0.5,
+                      ),
+                    ),
+                    child: Text(
+                      'Jugadores:  $_rosterCount / 16',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: _rosterCount >= 11 ? AppColors.success : AppColors.warning,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-            // Contenido a la izquierda
-            Positioned(
-              left: 0,
-              top: 20,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            // Cabecera de columnas
+            Container(
+              color: AppColors.surfaceLight.withOpacity(0.5),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
                 children: [
-                  // Tarjeta de info del equipo
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: AppColors.card,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.surfaceLight),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
+                  const SizedBox(width: 8),
+                  _tableHeader('POSICIÓN', flex: 4),
+                  _tableHeader('MA', flex: 1, center: true),
+                  _tableHeader('ST', flex: 1, center: true),
+                  _tableHeader('AG', flex: 1, center: true),
+                  _tableHeader('PA', flex: 1, center: true),
+                  _tableHeader('AV', flex: 1, center: true),
+                  _tableHeader('HABILIDADES', flex: 5),
+                  _tableHeader('COSTE', flex: 2, center: true),
+                  _tableHeader('LÍMITE / CANTIDAD', flex: 4, center: true),
+                ],
+              ),
+            ),
+            // Filas de posiciones
+            if (positions.isEmpty)
+              Padding(
+                padding: const EdgeInsets.all(32),
+                child: Center(
+                  child: Text(
+                    'No hay posiciones disponibles',
+                    style: TextStyle(color: AppColors.textMuted),
+                  ),
+                ),
+              )
+            else
+              ...positions.map((pos) => _buildPositionRow(pos)),
+          ],
+        ),
+      );
+    }
+
+    // ── Panel izquierdo: identidad del equipo ─────────────────────────────────
+    Widget buildIdentityPanel() {
+      return Container(
+        decoration: BoxDecoration(
+          color: AppColors.card,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.surfaceLight),
+        ),
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Presupuesto
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: AppColors.background,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: _remaining < 0 ? AppColors.error : AppColors.surfaceLight,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    PhosphorIcons.coinVertical(PhosphorIconsStyle.fill),
+                    size: 16,
+                    color: _remaining < 0 ? AppColors.error : AppColors.accent,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Logo
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.asset(
-                            'assets/teams/${_selectedRace!.id}/logo.png',
-                            width: 48,
-                            height: 48,
-                            errorBuilder: (_, __, ___) => Container(
-                              width: 48,
-                              height: 48,
-                              decoration: BoxDecoration(
-                                color: AppColors.primary.withValues(alpha: 0.3),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Icon(
-                                PhosphorIcons.shield(PhosphorIconsStyle.fill),
-                                color: AppColors.primary,
-                                size: 24,
-                              ),
-                            ),
+                        Text(
+                          'PRESUPUESTO',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textMuted,
+                            letterSpacing: 1,
                           ),
                         ),
-                        const SizedBox(width: 16),
-                        // Info
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              _selectedRace!.name,
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primary,
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Text(
-                                    'Tier ${_selectedRace!.tier ?? 2}',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppColors.textPrimary,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'RR ${(_selectedRace!.rerollCost / 1000).toInt()}k',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: AppColors.textMuted,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
+                        const SizedBox(height: 2),
+                        Text(
+                          '${_remaining ~/ 1000}k restantes',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: _remaining < 0 ? AppColors.error : AppColors.textPrimary,
+                          ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 24),
-                  // Nombre del equipo grande (editable en el futuro)
                   Text(
-                    _teamName.isNotEmpty ? _teamName.toUpperCase() : _selectedRace!.name.toUpperCase(),
+                    '${_spent ~/ 1000}k / ${_startingBudget ~/ 1000}k',
                     style: TextStyle(
-                      fontFamily: AppTextStyles.displayFont,
-                      fontSize: 48,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
-                      letterSpacing: 4,
-                      height: 1,
+                      fontSize: 11,
+                      color: AppColors.textMuted,
                     ),
+                  ),
+                ],
+              ),
+            ),
+            Text(
+              'IDENTIDAD DEL EQUIPO',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textMuted,
+                letterSpacing: 1,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Nombre del Equipo',
+              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 6),
+            TextField(
+              controller: TextEditingController(text: _teamName)
+                ..selection = TextSelection.collapsed(offset: _teamName.length),
+              style: TextStyle(color: AppColors.textPrimary, fontSize: 14),
+              decoration: InputDecoration(
+                hintText: 'Ej. Gouged Eye',
+                hintStyle: TextStyle(color: AppColors.textMuted),
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: AppColors.surfaceLight),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: AppColors.surfaceLight),
+                ),
+              ),
+              onChanged: (v) => setState(() => _teamName = v),
+            ),
+            const SizedBox(height: 16),
+            // Reglas especiales
+            if (race != null && race.specialRules.isNotEmpty) ...[
+              Text(
+                'REGLAS ESPECIALES',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textMuted,
+                  letterSpacing: 1,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: race.specialRules.map((rule) => Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: AppColors.primary.withOpacity(0.4)),
+                  ),
+                  child: Text(
+                    rule,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                )).toList(),
+              ),
+              const SizedBox(height: 16),
+            ],
+          ],
+        ),
+      );
+    }
+
+    // ── Panel de staff ────────────────────────────────────────────────────────
+    Widget buildStaffPanel() {
+      return Container(
+        decoration: BoxDecoration(
+          color: AppColors.card,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.surfaceLight),
+        ),
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'EQUIPO TÉCNICO Y MEJORAS',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textMuted,
+                letterSpacing: 1,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                // Re-rolls
+                Expanded(
+                  child: _buildStaffTile(
+                    icon: PhosphorIcons.arrowsClockwise(PhosphorIconsStyle.fill),
+                    label: 'REROLLS',
+                    subtitle: '${rerollCost ~/ 1000}k c/u',
+                    count: _rerolls,
+                    onDec: _rerolls > 0 ? () => setState(() => _rerolls--) : null,
+                    onInc: _remaining >= rerollCost ? () => setState(() => _rerolls++) : null,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Boticario
+                Expanded(
+                  child: _buildApothecaryTile(
+                    allowed: race?.apothecaryAllowed ?? true,
+                    enabled: _apothecary,
+                    canToggle: !_apothecary ? _remaining >= 50000 : true,
+                    onToggle: (v) => setState(() => _apothecary = v),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Animadoras
+                Expanded(
+                  child: _buildStaffTile(
+                    icon: PhosphorIcons.megaphone(PhosphorIconsStyle.fill),
+                    label: 'ANIMADORAS',
+                    subtitle: '10k c/u',
+                    count: _cheerleaders,
+                    onDec: _cheerleaders > 0 ? () => setState(() => _cheerleaders--) : null,
+                    onInc: _remaining >= 10000 ? () => setState(() => _cheerleaders++) : null,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Asistentes
+                Expanded(
+                  child: _buildStaffTile(
+                    icon: PhosphorIcons.chalkboardTeacher(PhosphorIconsStyle.fill),
+                    label: 'ASISTENTES',
+                    subtitle: '10k c/u',
+                    count: _assistantCoaches,
+                    onDec: _assistantCoaches > 0 ? () => setState(() => _assistantCoaches--) : null,
+                    onInc: _remaining >= 10000 ? () => setState(() => _assistantCoaches++) : null,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    }
+
+    // ── Estado del roster ─────────────────────────────────────────────────────
+    Widget buildRosterStatus() {
+      final isValid = _rosterCount >= 11 && _remaining >= 0;
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isValid
+              ? AppColors.success.withOpacity(0.08)
+              : AppColors.warning.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isValid ? AppColors.success : AppColors.warning,
+            width: 0.5,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              isValid
+                  ? PhosphorIcons.checkCircle(PhosphorIconsStyle.fill)
+                  : PhosphorIcons.warning(PhosphorIconsStyle.fill),
+              color: isValid ? AppColors.success : AppColors.warning,
+              size: 20,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    isValid ? 'Roster Válido' : 'Roster Incompleto',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: isValid ? AppColors.success : AppColors.warning,
+                    ),
+                  ),
+                  Text(
+                    isValid
+                        ? 'Cumples con el mínimo de 11 jugadores y no superas el presupuesto.'
+                        : 'Necesitas al menos 11 jugadores (tienes $_rosterCount).',
+                    style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
                   ),
                 ],
               ),
@@ -843,234 +1231,344 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
       );
     }
 
-    // Widget para la lista de posiciones disponibles
-    Widget buildPositionsList() {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'FICHAJES DISPONIBLES',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textMuted,
-              letterSpacing: 1,
-            ),
-          ),
-          const SizedBox(height: 12),
-          ...positions.map((pos) {
-            final hired = _roster.where((r) => r.position.id == pos.id).length;
-            final canHire = hired < pos.maxQuantity &&
-                _remaining >= pos.cost &&
-                _rosterCount < 16;
-
-            return PositionCard(
-              position: pos,
-              hiredCount: hired,
-              canHire: canHire,
-              affordable: _remaining >= pos.cost,
-              onHire: canHire ? () => _hirePlayer(pos) : null,
-            );
-          }),
-        ],
-      );
-    }
-
-    // Widget para el roster actual
-    Widget buildRosterPanel() {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Contador de roster
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.card,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: _rosterCount >= 11 ? AppColors.success : AppColors.warning,
-              ),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  _rosterCount >= 11
-                      ? PhosphorIcons.checkCircle(PhosphorIconsStyle.fill)
-                      : PhosphorIcons.warning(PhosphorIconsStyle.fill),
-                  color: _rosterCount >= 11 ? AppColors.success : AppColors.warning,
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  '$_rosterCount / 16',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'jugadores',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-          Text(
-            'TU ROSTER',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textMuted,
-              letterSpacing: 1,
-            ),
-          ),
-          const SizedBox(height: 12),
-          if (_roster.isEmpty)
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: AppColors.card,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.surfaceLight),
-              ),
-              child: Center(
-                child: Column(
+    // ── Layout completo ───────────────────────────────────────────────────────
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        buildHeader(),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(32, 24, 32, 32),
+          child: isWide
+              ? Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(
-                      PhosphorIcons.users(PhosphorIconsStyle.light),
-                      size: 40,
-                      color: AppColors.textMuted,
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Sin jugadores',
-                      style: TextStyle(
-                        color: AppColors.textMuted,
-                        fontSize: 14,
+                    // Columna izquierda: identidad
+                    SizedBox(
+                      width: 280,
+                      child: Column(
+                        children: [
+                          buildIdentityPanel(),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Haz clic en + para fichar',
-                      style: TextStyle(
-                        color: AppColors.textMuted,
-                        fontSize: 12,
+                    const SizedBox(width: 20),
+                    // Columna derecha: tabla + staff + estado
+                    Expanded(
+                      child: Column(
+                        children: [
+                          buildRecruitmentTable(),
+                          const SizedBox(height: 16),
+                          buildStaffPanel(),
+                          const SizedBox(height: 16),
+                          buildRosterStatus(),
+                        ],
                       ),
                     ),
                   ],
+                )
+              : Column(
+                  children: [
+                    buildIdentityPanel(),
+                    const SizedBox(height: 16),
+                    buildRecruitmentTable(),
+                    const SizedBox(height: 16),
+                    buildStaffPanel(),
+                    const SizedBox(height: 16),
+                    buildRosterStatus(),
+                  ],
                 ),
-              ),
-            )
-          else
-            ...(_roster
-                .asMap()
-                .entries
-                .map((entry) => _buildRecruitedPlayer(entry.key, entry.value))),
-        ],
-      );
-    }
+        ),
+      ],
+    );
+  }
 
-    // Layout de dos columnas para desktop (sin Expanded, ya está en ScrollView)
-    if (isWide) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
+  Widget _tableHeader(String text, {int flex = 1, bool center = false}) {
+    return Expanded(
+      flex: flex,
+      child: Text(
+        text,
+        textAlign: center ? TextAlign.center : TextAlign.left,
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+          color: AppColors.textMuted,
+          letterSpacing: 0.5,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPositionRow(BasePosition pos) {
+    final hired = _roster.where((r) => r.position.id == pos.id).length;
+    final canHire = hired < pos.maxQuantity &&
+        _remaining >= pos.cost &&
+        _rosterCount < 16;
+    final isMaxed = hired >= pos.maxQuantity;
+
+    String _statCell(int val) => '$val';
+
+    final perkNames = pos.startingPerks.map((p) => p.name).join(', ');
+
+    return Container(
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: AppColors.surfaceLight, width: 0.5)),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: Row(
         children: [
-          buildTeamWallpaper(),
-          IntrinsicHeight(
+          // Indicador de estado
+          Container(
+            width: 6,
+            height: 6,
+            margin: const EdgeInsets.only(right: 10),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: isMaxed
+                  ? AppColors.textMuted.withOpacity(0.3)
+                  : canHire
+                      ? AppColors.success
+                      : AppColors.warning,
+            ),
+          ),
+          // Nombre posición
+          Expanded(
+            flex: 4,
+            child: Text(
+              pos.name,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: isMaxed ? AppColors.textMuted : AppColors.textPrimary,
+              ),
+            ),
+          ),
+          // Stats
+          _statBadge(_statCell(pos.stats.ma), highlight: !isMaxed),
+          _statBadge(_statCell(pos.stats.st), highlight: !isMaxed),
+          _statBadge('${pos.stats.ag}+', highlight: !isMaxed),
+          _statBadge(pos.stats.pa == 0 ? '-' : '${pos.stats.pa}+', highlight: !isMaxed),
+          _statBadge('${pos.stats.av}+', highlight: !isMaxed),
+          // Habilidades
+          Expanded(
+            flex: 5,
+            child: Text(
+              perkNames,
+              style: TextStyle(
+                fontSize: 11,
+                color: AppColors.textSecondary,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          // Coste
+          Expanded(
+            flex: 2,
+            child: Text(
+              '${pos.cost ~/ 1000}k',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: AppColors.accent,
+              ),
+            ),
+          ),
+          // Controles cantidad
+          Expanded(
+            flex: 4,
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Columna izquierda: Posiciones disponibles
-                Expanded(
-                  flex: 3,
-                  child: buildPositionsList(),
+                _circleButton(
+                  icon: PhosphorIcons.minus(PhosphorIconsStyle.bold),
+                  onTap: hired > 0
+                      ? () {
+                          final idx = _roster.lastIndexWhere((r) => r.position.id == pos.id);
+                          if (idx >= 0) setState(() => _roster.removeAt(idx));
+                        }
+                      : null,
                 ),
-                const SizedBox(width: 32),
-                // Columna derecha: Roster fichado
-                Expanded(
-                  flex: 2,
-                  child: buildRosterPanel(),
-                ),
-              ],
-            ),
-          ),
-        ],
-      );
-    }
-
-    // Layout móvil (columna única)
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        buildTeamWallpaper(),
-        // Current roster summary
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppColors.card,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: _rosterCount >= 11 ? AppColors.success : AppColors.warning,
-            ),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                _rosterCount >= 11
-                    ? PhosphorIcons.checkCircle(PhosphorIconsStyle.fill)
-                    : PhosphorIcons.warning(PhosphorIconsStyle.fill),
-                color: _rosterCount >= 11 ? AppColors.success : AppColors.warning,
-              ),
-              const SizedBox(width: 12),
-              Text(
-                '$_rosterCount / 16 jugadores',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              if (_rosterCount < 11) ...[
                 const SizedBox(width: 8),
                 Text(
-                  '(mínimo 11)',
+                  '$hired',
                   style: TextStyle(
-                    fontSize: 14,
-                    color: AppColors.warning,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: hired > 0 ? AppColors.textPrimary : AppColors.textMuted,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                _circleButton(
+                  icon: PhosphorIcons.plus(PhosphorIconsStyle.bold),
+                  onTap: canHire ? () => _hirePlayer(pos) : null,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '/ ${pos.maxQuantity}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textMuted,
                   ),
                 ),
               ],
-            ],
+            ),
           ),
-        ),
-        const SizedBox(height: 24),
-        buildPositionsList(),
-        // Recruited players at bottom on mobile
-        if (_roster.isNotEmpty) ...[
-          const SizedBox(height: 24),
-          Text(
-            'JUGADORES FICHADOS',
+        ],
+      ),
+    );
+  }
+
+  Widget _statBadge(String val, {bool highlight = true}) {
+    return Expanded(
+      flex: 1,
+      child: Center(
+        child: Container(
+          width: 32,
+          height: 24,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: highlight
+                ? AppColors.surfaceLight.withOpacity(0.7)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Text(
+            val,
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.bold,
-              color: AppColors.textMuted,
-              letterSpacing: 1,
+              color: highlight ? AppColors.textPrimary : AppColors.textMuted,
             ),
           ),
-          const SizedBox(height: 12),
-          ...(_roster
-              .asMap()
-              .entries
-              .map((entry) => _buildRecruitedPlayer(entry.key, entry.value))),
+        ),
+      ),
+    );
+  }
+
+  Widget _circleButton({required IconData icon, VoidCallback? onTap}) {
+    final enabled = onTap != null;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 26,
+        height: 26,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: enabled ? AppColors.surfaceLight : AppColors.surfaceLight.withOpacity(0.3),
+          border: Border.all(
+            color: enabled ? AppColors.textSecondary : AppColors.textMuted.withOpacity(0.2),
+          ),
+        ),
+        child: Icon(
+          icon,
+          size: 12,
+          color: enabled ? AppColors.textPrimary : AppColors.textMuted.withOpacity(0.3),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStaffTile({
+    required IconData icon,
+    required String label,
+    required String subtitle,
+    required int count,
+    VoidCallback? onDec,
+    VoidCallback? onInc,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.surfaceLight),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: AppColors.accent, size: 22),
+          const SizedBox(height: 6),
+          Text(label,
+              style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textMuted,
+                  letterSpacing: 0.5)),
+          Text(subtitle,
+              style: TextStyle(fontSize: 10, color: AppColors.textMuted)),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _circleButton(
+                  icon: PhosphorIcons.minus(PhosphorIconsStyle.bold),
+                  onTap: onDec),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                child: Text(
+                  '$count',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: count > 0 ? AppColors.textPrimary : AppColors.textMuted,
+                  ),
+                ),
+              ),
+              _circleButton(
+                  icon: PhosphorIcons.plus(PhosphorIconsStyle.bold),
+                  onTap: onInc),
+            ],
+          ),
         ],
-      ],
+      ),
+    );
+  }
+
+  Widget _buildApothecaryTile({
+    required bool allowed,
+    required bool enabled,
+    required bool canToggle,
+    required ValueChanged<bool> onToggle,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: enabled ? AppColors.success.withOpacity(0.5) : AppColors.surfaceLight,
+        ),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            PhosphorIcons.firstAidKit(PhosphorIconsStyle.fill),
+            color: allowed ? AppColors.accent : AppColors.textMuted,
+            size: 22,
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'BOTICARIO',
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textMuted,
+              letterSpacing: 0.5,
+            ),
+          ),
+          Text(
+            allowed ? '50k (Max 1)' : 'No disponible',
+            style: TextStyle(fontSize: 10, color: AppColors.textMuted),
+          ),
+          const SizedBox(height: 8),
+          Switch(
+            value: enabled && allowed,
+            onChanged: allowed && canToggle ? onToggle : null,
+            activeColor: AppColors.success,
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+        ],
+      ),
     );
   }
 
