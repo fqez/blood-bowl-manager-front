@@ -4,10 +4,15 @@ import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/register_screen.dart';
 import '../../features/dashboard/presentation/screens/dashboard_screen.dart';
 import '../../features/league/presentation/screens/league_overview_screen.dart';
-import '../../features/roster/presentation/screens/roster_screen.dart';
+import '../../features/my_teams/presentation/screens/my_team_detail_screen.dart';
 import '../../features/roster/presentation/screens/player_card_screen.dart';
 import '../../features/aftermatch/presentation/screens/aftermatch_screen.dart';
 import '../../features/team_creator/presentation/screens/team_creator_screen.dart';
+import '../../features/my_teams/presentation/screens/my_teams_screen.dart';
+import '../../features/my_teams/presentation/screens/my_team_detail_screen.dart';
+import '../../features/leagues/presentation/screens/leagues_screen.dart';
+import '../../features/leagues/presentation/screens/create_league_screen.dart';
+import '../../features/leagues/presentation/screens/join_league_screen.dart';
 import '../../features/auth/data/providers/auth_provider.dart';
 import '../shell/app_shell.dart';
 
@@ -15,7 +20,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateProvider);
 
   return GoRouter(
-    initialLocation: '/dashboard',
+    initialLocation: '/leagues',
     redirect: (context, state) {
       final isLoggedIn = authState.valueOrNull?.isAuthenticated ?? false;
       final isAuthRoute = state.matchedLocation == '/login' ||
@@ -26,7 +31,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       }
 
       if (isLoggedIn && isAuthRoute) {
-        return '/dashboard';
+        return '/leagues';
       }
 
       return null;
@@ -54,6 +59,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const DashboardScreen(),
           ),
           GoRoute(
+            path: '/leagues',
+            name: 'leagues',
+            builder: (context, state) => const LeaguesScreen(),
+          ),
+          GoRoute(
+            path: '/leagues/create',
+            name: 'create-league',
+            builder: (context, state) => const CreateLeagueScreen(),
+          ),
+          GoRoute(
+            path: '/leagues/join',
+            name: 'join-league',
+            builder: (context, state) => const JoinLeagueScreen(),
+          ),
+          GoRoute(
             path: '/league/:leagueId',
             name: 'league',
             builder: (context, state) {
@@ -67,7 +87,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 builder: (context, state) {
                   final leagueId = state.pathParameters['leagueId']!;
                   final teamId = state.pathParameters['teamId']!;
-                  return RosterScreen(leagueId: leagueId, teamId: teamId);
+                  return MyTeamDetailScreen(teamId: teamId, leagueId: leagueId);
                 },
                 routes: [
                   GoRoute(
@@ -107,6 +127,34 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               final leagueId = state.uri.queryParameters['leagueId'];
               return TeamCreatorScreen(leagueId: leagueId);
             },
+          ),
+          GoRoute(
+            path: '/teams',
+            name: 'my-teams',
+            builder: (context, state) => const MyTeamsScreen(),
+          ),
+          GoRoute(
+            path: '/teams/:teamId',
+            name: 'my-team-detail',
+            builder: (context, state) {
+              final teamId = state.pathParameters['teamId']!;
+              return MyTeamDetailScreen(teamId: teamId);
+            },
+            routes: [
+              GoRoute(
+                path: 'player/:playerId',
+                name: 'my-team-player',
+                builder: (context, state) {
+                  final teamId = state.pathParameters['teamId']!;
+                  final playerId = state.pathParameters['playerId']!;
+                  return PlayerCardScreen(
+                    leagueId: '',
+                    teamId: teamId,
+                    playerId: playerId,
+                  );
+                },
+              ),
+            ],
           ),
         ],
       ),

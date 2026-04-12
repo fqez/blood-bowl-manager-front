@@ -143,11 +143,11 @@ class DashboardScreen extends ConsumerWidget {
         int totalCasualties = 0;
 
         for (final league in leagues) {
-          for (final team in league.teams) {
-            totalMatches += team.gamesPlayed;
-            totalWins += team.wins;
-            totalSpp += team.touchdownsFor * 3; // Simplified SPP calculation
-            totalCasualties += team.casualtiesFor;
+          for (final standing in league.standings) {
+            totalMatches += standing.gamesPlayed;
+            totalWins += standing.wins;
+            totalSpp += standing.touchdownsFor * 3; // Simplified SPP calculation
+            totalCasualties += standing.casualtiesFor;
           }
         }
 

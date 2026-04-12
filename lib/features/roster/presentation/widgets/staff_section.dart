@@ -13,6 +13,7 @@ class StaffSection extends StatelessWidget {
   final VoidCallback onBuyAssistant;
   final VoidCallback onBuyCheerleader;
   final int treasury;
+  final bool readOnly;
 
   const StaffSection({
     super.key,
@@ -26,6 +27,7 @@ class StaffSection extends StatelessWidget {
     required this.onBuyAssistant,
     required this.onBuyCheerleader,
     required this.treasury,
+    this.readOnly = false,
   });
 
   @override
@@ -52,33 +54,33 @@ class StaffSection extends StatelessWidget {
               label: 'Re-rolls',
               count: rerolls,
               cost: rerollCost,
-              canBuy: treasury >= rerollCost,
-              onBuy: onBuyReroll,
+              canBuy: !readOnly && treasury >= rerollCost,
+              onBuy: readOnly ? null : onBuyReroll,
             ),
             _buildStaffCard(
               icon: PhosphorIcons.firstAidKit(PhosphorIconsStyle.fill),
               label: 'Apotecario',
               count: hasApothecary ? 1 : 0,
               cost: 50000,
-              canBuy: !hasApothecary && treasury >= 50000,
+              canBuy: !readOnly && !hasApothecary && treasury >= 50000,
               maxCount: 1,
-              onBuy: hasApothecary ? null : onBuyApothecary,
+              onBuy: (readOnly || hasApothecary) ? null : onBuyApothecary,
             ),
             _buildStaffCard(
               icon: PhosphorIcons.chalkboardTeacher(PhosphorIconsStyle.fill),
               label: 'Asistentes',
               count: assistantCoaches,
               cost: 10000,
-              canBuy: treasury >= 10000,
-              onBuy: onBuyAssistant,
+              canBuy: !readOnly && treasury >= 10000,
+              onBuy: readOnly ? null : onBuyAssistant,
             ),
             _buildStaffCard(
               icon: PhosphorIcons.megaphone(PhosphorIconsStyle.fill),
               label: 'Animadoras',
               count: cheerleaders,
               cost: 10000,
-              canBuy: treasury >= 10000,
-              onBuy: onBuyCheerleader,
+              canBuy: !readOnly && treasury >= 10000,
+              onBuy: readOnly ? null : onBuyCheerleader,
             ),
           ],
         ),

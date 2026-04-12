@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../auth/data/providers/auth_provider.dart';
 import '../../../shared/data/repositories.dart';
 import '../../domain/models/team.dart';
 import '../widgets/player_row.dart';
@@ -33,6 +34,7 @@ class _RosterScreenState extends ConsumerState<RosterScreen> {
     final teamAsync = ref.watch(teamProvider(widget.teamId));
     final screenWidth = MediaQuery.of(context).size.width;
     final isWide = screenWidth >= 800;
+    final currentUserId = ref.watch(authStateProvider).valueOrNull?.user?.id;
 
     return Scaffold(
       body: teamAsync.when(
@@ -49,30 +51,37 @@ class _RosterScreenState extends ConsumerState<RosterScreen> {
             ],
           ),
         ),
-        data: (team) => _buildContent(context, team, isWide),
+        data: (team) {
+          final isOwner = currentUserId != null && team.ownerId == currentUserId;
+          return _buildContent(context, team, isWide, isOwner);
+        },
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showAddPlayerDialog(context),
-        label: const Text('Fichar'),
-        icon: Icon(PhosphorIcons.userPlus(PhosphorIconsStyle.bold)),
-      ),
+      floatingActionButton: teamAsync.valueOrNull != null &&
+              currentUserId != null &&
+              teamAsync.valueOrNull!.ownerId == currentUserId
+          ? FloatingActionButton.extended(
+              onPressed: () => _showAddPlayerDialog(context),
+              label: const Text('Fichar'),
+              icon: Icon(PhosphorIcons.userPlus(PhosphorIconsStyle.bold)),
+            )
+          : null,
     );
   }
 
-  Widget _buildContent(BuildContext context, Team team, bool isWide) {
+  Widget _buildContent(BuildContext context, Team team, bool isWide, bool isOwner) {
     return CustomScrollView(
       slivers: [
-        _buildHeader(team, isWide),
-        SliverToBoxAdapter(child: _buildTreasuryBar(team)),
+        _buildHeader(team, isWide, isOwner),
+        SliverToBoxAdapter(child: _buildTreasuryBar(team, isOwner)),
         SliverToBoxAdapter(child: _buildFilters()),
         _buildPlayerList(team),
-        SliverToBoxAdapter(child: _buildStaffSection(team)),
+        SliverToBoxAdapter(child: _buildStaffSection(team, isOwner)),
         const SliverToBoxAdapter(child: SizedBox(height: 80)),
       ],
     );
   }
 
-  Widget _buildHeader(Team team, bool isWide) {
+  Widget _buildHeader(Team team, bool isWide, bool isOwner) {
     return SliverAppBar(
       expandedHeight: isWide ? 180 : 140,
       pinned: true,
@@ -81,16 +90,30 @@ class _RosterScreenState extends ConsumerState<RosterScreen> {
         onPressed: () => context.go('/league/${widget.leagueId}'),
       ),
       actions: [
-        IconButton(
-          icon: Icon(PhosphorIcons.pencilSimple(PhosphorIconsStyle.bold)),
-          onPressed: () {},
-          tooltip: 'Editar equipo',
-        ),
-        IconButton(
-          icon: Icon(PhosphorIcons.gear(PhosphorIconsStyle.bold)),
-          onPressed: () {},
-          tooltip: 'Configuración',
-        ),
+        if (isOwner) ...[
+          IconButton(
+            icon: Icon(PhosphorIcons.pencilSimple(PhosphorIconsStyle.bold)),
+            onPressed: () {},
+            tooltip: 'Editar equipo',
+          ),
+          IconButton(
+            icon: Icon(PhosphorIcons.gear(PhosphorIconsStyle.bold)),
+            onPressed: () {},
+            tooltip: 'Configuración',
+          ),
+        ] else
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Chip(
+              label: Text('Solo lectura',
+                  style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
+              backgroundColor: AppColors.surfaceLight,
+              side: BorderSide.none,
+              padding: EdgeInsets.zero,
+              avatar: Icon(PhosphorIcons.eye(PhosphorIconsStyle.regular),
+                  size: 14, color: AppColors.textMuted),
+            ),
+          ),
       ],
       flexibleSpace: FlexibleSpaceBar(
         background: Container(
@@ -195,7 +218,7 @@ class _RosterScreenState extends ConsumerState<RosterScreen> {
     );
   }
 
-  Widget _buildTreasuryBar(Team team) {
+  Widget _buildTreasuryBar(Team team, bool isOwner) {
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(16),
@@ -231,11 +254,13 @@ class _RosterScreenState extends ConsumerState<RosterScreen> {
             ],
           ),
           const Spacer(),
-          _buildQuickBuyButton('Re-roll', team.rerollCost,
-              () => _buyReroll(team)),
-          const SizedBox(width: 8),
-          _buildQuickBuyButton('Apotecario', team.apothecary ? null : 50000,
-              team.apothecary ? null : () => _buyApothecary(team)),
+          if (isOwner) ...[
+            _buildQuickBuyButton('Re-roll', team.rerollCost,
+                () => _buyReroll(team)),
+            const SizedBox(width: 8),
+            _buildQuickBuyButton('Apotecario', team.apothecary ? null : 50000,
+                team.apothecary ? null : () => _buyApothecary(team)),
+          ],
         ],
       ),
     );
@@ -367,7 +392,7 @@ class _RosterScreenState extends ConsumerState<RosterScreen> {
     );
   }
 
-  Widget _buildStaffSection(Team team) {
+  Widget _buildStaffSection(Team team, bool isOwner) {
     return Padding(
       padding: const EdgeInsets.all(16),
       child: StaffSection(
@@ -381,6 +406,7 @@ class _RosterScreenState extends ConsumerState<RosterScreen> {
         onBuyAssistant: () => _buyAssistant(team),
         onBuyCheerleader: () => _buyCheerleader(team),
         treasury: team.treasury,
+        readOnly: !isOwner,
       ),
     );
   }

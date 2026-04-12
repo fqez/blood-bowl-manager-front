@@ -8,6 +8,7 @@ import '../../domain/models/league.dart';
 import '../widgets/standings_table.dart';
 import '../widgets/match_card.dart';
 import '../widgets/activity_feed.dart';
+import '../widgets/bracket_widget.dart';
 
 // Providers
 final leagueProvider = FutureProvider.family<League, String>((ref, leagueId) async {
@@ -18,6 +19,11 @@ final leagueProvider = FutureProvider.family<League, String>((ref, leagueId) asy
 final matchesProvider = FutureProvider.family<List<Match>, String>((ref, leagueId) async {
   final repository = ref.watch(leagueRepositoryProvider);
   return repository.getLeagueMatches(leagueId);
+});
+
+final leagueFormatProvider = FutureProvider.family<String, String>((ref, leagueId) async {
+  final repository = ref.watch(leagueRepositoryProvider);
+  return repository.getLeagueFormat(leagueId);
 });
 
 class LeagueOverviewScreen extends ConsumerStatefulWidget {
@@ -36,7 +42,7 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
   }
 
   @override
@@ -67,6 +73,7 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
                   _buildCalendarTab(league),
                   _buildCurrentRoundTab(league, isWideScreen),
                   _buildStatsTab(league),
+                  _buildBracketTab(),
                 ],
               ),
             ),
@@ -101,7 +108,7 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Text(
-                'Temporada ${leagueAsync.value!.currentSeason}',
+                'Temporada ${leagueAsync.value!.season}',
                 style: TextStyle(
                   fontSize: 12,
                   color: AppColors.textSecondary,
@@ -110,7 +117,7 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
             ),
             const SizedBox(width: 8),
             DropdownButton<int>(
-              value: leagueAsync.value!.currentRound,
+              value: leagueAsync.value!.currentRound ?? 1,
               underline: const SizedBox(),
               dropdownColor: AppColors.surface,
               items: List.generate(
@@ -184,6 +191,16 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
                 Icon(PhosphorIcons.chartBar(PhosphorIconsStyle.regular), size: 18),
                 const SizedBox(width: 8),
                 const Text('Estadísticas'),
+              ],
+            ),
+          ),
+          Tab(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(PhosphorIcons.graph(PhosphorIconsStyle.regular), size: 18),
+                const SizedBox(width: 8),
+                const Text('Bracket'),
               ],
             ),
           ),
@@ -324,7 +341,7 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
           ],
         ),
         const SizedBox(height: 16),
-        StandingsTable(teams: league.teams, leagueId: widget.leagueId),
+        StandingsTable(standings: league.standings, leagueId: widget.leagueId),
       ],
     );
   }
@@ -452,7 +469,7 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
             final round = index + 1;
             final roundMatches = matchesByRound[round] ?? [];
 
-            return _buildRoundSection(round, roundMatches, league.currentRound);
+            return _buildRoundSection(round, roundMatches, league.currentRound ?? 1);
           },
         );
       },
@@ -555,7 +572,7 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
         children: [
           Expanded(
             child: Text(
-              match.homeTeamName,
+              match.home.teamName,
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
@@ -578,7 +595,7 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
           ),
           Expanded(
             child: Text(
-              match.awayTeamName,
+              match.away.teamName,
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
@@ -695,6 +712,45 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
     );
   }
 
+  Widget _buildBracketTab() {
+    final formatAsync = ref.watch(leagueFormatProvider(widget.leagueId));
+    final matchesAsync = ref.watch(matchesProvider(widget.leagueId));
+
+    return formatAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (_, __) => const Center(child: Text('Error al cargar formato')),
+      data: (format) {
+        if (format != 'knockout') {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(PhosphorIcons.graph(PhosphorIconsStyle.light),
+                    size: 56, color: AppColors.textMuted),
+                const SizedBox(height: 16),
+                Text(
+                  'Solo disponible en ligas eliminatorias',
+                  style: TextStyle(fontSize: 16, color: AppColors.textMuted),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Este formato es "${format == 'round_robin' ? 'Liga' : format}"',
+                  style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return matchesAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (err, _) => Center(child: Text('Error: $err')),
+          data: (matches) => BracketWidget(matches: matches),
+        );
+      },
+    );
+  }
+
   void _showTeamsDialog() {
     showDialog(
       context: context,
@@ -722,8 +778,7 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
                       ),
                     ),
                     title: Text(team.teamName),
-                    subtitle: Text('${team.baseTeamName} • Coach: ${team.coachName}'),
-                    trailing: Text('TV: ${team.teamValue ~/ 1000}k'),
+                    subtitle: Text('Coach: ${team.username}'),
                     onTap: () {
                       Navigator.pop(context);
                       context.go('/league/${widget.leagueId}/team/${team.teamId}');

@@ -15,66 +15,123 @@ class RaceCard extends StatelessWidget {
     required this.onTap,
   });
 
+  Color get _tierColor {
+    switch (race.tier) {
+      case 1:
+        return AppColors.success;
+      case 2:
+        return AppColors.accent;
+      case 3:
+        return AppColors.warning;
+      default:
+        return AppColors.textMuted;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: isSelected ? AppColors.primary.withOpacity(0.2) : AppColors.card,
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isSelected ? AppColors.primary : AppColors.surfaceLight,
-              width: isSelected ? 2 : 1,
-            ),
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeInOut,
+        height: 270, // Mucho más alta para evitar cualquier overflow
+        decoration: BoxDecoration(
+          color:
+              isSelected ? AppColors.primary.withOpacity(0.12) : AppColors.card,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isSelected ? AppColors.primary : AppColors.surfaceLight,
+            width: isSelected ? 2 : 1,
           ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Race icon
-              Flexible(
-                child: Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceLight,
-                    shape: BoxShape.circle,
-                    border: isSelected
-                        ? Border.all(color: AppColors.primary, width: 2)
-                        : null,
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: AppColors.primary.withOpacity(0.30),
+                    blurRadius: 10,
+                    spreadRadius: 0,
                   ),
-                  child: ClipOval(
-                    child: Image.asset(
-                      'teams/${race.id}/logo.png',
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Icon(
-                        PhosphorIcons.shield(PhosphorIconsStyle.fill),
-                        color: AppColors.textMuted,
-                        size: 20,
-                      ),
+                ]
+              : null,
+        ),
+        clipBehavior: Clip.hardEdge,
+        child: Stack(
+          children: [
+            // Tier badge top-right
+            if (race.tier != null)
+              Positioned(
+                top: 10,
+                right: 10,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _tierColor.withOpacity(0.18),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: _tierColor.withOpacity(0.45)),
+                  ),
+                  child: Text(
+                    'TIER ${race.tier}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: _tierColor,
+                      letterSpacing: 0.8,
                     ),
                   ),
                 ),
               ),
-              const SizedBox(height: 6),
-              Text(
-                race.name,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: isSelected ? AppColors.primary : AppColors.textPrimary,
+            // Main content: logo centered, name below
+            Center(
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(vertical: 28, horizontal: 10),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: 90,
+                      height: 90,
+                      child: Image.asset(
+                        'teams/${race.id}/logo.webp',
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, __, ___) => Icon(
+                          PhosphorIcons.shield(PhosphorIconsStyle.fill),
+                          color: AppColors.textMuted,
+                          size: 64,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    Text(
+                      race.name.toUpperCase(),
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontFamily: AppTextStyles.displayFont,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: isSelected
+                            ? AppColors.primary
+                            : AppColors.textPrimary,
+                        letterSpacing: 1.0,
+                        height: 1.1,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (isSelected) ...[
+                      const SizedBox(height: 12),
+                      Icon(
+                        PhosphorIcons.checkCircle(PhosphorIconsStyle.fill),
+                        size: 26,
+                        color: AppColors.primary,
+                      ),
+                    ],
+                  ],
                 ),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

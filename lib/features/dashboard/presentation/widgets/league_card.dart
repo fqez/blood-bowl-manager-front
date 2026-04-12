@@ -170,7 +170,11 @@ class LeagueCard extends StatelessWidget {
       case LeagueStatus.paused:
         return AppColors.warning;
       case LeagueStatus.finished:
+      case LeagueStatus.completed:
+      case LeagueStatus.cancelled:
         return AppColors.textMuted;
+      case LeagueStatus.draft:
+        return AppColors.warning;
     }
   }
 
@@ -182,6 +186,12 @@ class LeagueCard extends StatelessWidget {
         return 'PAUSADA';
       case LeagueStatus.finished:
         return 'FINALIZADA';
+      case LeagueStatus.completed:
+        return 'COMPLETADA';
+      case LeagueStatus.cancelled:
+        return 'CANCELADA';
+      case LeagueStatus.draft:
+        return 'INSCRIPCIÓN';
     }
   }
 }

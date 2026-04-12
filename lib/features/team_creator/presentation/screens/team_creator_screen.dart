@@ -17,7 +17,8 @@ final baseRostersProvider = FutureProvider<List<BaseTeam>>((ref) async {
 });
 
 // Provider para obtener el detalle de un roster específico
-final baseRosterDetailProvider = FutureProvider.family<BaseTeam, String>((ref, rosterId) async {
+final baseRosterDetailProvider =
+    FutureProvider.family<BaseTeam, String>((ref, rosterId) async {
   final repository = ref.watch(teamRepositoryProvider);
   return repository.getBaseTeamDetail(rosterId);
 });
@@ -33,6 +34,19 @@ class TeamCreatorScreen extends ConsumerStatefulWidget {
 
 class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
   int _currentStep = 0;
+  late final TextEditingController _teamNameController;
+
+  @override
+  void initState() {
+    super.initState();
+    _teamNameController = TextEditingController(text: _teamName);
+  }
+
+  @override
+  void dispose() {
+    _teamNameController.dispose();
+    super.dispose();
+  }
 
   // Team data
   String _teamName = '';
@@ -43,6 +57,7 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
   int _assistantCoaches = 0;
   int _cheerleaders = 0;
   bool _loadingRaceDetail = false;
+  bool _isCreating = false;
 
   static const int _startingBudget = 1000000;
 
@@ -72,7 +87,8 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
   /// Selecciona una raza y carga su detalle completo desde el backend
   Future<void> _selectRace(BaseTeam raceSummary) async {
     // Si ya está seleccionada y tenemos el detalle, no hacer nada
-    if (_selectedRace?.id == raceSummary.id && _selectedRace!.positions.isNotEmpty) {
+    if (_selectedRace?.id == raceSummary.id &&
+        _selectedRace!.positions.isNotEmpty) {
       return;
     }
 
@@ -130,100 +146,65 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
   }
 
   Widget _buildDesktopLayout() {
-    return Row(
+    return Column(
       children: [
-        // Sidebar con pasos
+        // Header con título del paso actual
         Container(
-          width: 260,
-          color: AppColors.surface,
-          child: Column(
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            border: Border(bottom: BorderSide(color: AppColors.surfaceLight)),
+          ),
+          child: Row(
             children: [
-              // Header
-              Container(
-                padding: const EdgeInsets.all(20),
-                child: Row(
-                  children: [
-                    IconButton(
-                      icon: Icon(PhosphorIcons.arrowLeft(PhosphorIconsStyle.bold)),
-                      onPressed: () => _showExitDialog(context),
-                      color: AppColors.textSecondary,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Crear Equipo',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                  ],
+              IconButton(
+                icon: Icon(PhosphorIcons.arrowLeft(PhosphorIconsStyle.bold)),
+                onPressed: () => _showExitDialog(context),
+                color: AppColors.textSecondary,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                _getStepTitle(),
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
                 ),
               ),
-              const Divider(height: 1),
-              // Steps verticales
-              Expanded(child: _buildVerticalSteps()),
-              // Budget bar en sidebar
+              if (_currentStep == 1 && _selectedRace != null) ...[
+                const SizedBox(width: 12),
+                Icon(PhosphorIcons.caretRight(PhosphorIconsStyle.bold),
+                    size: 14, color: AppColors.textMuted),
+                const SizedBox(width: 8),
+                Text(
+                  _teamName.isNotEmpty ? _teamName : 'Nuevo Equipo',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+              const Spacer(),
               if (_currentStep > 0)
-                Padding(
-                  padding: const EdgeInsets.all(16),
+                SizedBox(
+                  width: 220,
                   child: BudgetBar(spent: _spent, total: _startingBudget),
                 ),
+              const SizedBox(width: 24),
+              _buildDesktopNavigationButtons(),
             ],
           ),
         ),
-        // Contenido principal - usa todo el espacio
+        // Contenido scrolleable
         Expanded(
-          child: Column(
-            children: [
-              // Header con título del paso actual
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  border: Border(bottom: BorderSide(color: AppColors.surfaceLight)),
-                ),
-                child: Row(
-                  children: [
-                    Text(
-                      _getStepTitle(),
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    if (_currentStep == 1 && _selectedRace != null) ...[
-                      const SizedBox(width: 12),
-                      Icon(PhosphorIcons.caretRight(PhosphorIconsStyle.bold),
-                          size: 14, color: AppColors.textMuted),
-                      const SizedBox(width: 8),
-                      Text(
-                        _teamName.isNotEmpty ? _teamName : 'Nuevo Equipo',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ],
-                    const Spacer(),
-                    _buildDesktopNavigationButtons(),
-                  ],
-                ),
-              ),
-              // Contenido scrolleable
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.only(
-                    left: _currentStep == 1 ? 0 : 32,
-                    right: _currentStep == 1 ? 0 : 32,
-                    top: _currentStep == 1 ? 0 : 32,
-                    bottom: 32,
-                  ),
-                  child: _buildCurrentStep(true),
-                ),
-              ),
-            ],
+          child: SingleChildScrollView(
+            padding: EdgeInsets.only(
+              left: _currentStep == 1 ? 0 : 32,
+              right: _currentStep == 1 ? 0 : 32,
+              top: _currentStep == 1 ? 0 : 32,
+              bottom: 32,
+            ),
+            child: _buildCurrentStep(true),
           ),
         ),
       ],
@@ -237,8 +218,6 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
       case 1:
         return 'Ficha jugadores';
       case 2:
-        return 'Personal y equipo';
-      case 3:
         return 'Confirmar equipo';
       default:
         return '';
@@ -249,8 +228,7 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
     return Column(
       children: [
         _buildProgressSteps(),
-        if (_currentStep > 0)
-          BudgetBar(spent: _spent, total: _startingBudget),
+        if (_currentStep > 0) BudgetBar(spent: _spent, total: _startingBudget),
         Expanded(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
@@ -279,7 +257,8 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
         final step = steps[index];
 
         return InkWell(
-          onTap: isCompleted ? () => setState(() => _currentStep = index) : null,
+          onTap:
+              isCompleted ? () => setState(() => _currentStep = index) : null,
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
             decoration: BoxDecoration(
@@ -367,7 +346,7 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
   }
 
   Widget _buildDesktopNavigationButtons() {
-    final canProceed = _canProceed();
+    final canProceed = _canProceed() && !_isCreating;
 
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -375,7 +354,8 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
         if (_currentStep > 0) ...[
           OutlinedButton.icon(
             onPressed: () => setState(() => _currentStep--),
-            icon: Icon(PhosphorIcons.arrowLeft(PhosphorIconsStyle.bold), size: 16),
+            icon: Icon(PhosphorIcons.arrowLeft(PhosphorIconsStyle.bold),
+                size: 16),
             label: const Text('Anterior'),
             style: OutlinedButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -386,7 +366,7 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
         ElevatedButton.icon(
           onPressed: canProceed
               ? () {
-                  if (_currentStep < 3) {
+                  if (_currentStep < 2) {
                     setState(() => _currentStep++);
                   } else {
                     _createTeam();
@@ -394,12 +374,21 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
                 }
               : null,
           icon: Icon(
-            _currentStep < 3
+            _currentStep < 2
                 ? PhosphorIcons.arrowRight(PhosphorIconsStyle.bold)
                 : PhosphorIcons.check(PhosphorIconsStyle.bold),
             size: 16,
           ),
-          label: Text(_currentStep < 3 ? 'Siguiente' : 'Crear Equipo'),
+          label: _isCreating && _currentStep == 2
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : Text(_currentStep < 2 ? 'Siguiente' : 'Crear Equipo'),
           style: ElevatedButton.styleFrom(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           ),
@@ -409,7 +398,7 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
   }
 
   Widget _buildProgressSteps() {
-    final steps = ['Raza', 'Roster', 'Personal', 'Confirmar'];
+    final steps = ['Raza', 'Roster', 'Confirmar'];
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -484,8 +473,6 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
       case 1:
         return _buildRosterStep(isWide);
       case 2:
-        return _buildStaffStep(isWide);
-      case 3:
         return _buildConfirmStep(isWide);
       default:
         return const SizedBox.shrink();
@@ -592,7 +579,8 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
                           decoration: BoxDecoration(
                             color: AppColors.surface,
                             shape: BoxShape.circle,
-                            border: Border.all(color: AppColors.primary, width: 2),
+                            border:
+                                Border.all(color: AppColors.primary, width: 2),
                           ),
                           child: ClipOval(
                             child: Image.asset(
@@ -669,10 +657,10 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: isWide ? 6 : 3,
-            childAspectRatio: 1.0,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
+            crossAxisCount: isWide ? 5 : 3,
+            childAspectRatio: 2.4,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
           ),
           itemCount: races.length,
           itemBuilder: (context, index) {
@@ -806,8 +794,10 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
                             color: AppColors.primary.withOpacity(0.3),
                             borderRadius: BorderRadius.circular(6),
                           ),
-                          child: Icon(PhosphorIcons.shield(PhosphorIconsStyle.fill),
-                              color: AppColors.primary, size: 20),
+                          child: Icon(
+                              PhosphorIcons.shield(PhosphorIconsStyle.fill),
+                              color: AppColors.primary,
+                              size: 20),
                         ),
                       ),
                     ),
@@ -876,7 +866,7 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
     }
 
     // ── Tabla de reclutamiento ────────────────────────────────────────────────
-    Widget buildRecruitmentTable() {
+    Widget buildRecruitmentTable(bool wide) {
       return Container(
         decoration: BoxDecoration(
           color: AppColors.card,
@@ -904,13 +894,18 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: (_rosterCount >= 11 ? AppColors.success : AppColors.warning)
+                      color: (_rosterCount >= 11
+                              ? AppColors.success
+                              : AppColors.warning)
                           .withOpacity(0.15),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: _rosterCount >= 11 ? AppColors.success : AppColors.warning,
+                        color: _rosterCount >= 11
+                            ? AppColors.success
+                            : AppColors.warning,
                         width: 0.5,
                       ),
                     ),
@@ -919,32 +914,36 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: _rosterCount >= 11 ? AppColors.success : AppColors.warning,
+                        color: _rosterCount >= 11
+                            ? AppColors.success
+                            : AppColors.warning,
                       ),
                     ),
                   ),
                 ],
               ),
             ),
-            // Cabecera de columnas
-            Container(
-              color: AppColors.surfaceLight.withOpacity(0.5),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(
-                children: [
-                  const SizedBox(width: 8),
-                  _tableHeader('POSICIÓN', flex: 4),
-                  _tableHeader('MA', flex: 1, center: true),
-                  _tableHeader('ST', flex: 1, center: true),
-                  _tableHeader('AG', flex: 1, center: true),
-                  _tableHeader('PA', flex: 1, center: true),
-                  _tableHeader('AV', flex: 1, center: true),
-                  _tableHeader('HABILIDADES', flex: 5),
-                  _tableHeader('COSTE', flex: 2, center: true),
-                  _tableHeader('LÍMITE / CANTIDAD', flex: 4, center: true),
-                ],
+            // Cabecera de columnas (solo en wide)
+            if (wide)
+              Container(
+                color: AppColors.surfaceLight.withOpacity(0.5),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Row(
+                  children: [
+                    const SizedBox(width: 8),
+                    _tableHeader('POSICIÓN', flex: 4),
+                    _tableHeader('MA', flex: 1, center: true),
+                    _tableHeader('ST', flex: 1, center: true),
+                    _tableHeader('AG', flex: 1, center: true),
+                    _tableHeader('PA', flex: 1, center: true),
+                    _tableHeader('AV', flex: 1, center: true),
+                    _tableHeader('HABILIDADES', flex: 5),
+                    _tableHeader('COSTE', flex: 2, center: true),
+                    _tableHeader('LÍMITE / CANTIDAD', flex: 4, center: true),
+                  ],
+                ),
               ),
-            ),
             // Filas de posiciones
             if (positions.isEmpty)
               Padding(
@@ -957,7 +956,8 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
                 ),
               )
             else
-              ...positions.map((pos) => _buildPositionRow(pos)),
+              ...positions.map((pos) =>
+                  wide ? _buildPositionRow(pos) : _buildPositionCard(pos)),
           ],
         ),
       );
@@ -983,7 +983,8 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
                 color: AppColors.background,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: _remaining < 0 ? AppColors.error : AppColors.surfaceLight,
+                  color:
+                      _remaining < 0 ? AppColors.error : AppColors.surfaceLight,
                 ),
               ),
               child: Row(
@@ -1013,7 +1014,9 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: _remaining < 0 ? AppColors.error : AppColors.textPrimary,
+                            color: _remaining < 0
+                                ? AppColors.error
+                                : AppColors.textPrimary,
                           ),
                         ),
                       ],
@@ -1045,14 +1048,14 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
             ),
             const SizedBox(height: 6),
             TextField(
-              controller: TextEditingController(text: _teamName)
-                ..selection = TextSelection.collapsed(offset: _teamName.length),
+              controller: _teamNameController,
               style: TextStyle(color: AppColors.textPrimary, fontSize: 14),
               decoration: InputDecoration(
                 hintText: 'Ej. Gouged Eye',
                 hintStyle: TextStyle(color: AppColors.textMuted),
                 isDense: true,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                   borderSide: BorderSide(color: AppColors.surfaceLight),
@@ -1080,22 +1083,26 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
               Wrap(
                 spacing: 6,
                 runSpacing: 6,
-                children: race.specialRules.map((rule) => Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: AppColors.primary.withOpacity(0.4)),
-                  ),
-                  child: Text(
-                    rule,
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                )).toList(),
+                children: race.specialRules
+                    .map((rule) => Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                                color: AppColors.primary.withOpacity(0.4)),
+                          ),
+                          child: Text(
+                            rule,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ))
+                    .toList(),
               ),
               const SizedBox(height: 16),
             ],
@@ -1105,7 +1112,56 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
     }
 
     // ── Panel de staff ────────────────────────────────────────────────────────
-    Widget buildStaffPanel() {
+    Widget buildStaffPanel(bool wide) {
+      Widget rerollsTile() => Expanded(
+            child: _buildStaffTile(
+              icon: PhosphorIcons.arrowsClockwise(PhosphorIconsStyle.fill),
+              label: 'REROLLS',
+              subtitle: '${rerollCost ~/ 1000}k c/u',
+              count: _rerolls,
+              onDec: _rerolls > 0 ? () => setState(() => _rerolls--) : null,
+              onInc: _remaining >= rerollCost
+                  ? () => setState(() => _rerolls++)
+                  : null,
+            ),
+          );
+      Widget apoTile() => Expanded(
+            child: _buildApothecaryTile(
+              allowed: race?.apothecaryAllowed ?? true,
+              enabled: _apothecary,
+              canToggle: !_apothecary ? _remaining >= 50000 : true,
+              onToggle: (v) => setState(() => _apothecary = v),
+            ),
+          );
+      Widget cheerTile() => Expanded(
+            child: _buildStaffTile(
+              icon: PhosphorIcons.megaphone(PhosphorIconsStyle.fill),
+              label: 'ANIMADORAS',
+              subtitle: '10k c/u',
+              count: _cheerleaders,
+              onDec: _cheerleaders > 0
+                  ? () => setState(() => _cheerleaders--)
+                  : null,
+              onInc: _remaining >= 10000
+                  ? () => setState(() => _cheerleaders++)
+                  : null,
+            ),
+          );
+      Widget assistTile() => Expanded(
+            child: _buildStaffTile(
+              icon: PhosphorIcons.chalkboardTeacher(PhosphorIconsStyle.fill),
+              label: 'ASISTENTES',
+              subtitle: '10k c/u',
+              count: _assistantCoaches,
+              onDec: _assistantCoaches > 0
+                  ? () => setState(() => _assistantCoaches--)
+                  : null,
+              onInc: _remaining >= 10000
+                  ? () => setState(() => _assistantCoaches++)
+                  : null,
+            ),
+          );
+
       return Container(
         decoration: BoxDecoration(
           color: AppColors.card,
@@ -1126,55 +1182,29 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            Row(
-              children: [
-                // Re-rolls
-                Expanded(
-                  child: _buildStaffTile(
-                    icon: PhosphorIcons.arrowsClockwise(PhosphorIconsStyle.fill),
-                    label: 'REROLLS',
-                    subtitle: '${rerollCost ~/ 1000}k c/u',
-                    count: _rerolls,
-                    onDec: _rerolls > 0 ? () => setState(() => _rerolls--) : null,
-                    onInc: _remaining >= rerollCost ? () => setState(() => _rerolls++) : null,
-                  ),
-                ),
+            if (wide)
+              Row(children: [
+                rerollsTile(),
                 const SizedBox(width: 12),
-                // Boticario
-                Expanded(
-                  child: _buildApothecaryTile(
-                    allowed: race?.apothecaryAllowed ?? true,
-                    enabled: _apothecary,
-                    canToggle: !_apothecary ? _remaining >= 50000 : true,
-                    onToggle: (v) => setState(() => _apothecary = v),
-                  ),
-                ),
+                apoTile(),
                 const SizedBox(width: 12),
-                // Animadoras
-                Expanded(
-                  child: _buildStaffTile(
-                    icon: PhosphorIcons.megaphone(PhosphorIconsStyle.fill),
-                    label: 'ANIMADORAS',
-                    subtitle: '10k c/u',
-                    count: _cheerleaders,
-                    onDec: _cheerleaders > 0 ? () => setState(() => _cheerleaders--) : null,
-                    onInc: _remaining >= 10000 ? () => setState(() => _cheerleaders++) : null,
-                  ),
-                ),
+                cheerTile(),
                 const SizedBox(width: 12),
-                // Asistentes
-                Expanded(
-                  child: _buildStaffTile(
-                    icon: PhosphorIcons.chalkboardTeacher(PhosphorIconsStyle.fill),
-                    label: 'ASISTENTES',
-                    subtitle: '10k c/u',
-                    count: _assistantCoaches,
-                    onDec: _assistantCoaches > 0 ? () => setState(() => _assistantCoaches--) : null,
-                    onInc: _remaining >= 10000 ? () => setState(() => _assistantCoaches++) : null,
-                  ),
-                ),
-              ],
-            ),
+                assistTile(),
+              ])
+            else ...[
+              Row(children: [
+                rerollsTile(),
+                const SizedBox(width: 12),
+                apoTile()
+              ]),
+              const SizedBox(height: 12),
+              Row(children: [
+                cheerTile(),
+                const SizedBox(width: 12),
+                assistTile()
+              ]),
+            ],
           ],
         ),
       );
@@ -1183,51 +1213,70 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
     // ── Estado del roster ─────────────────────────────────────────────────────
     Widget buildRosterStatus() {
       final isValid = _rosterCount >= 11 && _remaining >= 0;
-      return Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isValid
-              ? AppColors.success.withOpacity(0.08)
-              : AppColors.warning.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isValid ? AppColors.success : AppColors.warning,
-            width: 0.5,
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              isValid
-                  ? PhosphorIcons.checkCircle(PhosphorIconsStyle.fill)
-                  : PhosphorIcons.warning(PhosphorIconsStyle.fill),
-              color: isValid ? AppColors.success : AppColors.warning,
-              size: 20,
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isValid
+                  ? AppColors.success.withOpacity(0.08)
+                  : AppColors.warning.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isValid ? AppColors.success : AppColors.warning,
+                width: 0.5,
+              ),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    isValid ? 'Roster Válido' : 'Roster Incompleto',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: isValid ? AppColors.success : AppColors.warning,
-                    ),
+            child: Row(
+              children: [
+                Icon(
+                  isValid
+                      ? PhosphorIcons.checkCircle(PhosphorIconsStyle.fill)
+                      : PhosphorIcons.warning(PhosphorIconsStyle.fill),
+                  color: isValid ? AppColors.success : AppColors.warning,
+                  size: 20,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        isValid ? 'Roster Válido' : 'Roster Incompleto',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color:
+                              isValid ? AppColors.success : AppColors.warning,
+                        ),
+                      ),
+                      Text(
+                        isValid
+                            ? 'Cumples con el mínimo de 11 jugadores y no superas el presupuesto.'
+                            : 'Necesitas al menos 11 jugadores (tienes $_rosterCount).',
+                        style: TextStyle(
+                            fontSize: 12, color: AppColors.textSecondary),
+                      ),
+                    ],
                   ),
-                  Text(
-                    isValid
-                        ? 'Cumples con el mínimo de 11 jugadores y no superas el presupuesto.'
-                        : 'Necesitas al menos 11 jugadores (tienes $_rosterCount).',
-                    style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                  ),
-                ],
+                ),
+              ],
+            ),
+          ),
+          if (isValid) ...[
+            const SizedBox(height: 12),
+            ElevatedButton.icon(
+              onPressed: () => setState(() => _currentStep++),
+              icon: Icon(PhosphorIcons.arrowRight(PhosphorIconsStyle.bold),
+                  size: 16),
+              label: const Text('Continuar a Confirmar'),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 14),
               ),
             ),
           ],
-        ),
+        ],
       );
     }
 
@@ -1237,7 +1286,8 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
       children: [
         buildHeader(),
         Padding(
-          padding: const EdgeInsets.fromLTRB(32, 24, 32, 32),
+          padding:
+              EdgeInsets.fromLTRB(isWide ? 32 : 16, 24, isWide ? 32 : 16, 32),
           child: isWide
               ? Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1256,9 +1306,9 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
                     Expanded(
                       child: Column(
                         children: [
-                          buildRecruitmentTable(),
+                          buildRecruitmentTable(true),
                           const SizedBox(height: 16),
-                          buildStaffPanel(),
+                          buildStaffPanel(true),
                           const SizedBox(height: 16),
                           buildRosterStatus(),
                         ],
@@ -1268,11 +1318,9 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
                 )
               : Column(
                   children: [
-                    buildIdentityPanel(),
+                    buildRecruitmentTable(false),
                     const SizedBox(height: 16),
-                    buildRecruitmentTable(),
-                    const SizedBox(height: 16),
-                    buildStaffPanel(),
+                    buildStaffPanel(false),
                     const SizedBox(height: 16),
                     buildRosterStatus(),
                   ],
@@ -1300,9 +1348,8 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
 
   Widget _buildPositionRow(BasePosition pos) {
     final hired = _roster.where((r) => r.position.id == pos.id).length;
-    final canHire = hired < pos.maxQuantity &&
-        _remaining >= pos.cost &&
-        _rosterCount < 16;
+    final canHire =
+        hired < pos.maxQuantity && _remaining >= pos.cost && _rosterCount < 16;
     final isMaxed = hired >= pos.maxQuantity;
 
     String _statCell(int val) => '$val';
@@ -1311,7 +1358,8 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
 
     return Container(
       decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: AppColors.surfaceLight, width: 0.5)),
+        border:
+            Border(top: BorderSide(color: AppColors.surfaceLight, width: 0.5)),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Row(
@@ -1346,7 +1394,8 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
           _statBadge(_statCell(pos.stats.ma), highlight: !isMaxed),
           _statBadge(_statCell(pos.stats.st), highlight: !isMaxed),
           _statBadge('${pos.stats.ag}+', highlight: !isMaxed),
-          _statBadge(pos.stats.pa == 0 ? '-' : '${pos.stats.pa}+', highlight: !isMaxed),
+          _statBadge(pos.stats.pa == 0 ? '-' : '${pos.stats.pa}+',
+              highlight: !isMaxed),
           _statBadge('${pos.stats.av}+', highlight: !isMaxed),
           // Habilidades
           Expanded(
@@ -1384,7 +1433,8 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
                   icon: PhosphorIcons.minus(PhosphorIconsStyle.bold),
                   onTap: hired > 0
                       ? () {
-                          final idx = _roster.lastIndexWhere((r) => r.position.id == pos.id);
+                          final idx = _roster
+                              .lastIndexWhere((r) => r.position.id == pos.id);
                           if (idx >= 0) setState(() => _roster.removeAt(idx));
                         }
                       : null,
@@ -1395,7 +1445,8 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: hired > 0 ? AppColors.textPrimary : AppColors.textMuted,
+                    color:
+                        hired > 0 ? AppColors.textPrimary : AppColors.textMuted,
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -1415,6 +1466,146 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildPositionCard(BasePosition pos) {
+    final hired = _roster.where((r) => r.position.id == pos.id).length;
+    final canHire =
+        hired < pos.maxQuantity && _remaining >= pos.cost && _rosterCount < 16;
+    final isMaxed = hired >= pos.maxQuantity;
+    final perkNames = pos.startingPerks.map((p) => p.name).join(', ');
+
+    return Container(
+      decoration: BoxDecoration(
+        border:
+            Border(top: BorderSide(color: AppColors.surfaceLight, width: 0.5)),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      child: Row(
+        children: [
+          Container(
+            width: 6,
+            height: 6,
+            margin: const EdgeInsets.only(right: 8, top: 2),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: isMaxed
+                  ? AppColors.textMuted.withOpacity(0.3)
+                  : canHire
+                      ? AppColors.success
+                      : AppColors.warning,
+            ),
+          ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  pos.name,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color:
+                        isMaxed ? AppColors.textMuted : AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Wrap(
+                  spacing: 4,
+                  runSpacing: 3,
+                  children: [
+                    _miniStat('${pos.stats.ma}'),
+                    _miniStat('${pos.stats.st}'),
+                    _miniStat('${pos.stats.ag}+'),
+                    _miniStat(pos.stats.pa == 0 ? '-' : '${pos.stats.pa}+'),
+                    _miniStat('${pos.stats.av}+'),
+                  ],
+                ),
+                if (perkNames.isNotEmpty) ...[
+                  const SizedBox(height: 3),
+                  Text(
+                    perkNames,
+                    style: TextStyle(fontSize: 10, color: AppColors.textMuted),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '${pos.cost ~/ 1000}k',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.accent,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _circleButton(
+                    icon: PhosphorIcons.minus(PhosphorIconsStyle.bold),
+                    onTap: hired > 0
+                        ? () {
+                            final idx = _roster
+                                .lastIndexWhere((r) => r.position.id == pos.id);
+                            if (idx >= 0) setState(() => _roster.removeAt(idx));
+                          }
+                        : null,
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Text(
+                      '$hired',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: hired > 0
+                            ? AppColors.textPrimary
+                            : AppColors.textMuted,
+                      ),
+                    ),
+                  ),
+                  _circleButton(
+                    icon: PhosphorIcons.plus(PhosphorIconsStyle.bold),
+                    onTap: canHire ? () => _hirePlayer(pos) : null,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    '/${pos.maxQuantity}',
+                    style: TextStyle(fontSize: 11, color: AppColors.textMuted),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _miniStat(String val) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceLight.withOpacity(0.7),
+        borderRadius: BorderRadius.circular(3),
+      ),
+      child: Text(
+        val,
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+          color: AppColors.textPrimary,
+        ),
       ),
     );
   }
@@ -1455,15 +1646,21 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
         height: 26,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: enabled ? AppColors.surfaceLight : AppColors.surfaceLight.withOpacity(0.3),
+          color: enabled
+              ? AppColors.surfaceLight
+              : AppColors.surfaceLight.withOpacity(0.3),
           border: Border.all(
-            color: enabled ? AppColors.textSecondary : AppColors.textMuted.withOpacity(0.2),
+            color: enabled
+                ? AppColors.textSecondary
+                : AppColors.textMuted.withOpacity(0.2),
           ),
         ),
         child: Icon(
           icon,
           size: 12,
-          color: enabled ? AppColors.textPrimary : AppColors.textMuted.withOpacity(0.3),
+          color: enabled
+              ? AppColors.textPrimary
+              : AppColors.textMuted.withOpacity(0.3),
         ),
       ),
     );
@@ -1510,7 +1707,8 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: count > 0 ? AppColors.textPrimary : AppColors.textMuted,
+                    color:
+                        count > 0 ? AppColors.textPrimary : AppColors.textMuted,
                   ),
                 ),
               ),
@@ -1536,7 +1734,9 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: enabled ? AppColors.success.withOpacity(0.5) : AppColors.surfaceLight,
+          color: enabled
+              ? AppColors.success.withOpacity(0.5)
+              : AppColors.surfaceLight,
         ),
       ),
       child: Column(
@@ -2057,7 +2257,7 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
   }
 
   Widget _buildNavigationButtons() {
-    final canProceed = _canProceed();
+    final canProceed = _canProceed() && !_isCreating;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -2072,7 +2272,8 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
           if (_currentStep > 0)
             Expanded(
               child: OutlinedButton(
-                onPressed: () => setState(() => _currentStep--),
+                onPressed:
+                    _isCreating ? null : () => setState(() => _currentStep--),
                 child: const Text('Anterior'),
               ),
             )
@@ -2083,14 +2284,23 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
             child: ElevatedButton(
               onPressed: canProceed
                   ? () {
-                      if (_currentStep < 3) {
+                      if (_currentStep < 2) {
                         setState(() => _currentStep++);
                       } else {
                         _createTeam();
                       }
                     }
                   : null,
-              child: Text(_currentStep < 3 ? 'Siguiente' : 'Crear Equipo'),
+              child: _isCreating && _currentStep == 2
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : Text(_currentStep < 2 ? 'Siguiente' : 'Crear Equipo'),
             ),
           ),
         ],
@@ -2105,8 +2315,6 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
       case 1:
         return _rosterCount >= 11;
       case 2:
-        return true;
-      case 3:
         return _isValidRoster;
       default:
         return false;
@@ -2150,15 +2358,67 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
     );
   }
 
-  void _createTeam() {
-    // TODO: Submit team to API
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Equipo "$_teamName" creado correctamente'),
-        backgroundColor: AppColors.success,
-      ),
-    );
-    context.go('/dashboard');
+  Future<void> _createTeam() async {
+    if (_isCreating) return;
+    setState(() => _isCreating = true);
+
+    try {
+      final repository = ref.read(teamRepositoryProvider);
+
+      // 1. Crear equipo vacío
+      final teamId = await repository.createUserTeam(
+        name: _teamName,
+        baseRosterId: _selectedRace!.id,
+      );
+
+      // 2. Fichar cada jugador
+      for (int i = 0; i < _roster.length; i++) {
+        final pos = _roster[i].position;
+        await repository.hirePlayer(
+          teamId,
+          baseType: pos.id,
+          name: pos.name,
+          number: i + 1,
+        );
+      }
+
+      // 3. Guardar staff y re-rolls
+      if (_rerolls > 0 ||
+          _cheerleaders > 0 ||
+          _assistantCoaches > 0 ||
+          _apothecary) {
+        await repository.patchTeamStaff(
+          teamId,
+          rerolls: _rerolls,
+          cheerleaders: _cheerleaders,
+          assistantCoaches: _assistantCoaches,
+          apothecary: _apothecary,
+        );
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Equipo "$_teamName" creado correctamente'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+        context.go('/dashboard');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Error al crear el equipo: ${e.toString()}',
+            ),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isCreating = false);
+    }
   }
 }
 

@@ -86,10 +86,10 @@ class MatchCard extends StatelessWidget {
         Expanded(
           child: Column(
             children: [
-              _buildTeamIcon(match.homeTeamName),
+              _buildTeamIcon(match.home.teamName),
               const SizedBox(height: 8),
               Text(
-                match.homeTeamName,
+                match.home.teamName,
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
@@ -106,10 +106,10 @@ class MatchCard extends StatelessWidget {
         Expanded(
           child: Column(
             children: [
-              _buildTeamIcon(match.awayTeamName),
+              _buildTeamIcon(match.away.teamName),
               const SizedBox(height: 8),
               Text(
-                match.awayTeamName,
+                match.away.teamName,
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
@@ -167,7 +167,7 @@ class MatchCard extends StatelessWidget {
             ),
           ],
           Text(
-            match.isPlayed ? '${match.homeScore}' : '?',
+            match.isPlayed ? '${match.scoreHome}' : '?',
             style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
@@ -185,7 +185,7 @@ class MatchCard extends StatelessWidget {
             ),
           ),
           Text(
-            match.isPlayed ? '${match.awayScore}' : '?',
+            match.isPlayed ? '${match.scoreAway}' : '?',
             style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
@@ -218,27 +218,30 @@ class MatchCard extends StatelessWidget {
 
   Color _getStatusColor() {
     switch (match.status) {
-      case MatchStatus.scheduled:
+      case 'scheduled':
+      case 'pending':
         return AppColors.info;
-      case MatchStatus.pendingValidation:
+      case 'in_progress':
         return AppColors.warning;
-      case MatchStatus.played:
+      case 'completed':
         return AppColors.success;
-      case MatchStatus.validated:
-        return AppColors.success;
+      default:
+        return AppColors.textMuted;
     }
   }
 
   String _getStatusLabel() {
     switch (match.status) {
-      case MatchStatus.scheduled:
+      case 'scheduled':
         return 'POR JUGAR';
-      case MatchStatus.pendingValidation:
-        return 'PENDIENTE DE ACTA';
-      case MatchStatus.played:
-        return 'REGISTRADO';
-      case MatchStatus.validated:
-        return 'VALIDADO';
+      case 'pending':
+        return 'PENDIENTE';
+      case 'in_progress':
+        return 'EN PROGRESO';
+      case 'completed':
+        return 'COMPLETADO';
+      default:
+        return match.status.toUpperCase();
     }
   }
 

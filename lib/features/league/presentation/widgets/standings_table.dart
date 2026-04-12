@@ -4,23 +4,23 @@ import '../../../../core/theme/app_colors.dart';
 import '../../domain/models/league.dart';
 
 class StandingsTable extends StatelessWidget {
-  final List<LeagueTeam> teams;
+  final List<LeagueStanding> standings;
   final String leagueId;
 
   const StandingsTable({
     super.key,
-    required this.teams,
+    required this.standings,
     required this.leagueId,
   });
 
   @override
   Widget build(BuildContext context) {
-    // Sort teams by points, then goal difference
-    final sortedTeams = List<LeagueTeam>.from(teams)
+    // Sort standings by points, then touchdown diff
+    final sortedStandings = List<LeagueStanding>.from(standings)
       ..sort((a, b) {
         final pointsDiff = b.points.compareTo(a.points);
         if (pointsDiff != 0) return pointsDiff;
-        return b.touchdownDifference.compareTo(a.touchdownDifference);
+        return b.touchdownDiff.compareTo(a.touchdownDiff);
       });
 
     return Container(
@@ -32,7 +32,7 @@ class StandingsTable extends StatelessWidget {
       child: Column(
         children: [
           _buildHeader(),
-          ...sortedTeams.asMap().entries.map((entry) =>
+          ...sortedStandings.asMap().entries.map((entry) =>
             _buildTeamRow(context, entry.key + 1, entry.value)),
         ],
       ),
@@ -100,11 +100,11 @@ class StandingsTable extends StatelessWidget {
     );
   }
 
-  Widget _buildTeamRow(BuildContext context, int position, LeagueTeam team) {
+  Widget _buildTeamRow(BuildContext context, int position, LeagueStanding standing) {
     final isUserTeam = position == 1; // Simplified - should check actual user team
 
     return InkWell(
-      onTap: () => context.go('/league/$leagueId/team/${team.teamId}'),
+      onTap: () => context.go('/league/$leagueId/team/${standing.teamId}'),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
@@ -167,7 +167,7 @@ class StandingsTable extends StatelessWidget {
                       ),
                       Expanded(
                         child: Text(
-                          team.teamName,
+                          standing.teamName,
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: isUserTeam ? FontWeight.bold : FontWeight.w500,
@@ -179,30 +179,23 @@ class StandingsTable extends StatelessWidget {
                       ),
                     ],
                   ),
-                  Text(
-                    '${team.coachName} • TV ${team.teamValue ~/ 1000}k',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: AppColors.textMuted,
-                    ),
-                  ),
                 ],
               ),
             ),
-            _buildDataCell('${team.points}', isBold: true, color: AppColors.accent),
-            _buildDataCell('${team.gamesPlayed}'),
-            _buildDataCell('${team.wins}', color: AppColors.success),
-            _buildDataCell('${team.draws}'),
-            _buildDataCell('${team.losses}', color: team.losses > 0 ? AppColors.error : null),
+            _buildDataCell('${standing.points}', isBold: true, color: AppColors.accent),
+            _buildDataCell('${standing.gamesPlayed}'),
+            _buildDataCell('${standing.wins}', color: AppColors.success),
+            _buildDataCell('${standing.draws}'),
+            _buildDataCell('${standing.losses}', color: standing.losses > 0 ? AppColors.error : null),
             _buildDataCell(
-              '${team.touchdownDifference >= 0 ? '+' : ''}${team.touchdownDifference}',
-              color: team.touchdownDifference > 0
+              '${standing.touchdownDiff >= 0 ? '+' : ''}${standing.touchdownDiff}',
+              color: standing.touchdownDiff > 0
                   ? AppColors.success
-                  : team.touchdownDifference < 0
+                  : standing.touchdownDiff < 0
                       ? AppColors.error
                       : null,
             ),
-            _buildDataCell('${team.casualtiesFor}'),
+            _buildDataCell('${standing.casualtiesFor}'),
           ],
         ),
       ),
