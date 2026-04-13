@@ -19,6 +19,12 @@ final _matchDetailProvider =
   return repo.getMatchDetail(p.leagueId, p.matchId);
 });
 
+final _quickMatchDetailProvider =
+    FutureProvider.family<Match, String>((ref, matchId) async {
+  final repo = ref.read(quickMatchRepositoryProvider);
+  return repo.getMatchDetail(matchId);
+});
+
 // ─── Helper classes ─────────────────────────────────────────
 
 class _SppTally {
@@ -110,11 +116,13 @@ class _BonusSppEntry {
 class AftermatchScreen extends ConsumerStatefulWidget {
   final String leagueId;
   final String matchId;
+  final bool isQuickMatch;
 
   const AftermatchScreen({
     super.key,
     required this.leagueId,
     required this.matchId,
+    this.isQuickMatch = false,
   });
 
   @override
@@ -124,6 +132,7 @@ class AftermatchScreen extends ConsumerStatefulWidget {
 class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
   String get leagueId => widget.leagueId;
   String get matchId => widget.matchId;
+  bool get _isQM => widget.isQuickMatch;
 
   // Teams loaded from API
   UserTeamDetail? _homeTeam;
@@ -323,8 +332,10 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final matchAsync =
-        ref.watch(_matchDetailProvider((leagueId: leagueId, matchId: matchId)));
+    final matchAsync = _isQM
+        ? ref.watch(_quickMatchDetailProvider(matchId))
+        : ref.watch(
+            _matchDetailProvider((leagueId: leagueId, matchId: matchId)));
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -337,12 +348,18 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
         data: (match) {
           if (!match.isPlayed) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted) context.go('/league/$leagueId/match/$matchId/live');
+              if (mounted) {
+                if (_isQM) {
+                  context.go('/quick-match/$matchId/live');
+                } else {
+                  context.go('/league/$leagueId/match/$matchId/live');
+                }
+              }
             });
             return const SizedBox.shrink();
           }
           _initFromMatch(match);
-          _loadTeams(match);
+          if (!_isQM) _loadTeams(match);
           return _buildBody(match);
         },
       ),
@@ -351,6 +368,50 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
 
   Widget _buildBody(Match match) {
     final wide = MediaQuery.of(context).size.width >= 900;
+
+    // Quick match: show only statistics + back button
+    if (_isQM) {
+      return Column(
+        children: [
+          _buildAppBar(match),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.symmetric(
+                horizontal: wide ? 64 : 16,
+                vertical: 24,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildMatchStatsSection(match),
+                  const SizedBox(height: 36),
+                  Center(
+                    child: SizedBox(
+                      width: 220,
+                      height: 44,
+                      child: ElevatedButton.icon(
+                        onPressed: () => context.go('/quick-match'),
+                        icon: const Icon(Icons.arrow_back, size: 18),
+                        label: const Text('Volver'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.black,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 40),
+                ],
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    // League match: full aftermatch with all sections
     return Column(
       children: [
         _buildAppBar(match),

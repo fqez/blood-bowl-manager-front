@@ -123,11 +123,18 @@ class _AppShellState extends ConsumerState<AppShell> {
         label: tr(lang, 'nav.myTactics'),
         route: '/my-tactics',
       ),
+      _NavItem(
+        icon: PhosphorIcons.sword(PhosphorIconsStyle.regular),
+        selectedIcon: PhosphorIcons.sword(PhosphorIconsStyle.fill),
+        label: tr(lang, 'nav.quickMatch'),
+        route: '/quick-match',
+      ),
     ];
   }
-  // indices: 0=Mis Ligas, 1=Mis Equipos, 2=Vista de Liga, 3=Plantilla, 4=Jugador, 5=Post-Partido, 6=Live Match, 7=Crear Equipo, 8=Wiki Skills, 9=Wiki Clima, 10=Wiki Estrellas, 11=Tácticas, 12=Mis Tácticas
+  // indices: 0=Mis Ligas, 1=Mis Equipos, 2=Vista de Liga, 3=Plantilla, 4=Jugador, 5=Post-Partido, 6=Live Match, 7=Crear Equipo, 8=Wiki Skills, 9=Wiki Clima, 10=Wiki Estrellas, 11=Tácticas, 12=Mis Tácticas, 13=Partido Rápido
 
   int _resolveSelectedIndex(String location) {
+    if (location.startsWith('/quick-match')) return 13;
     if (location.startsWith('/my-tactics')) return 12;
     if (location.startsWith('/tactics')) return 11;
     if (location.startsWith('/wiki/star-players')) return 10;
@@ -191,6 +198,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                 _buildNavItem(1, navItems[1], selectedIndex),
                 _buildNavItem(7, navItems[7], selectedIndex),
                 _buildNavItem(12, navItems[12], selectedIndex),
+                _buildNavItem(13, navItems[13], selectedIndex),
                 const Divider(height: 32),
                 if (_sidebarExpanded) _buildSectionLabel(tr(lang, 'nav.wiki')),
                 _buildNavItem(8, navItems[8], selectedIndex),

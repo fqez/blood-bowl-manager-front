@@ -13,6 +13,7 @@ import '../../features/my_teams/presentation/screens/my_teams_screen.dart';
 import '../../features/leagues/presentation/screens/leagues_screen.dart';
 import '../../features/leagues/presentation/screens/create_league_screen.dart';
 import '../../features/leagues/presentation/screens/join_league_screen.dart';
+import '../../features/quick_match/presentation/screens/quick_match_setup_screen.dart';
 import '../../features/wiki/presentation/screens/wiki_skills_screen.dart';
 import '../../features/wiki/presentation/screens/wiki_weather_screen.dart';
 import '../../features/wiki/presentation/screens/wiki_star_players_screen.dart';
@@ -200,6 +201,35 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: '/my-tactics',
             name: 'my-tactics',
             builder: (context, state) => const MyTacticsScreen(),
+          ),
+          GoRoute(
+            path: '/quick-match',
+            name: 'quick-match',
+            builder: (context, state) => const QuickMatchSetupScreen(),
+          ),
+          GoRoute(
+            path: '/quick-match/:matchId/live',
+            name: 'quick-match-live',
+            builder: (context, state) {
+              final matchId = state.pathParameters['matchId']!;
+              return LiveMatchScreen(
+                leagueId: '',
+                matchId: matchId,
+                isQuickMatch: true,
+              );
+            },
+          ),
+          GoRoute(
+            path: '/quick-match/:matchId/aftermatch',
+            name: 'quick-match-aftermatch',
+            builder: (context, state) {
+              final matchId = state.pathParameters['matchId']!;
+              return AftermatchScreen(
+                leagueId: '',
+                matchId: matchId,
+                isQuickMatch: true,
+              );
+            },
           ),
         ],
       ),

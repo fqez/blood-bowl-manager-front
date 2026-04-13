@@ -23,14 +23,22 @@ final _matchDetailProvider =
   return repo.getMatchDetail(params.leagueId, params.matchId);
 });
 
+final _quickMatchDetailProvider =
+    FutureProvider.family<Match, String>((ref, matchId) async {
+  final repo = ref.read(quickMatchRepositoryProvider);
+  return repo.getMatchDetail(matchId);
+});
+
 class LiveMatchScreen extends ConsumerStatefulWidget {
   final String leagueId;
   final String matchId;
+  final bool isQuickMatch;
 
   const LiveMatchScreen({
     super.key,
     required this.leagueId,
     required this.matchId,
+    this.isQuickMatch = false,
   });
 
   @override
@@ -55,17 +63,28 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
   BaseTeam? _awayBaseRoster;
   bool _prepLoading = false;
 
+  // ── Quick-match helpers ──
+  bool get _isQM => widget.isQuickMatch;
+
+  String get _aftermatchRoute => _isQM
+      ? '/quick-match/${widget.matchId}/aftermatch'
+      : '/league/${widget.leagueId}/match/${widget.matchId}/aftermatch';
+
+  String get _backRoute =>
+      _isQM ? '/quick-match' : '/league/${widget.leagueId}';
+
   @override
   void initState() {
     super.initState();
     _startPolling();
-    // Persist active match context for sidebar navigation
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(activeMatchProvider.notifier).state = ActiveMatch(
-        leagueId: widget.leagueId,
-        matchId: widget.matchId,
-      );
-    });
+    if (!_isQM) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(activeMatchProvider.notifier).state = ActiveMatch(
+          leagueId: widget.leagueId,
+          matchId: widget.matchId,
+        );
+      });
+    }
   }
 
   @override
@@ -104,7 +123,13 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
     });
   }
 
-  void _refresh() => ref.invalidate(_matchDetailProvider);
+  void _refresh() {
+    if (_isQM) {
+      ref.invalidate(_quickMatchDetailProvider);
+    } else {
+      ref.invalidate(_matchDetailProvider);
+    }
+  }
 
   Future<void> _loadRosters(Match match) async {
     if (_rosterLoading || (_homePlayers != null && _awayPlayers != null))
@@ -186,8 +211,13 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
   Future<void> _startMatch() async {
     setState(() => _isSubmitting = true);
     try {
-      final repo = ref.read(leagueRepositoryProvider);
-      await repo.startMatch(widget.leagueId, widget.matchId);
+      if (_isQM) {
+        final repo = ref.read(quickMatchRepositoryProvider);
+        await repo.startMatch(widget.matchId);
+      } else {
+        final repo = ref.read(leagueRepositoryProvider);
+        await repo.startMatch(widget.leagueId, widget.matchId);
+      }
       _refresh();
     } catch (e) {
       if (mounted) _snack('$e');
@@ -222,12 +252,16 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
     if (confirmed != true) return;
     setState(() => _isSubmitting = true);
     try {
-      final repo = ref.read(leagueRepositoryProvider);
-      await repo.completeMatch(widget.leagueId, widget.matchId);
+      if (_isQM) {
+        final repo = ref.read(quickMatchRepositoryProvider);
+        await repo.completeMatch(widget.matchId);
+      } else {
+        final repo = ref.read(leagueRepositoryProvider);
+        await repo.completeMatch(widget.leagueId, widget.matchId);
+      }
       _clockTimer?.cancel();
       if (mounted) {
-        context.go(
-            '/league/${widget.leagueId}/match/${widget.matchId}/aftermatch');
+        context.go(_aftermatchRoute);
       }
     } catch (e) {
       if (mounted) _snack('$e');
@@ -249,22 +283,40 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
     int? gate,
   }) async {
     try {
-      final repo = ref.read(leagueRepositoryProvider);
-      await repo.updateMatchState(
-        widget.leagueId,
-        widget.matchId,
-        scoreHome: scoreHome,
-        scoreAway: scoreAway,
-        currentHalf: currentHalf,
-        currentTurn: currentTurn,
-        weather: weather,
-        kickoffEvent: kickoffEvent,
-        rerollsUsedHome: rerollsUsedHome,
-        rerollsUsedAway: rerollsUsedAway,
-        mvpHome: mvpHome,
-        mvpAway: mvpAway,
-        gate: gate,
-      );
+      if (_isQM) {
+        final repo = ref.read(quickMatchRepositoryProvider);
+        await repo.updateMatchState(
+          widget.matchId,
+          scoreHome: scoreHome,
+          scoreAway: scoreAway,
+          currentHalf: currentHalf,
+          currentTurn: currentTurn,
+          weather: weather,
+          kickoffEvent: kickoffEvent,
+          rerollsUsedHome: rerollsUsedHome,
+          rerollsUsedAway: rerollsUsedAway,
+          mvpHome: mvpHome,
+          mvpAway: mvpAway,
+          gate: gate,
+        );
+      } else {
+        final repo = ref.read(leagueRepositoryProvider);
+        await repo.updateMatchState(
+          widget.leagueId,
+          widget.matchId,
+          scoreHome: scoreHome,
+          scoreAway: scoreAway,
+          currentHalf: currentHalf,
+          currentTurn: currentTurn,
+          weather: weather,
+          kickoffEvent: kickoffEvent,
+          rerollsUsedHome: rerollsUsedHome,
+          rerollsUsedAway: rerollsUsedAway,
+          mvpHome: mvpHome,
+          mvpAway: mvpAway,
+          gate: gate,
+        );
+      }
       _refresh();
     } catch (e) {
       if (mounted) _snack('$e');
@@ -284,21 +336,38 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
     required int turn,
   }) async {
     try {
-      final repo = ref.read(leagueRepositoryProvider);
-      await repo.addMatchEvent(
-        widget.leagueId,
-        widget.matchId,
-        type: type,
-        team: team,
-        playerId: playerId,
-        playerName: playerName,
-        victimId: victimId,
-        victimName: victimName,
-        injury: injury,
-        detail: detail,
-        half: half,
-        turn: turn,
-      );
+      if (_isQM) {
+        final repo = ref.read(quickMatchRepositoryProvider);
+        await repo.addMatchEvent(
+          widget.matchId,
+          type: type,
+          team: team,
+          playerId: playerId,
+          playerName: playerName,
+          victimId: victimId,
+          victimName: victimName,
+          injury: injury,
+          detail: detail,
+          half: half,
+          turn: turn,
+        );
+      } else {
+        final repo = ref.read(leagueRepositoryProvider);
+        await repo.addMatchEvent(
+          widget.leagueId,
+          widget.matchId,
+          type: type,
+          team: team,
+          playerId: playerId,
+          playerName: playerName,
+          victimId: victimId,
+          victimName: victimName,
+          injury: injury,
+          detail: detail,
+          half: half,
+          turn: turn,
+        );
+      }
       _refresh();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -316,8 +385,13 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
 
   Future<void> _deleteEvent(String eventId) async {
     try {
-      final repo = ref.read(leagueRepositoryProvider);
-      await repo.deleteMatchEvent(widget.leagueId, widget.matchId, eventId);
+      if (_isQM) {
+        final repo = ref.read(quickMatchRepositoryProvider);
+        await repo.deleteMatchEvent(widget.matchId, eventId);
+      } else {
+        final repo = ref.read(leagueRepositoryProvider);
+        await repo.deleteMatchEvent(widget.leagueId, widget.matchId, eventId);
+      }
       _refresh();
     } catch (e) {
       if (mounted) _snack('$e');
@@ -335,10 +409,12 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
   @override
   Widget build(BuildContext context) {
     final lang = ref.watch(localeProvider);
-    final matchAsync = ref.watch(
-      _matchDetailProvider(
-          (leagueId: widget.leagueId, matchId: widget.matchId)),
-    );
+    final matchAsync = _isQM
+        ? ref.watch(_quickMatchDetailProvider(widget.matchId))
+        : ref.watch(
+            _matchDetailProvider(
+                (leagueId: widget.leagueId, matchId: widget.matchId)),
+          );
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -367,8 +443,7 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
     if (match.isPlayed) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          context.go(
-              '/league/${widget.leagueId}/match/${widget.matchId}/aftermatch');
+          context.go(_aftermatchRoute);
         }
       });
       return const SizedBox.shrink();
@@ -397,7 +472,7 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
               Align(
                 alignment: Alignment.centerLeft,
                 child: TextButton.icon(
-                  onPressed: () => context.go('/league/${widget.leagueId}'),
+                  onPressed: () => context.go(_backRoute),
                   icon: Icon(PhosphorIcons.arrowLeft(PhosphorIconsStyle.bold),
                       size: 16),
                   label: Text(tr(lang, 'liveMatch.round'),
@@ -682,7 +757,7 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
                   IconButton(
                     icon: Icon(PhosphorIcons.arrowLeft(PhosphorIconsStyle.bold),
                         size: 20),
-                    onPressed: () => context.go('/league/${widget.leagueId}'),
+                    onPressed: () => context.go(_backRoute),
                     color: AppColors.textSecondary,
                   ),
                   const Spacer(),
@@ -1592,7 +1667,7 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
               Align(
                 alignment: Alignment.centerLeft,
                 child: TextButton.icon(
-                  onPressed: () => context.go('/league/${widget.leagueId}'),
+                  onPressed: () => context.go(_backRoute),
                   icon: Icon(PhosphorIcons.arrowLeft(PhosphorIconsStyle.bold),
                       size: 16),
                   label: Text(tr(lang, 'liveMatch.round'),
@@ -3016,8 +3091,7 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
                         const SizedBox(height: 12),
                         Container(
                           decoration: BoxDecoration(
-                            border:
-                                Border.all(color: AppColors.surfaceLight),
+                            border: Border.all(color: AppColors.surfaceLight),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           clipBehavior: Clip.antiAlias,
@@ -3058,10 +3132,9 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
                                 final spSkills =
                                     (sp['skills'] as List?)?.cast<String>() ??
                                         [];
-                                final canAffordStar =
-                                    team.treasury >= spCost;
-                                final alreadyHired = activePlayers.any(
-                                    (p) => p.baseType == 'star_$spId');
+                                final canAffordStar = team.treasury >= spCost;
+                                final alreadyHired = activePlayers
+                                    .any((p) => p.baseType == 'star_$spId');
                                 final canHireStar = canAffordStar &&
                                     !alreadyHired &&
                                     activePlayers.length < 16;
@@ -3083,189 +3156,247 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
                                       padding: const EdgeInsets.symmetric(
                                           horizontal: 12, vertical: 10),
                                       child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Icon(
-                                        PhosphorIcons.star(
-                                            PhosphorIconsStyle.fill),
-                                        size: 14,
-                                        color: AppColors.accent),
-                                    const SizedBox(width: 6),
-                                    Expanded(
-                                      child: GestureDetector(
-                                        onTap: () =>
-                                            _showStarPlayerDetail(sp, lang),
-                                        child: MouseRegion(
-                                          cursor: SystemMouseCursors.click,
-                                          child: Text(spName.toUpperCase(),
-                                              style: const TextStyle(
-                                                color: AppColors.accent,
-                                                fontSize: 13,
-                                                fontWeight: FontWeight.bold,
-                                              )),
-                                        ),
-                                      ),
-                                    ),
-                                    Text(_fmtGold(spCost),
-                                        style: TextStyle(
-                                          color: canAffordStar
-                                              ? AppColors.accent
-                                              : AppColors.error,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.bold,
-                                        )),
-                                    const Text(' GP',
-                                        style: TextStyle(
-                                            color: AppColors.textMuted,
-                                            fontSize: 10)),
-                                    const SizedBox(width: 10),
-                                    SizedBox(
-                                      width: 28,
-                                      height: 28,
-                                      child: IconButton(
-                                        onPressed: () =>
-                                            _showStarPlayerDetail(sp, lang),
-                                        padding: EdgeInsets.zero,
-                                        iconSize: 16,
-                                        style: IconButton.styleFrom(
-                                          side: BorderSide(
-                                              color: AppColors.accent
-                                                  .withValues(alpha: 0.3)),
-                                          shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(6)),
-                                        ),
-                                        icon: Icon(
-                                            PhosphorIcons.eye(
-                                                PhosphorIconsStyle.fill),
-                                            color: AppColors.accent,
-                                            size: 14),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 6),
-                                    if (canHireStar)
-                                      SizedBox(
-                                        height: 28,
-                                        child: ElevatedButton(
-                                          onPressed: () =>
-                                              _showHireStarNameDialog(
-                                                  ctx, team, sp, lang),
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: AppColors.accent,
-                                            foregroundColor: Colors.black,
-                                            padding: const EdgeInsets.symmetric(
-                                                horizontal: 12),
-                                            shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(6)),
-                                          ),
-                                          child: const Text('HIRE',
-                                              style: TextStyle(
-                                                  fontSize: 11,
-                                                  fontWeight: FontWeight.bold)),
-                                        ),
-                                      )
-                                    else
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 8, vertical: 4),
-                                        decoration: BoxDecoration(
-                                          color: AppColors.surfaceLight
-                                              .withValues(alpha: 0.3),
-                                          borderRadius:
-                                              BorderRadius.circular(4),
-                                        ),
-                                        child: Text(
-                                          blockLabel,
-                                          style: const TextStyle(
-                                              color: AppColors.textMuted,
-                                              fontSize: 9,
-                                              fontWeight: FontWeight.bold),
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                                const SizedBox(height: 8),
-                                Row(
-                                  children: [
-                                    for (final stat in [
-                                      'MA',
-                                      'ST',
-                                      'AG',
-                                      'PA',
-                                      'AV'
-                                    ])
-                                      Container(
-                                        margin: const EdgeInsets.only(right: 6),
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 6, vertical: 2),
-                                        decoration: BoxDecoration(
-                                          color: AppColors.surface,
-                                          borderRadius:
-                                              BorderRadius.circular(4),
-                                          border: Border.all(
-                                              color: AppColors.surfaceLight),
-                                        ),
-                                        child: Text(
-                                          '$stat:${_fmtStat(spStats[stat])}',
-                                          style: const TextStyle(
-                                              color: AppColors.textSecondary,
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.bold),
-                                        ),
-                                      ),
-                                    const Spacer(),
-                                    ...spSkills.take(3).map((s) => Padding(
-                                          padding:
-                                              const EdgeInsets.only(left: 4),
-                                          child: GestureDetector(
-                                            onTap: () => showSkillPopup(
-                                                context, ref,
-                                                skillName: s),
-                                            child: MouseRegion(
-                                              cursor: SystemMouseCursors.click,
-                                              child: Container(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                        horizontal: 5,
-                                                        vertical: 2),
-                                                decoration: BoxDecoration(
-                                                  color: AppColors.accent
-                                                      .withValues(alpha: 0.12),
-                                                  borderRadius:
-                                                      BorderRadius.circular(3),
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Icon(
+                                                  PhosphorIcons.star(
+                                                      PhosphorIconsStyle.fill),
+                                                  size: 14,
+                                                  color: AppColors.accent),
+                                              const SizedBox(width: 6),
+                                              Expanded(
+                                                child: GestureDetector(
+                                                  onTap: () =>
+                                                      _showStarPlayerDetail(
+                                                          sp, lang),
+                                                  child: MouseRegion(
+                                                    cursor: SystemMouseCursors
+                                                        .click,
+                                                    child: Text(
+                                                        spName.toUpperCase(),
+                                                        style: const TextStyle(
+                                                          color:
+                                                              AppColors.accent,
+                                                          fontSize: 13,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                        )),
+                                                  ),
                                                 ),
-                                                child: Text(s.toUpperCase(),
-                                                    style: const TextStyle(
-                                                        color: AppColors.accent,
-                                                        fontSize: 8,
-                                                        fontWeight:
-                                                            FontWeight.bold)),
                                               ),
-                                            ),
+                                              Text(_fmtGold(spCost),
+                                                  style: TextStyle(
+                                                    color: canAffordStar
+                                                        ? AppColors.accent
+                                                        : AppColors.error,
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.bold,
+                                                  )),
+                                              const Text(' GP',
+                                                  style: TextStyle(
+                                                      color:
+                                                          AppColors.textMuted,
+                                                      fontSize: 10)),
+                                              const SizedBox(width: 10),
+                                              SizedBox(
+                                                width: 28,
+                                                height: 28,
+                                                child: IconButton(
+                                                  onPressed: () =>
+                                                      _showStarPlayerDetail(
+                                                          sp, lang),
+                                                  padding: EdgeInsets.zero,
+                                                  iconSize: 16,
+                                                  style: IconButton.styleFrom(
+                                                    side: BorderSide(
+                                                        color: AppColors.accent
+                                                            .withValues(
+                                                                alpha: 0.3)),
+                                                    shape:
+                                                        RoundedRectangleBorder(
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .circular(
+                                                                        6)),
+                                                  ),
+                                                  icon: Icon(
+                                                      PhosphorIcons.eye(
+                                                          PhosphorIconsStyle
+                                                              .fill),
+                                                      color: AppColors.accent,
+                                                      size: 14),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 6),
+                                              if (canHireStar)
+                                                SizedBox(
+                                                  height: 28,
+                                                  child: ElevatedButton(
+                                                    onPressed: () =>
+                                                        _showHireStarNameDialog(
+                                                            ctx,
+                                                            team,
+                                                            sp,
+                                                            lang),
+                                                    style: ElevatedButton
+                                                        .styleFrom(
+                                                      backgroundColor:
+                                                          AppColors.accent,
+                                                      foregroundColor:
+                                                          Colors.black,
+                                                      padding: const EdgeInsets
+                                                          .symmetric(
+                                                          horizontal: 12),
+                                                      shape:
+                                                          RoundedRectangleBorder(
+                                                              borderRadius:
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          6)),
+                                                    ),
+                                                    child: const Text('HIRE',
+                                                        style: TextStyle(
+                                                            fontSize: 11,
+                                                            fontWeight:
+                                                                FontWeight
+                                                                    .bold)),
+                                                  ),
+                                                )
+                                              else
+                                                Container(
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                      horizontal: 8,
+                                                      vertical: 4),
+                                                  decoration: BoxDecoration(
+                                                    color: AppColors
+                                                        .surfaceLight
+                                                        .withValues(alpha: 0.3),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            4),
+                                                  ),
+                                                  child: Text(
+                                                    blockLabel,
+                                                    style: const TextStyle(
+                                                        color:
+                                                            AppColors.textMuted,
+                                                        fontSize: 9,
+                                                        fontWeight:
+                                                            FontWeight.bold),
+                                                  ),
+                                                ),
+                                            ],
                                           ),
-                                        )),
-                                    if (spSkills.length > 3)
-                                      Padding(
-                                        padding: const EdgeInsets.only(left: 4),
-                                        child: Text(
-                                          '+${spSkills.length - 3}',
-                                          style: TextStyle(
-                                              color: AppColors.accent
-                                                  .withValues(alpha: 0.6),
-                                              fontSize: 9,
-                                              fontWeight: FontWeight.bold),
-                                        ),
+                                          const SizedBox(height: 8),
+                                          Row(
+                                            children: [
+                                              for (final stat in [
+                                                'MA',
+                                                'ST',
+                                                'AG',
+                                                'PA',
+                                                'AV'
+                                              ])
+                                                Container(
+                                                  margin: const EdgeInsets.only(
+                                                      right: 6),
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                      horizontal: 6,
+                                                      vertical: 2),
+                                                  decoration: BoxDecoration(
+                                                    color: AppColors.surface,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            4),
+                                                    border: Border.all(
+                                                        color: AppColors
+                                                            .surfaceLight),
+                                                  ),
+                                                  child: Text(
+                                                    '$stat:${_fmtStat(spStats[stat])}',
+                                                    style: const TextStyle(
+                                                        color: AppColors
+                                                            .textSecondary,
+                                                        fontSize: 10,
+                                                        fontWeight:
+                                                            FontWeight.bold),
+                                                  ),
+                                                ),
+                                              const Spacer(),
+                                              ...spSkills.take(3).map((s) =>
+                                                  Padding(
+                                                    padding:
+                                                        const EdgeInsets.only(
+                                                            left: 4),
+                                                    child: GestureDetector(
+                                                      onTap: () =>
+                                                          showSkillPopup(
+                                                              context, ref,
+                                                              skillName: s),
+                                                      child: MouseRegion(
+                                                        cursor:
+                                                            SystemMouseCursors
+                                                                .click,
+                                                        child: Container(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .symmetric(
+                                                                  horizontal: 5,
+                                                                  vertical: 2),
+                                                          decoration:
+                                                              BoxDecoration(
+                                                            color: AppColors
+                                                                .accent
+                                                                .withValues(
+                                                                    alpha:
+                                                                        0.12),
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .circular(
+                                                                        3),
+                                                          ),
+                                                          child: Text(
+                                                              s.toUpperCase(),
+                                                              style: const TextStyle(
+                                                                  color: AppColors
+                                                                      .accent,
+                                                                  fontSize: 8,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .bold)),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  )),
+                                              if (spSkills.length > 3)
+                                                Padding(
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                          left: 4),
+                                                  child: Text(
+                                                    '+${spSkills.length - 3}',
+                                                    style: TextStyle(
+                                                        color: AppColors.accent
+                                                            .withValues(
+                                                                alpha: 0.6),
+                                                        fontSize: 9,
+                                                        fontWeight:
+                                                            FontWeight.bold),
+                                                  ),
+                                                ),
+                                            ],
+                                          ),
+                                        ],
                                       ),
+                                    ),
                                   ],
-                                ),
-                              ],
-                            ),
-                          );
-                        }),
-                      ],
+                                );
+                              }),
                             ],
                           ),
                         ),

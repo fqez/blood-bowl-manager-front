@@ -27,6 +27,7 @@ const _t = <String, Map<String, String>>{
   'nav.wikiStars': {'es': 'Wiki - Estrellas', 'en': 'Wiki - Star Players'},
   'nav.tactics': {'es': 'Tácticas', 'en': 'Tactics'},
   'nav.myTactics': {'es': 'Mis Tácticas', 'en': 'My Tactics'},
+  'nav.quickMatch': {'es': 'Partido Rápido', 'en': 'Quick Match'},
   'nav.expand': {'es': 'Expandir menú', 'en': 'Expand menu'},
   'nav.collapse': {'es': 'Comprimir menú', 'en': 'Collapse menu'},
   'nav.home': {'es': 'Inicio', 'en': 'Home'},
@@ -1031,4 +1032,19 @@ const _t = <String, Map<String, String>>{
     'en': '{name} added!',
   },
   'common.unknownError': {'es': 'Error desconocido', 'en': 'Unknown error'},
+
+  // ── Quick Match ─────────────────────────────────────────────────────────
+  'quickMatch.title': {'es': 'PARTIDO RÁPIDO', 'en': 'QUICK MATCH'},
+  'quickMatch.homeTeam': {'es': 'Equipo Local', 'en': 'Home Team'},
+  'quickMatch.awayTeam': {'es': 'Equipo Visitante', 'en': 'Away Team'},
+  'quickMatch.start': {'es': 'COMENZAR PARTIDO', 'en': 'START MATCH'},
+  'quickMatch.noTeams': {
+    'es': 'Necesitas al menos 2 equipos para jugar un partido rápido.',
+    'en': 'You need at least 2 teams to play a quick match.',
+  },
+  'quickMatch.history': {'es': 'Historial', 'en': 'History'},
+  'quickMatch.finished': {'es': 'Finalizado', 'en': 'Finished'},
+  'quickMatch.inProgress': {'es': 'En curso', 'en': 'In Progress'},
+  'quickMatch.pending': {'es': 'Pendiente', 'en': 'Pending'},
+  'quickMatch.back': {'es': 'Volver', 'en': 'Back'},
 };
