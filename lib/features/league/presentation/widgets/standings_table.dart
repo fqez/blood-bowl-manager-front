@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/l10n/locale_provider.dart';
+import '../../../../core/l10n/translations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/models/league.dart';
 
-class StandingsTable extends StatelessWidget {
+class StandingsTable extends ConsumerWidget {
   final List<LeagueStanding> standings;
   final String leagueId;
 
@@ -14,7 +17,8 @@ class StandingsTable extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final lang = ref.watch(localeProvider);
     // Sort standings by points, then touchdown diff
     final sortedStandings = List<LeagueStanding>.from(standings)
       ..sort((a, b) {
@@ -31,15 +35,15 @@ class StandingsTable extends StatelessWidget {
       ),
       child: Column(
         children: [
-          _buildHeader(),
-          ...sortedStandings.asMap().entries.map((entry) =>
-            _buildTeamRow(context, entry.key + 1, entry.value)),
+          _buildHeader(lang),
+          ...sortedStandings.asMap().entries.map(
+              (entry) => _buildTeamRow(context, entry.key + 1, entry.value)),
         ],
       ),
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(String lang) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
@@ -51,7 +55,7 @@ class StandingsTable extends StatelessWidget {
           SizedBox(
             width: 40,
             child: Text(
-              'POS',
+              tr(lang, 'standings.pos'),
               style: TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.bold,
@@ -63,7 +67,7 @@ class StandingsTable extends StatelessWidget {
           Expanded(
             flex: 3,
             child: Text(
-              'EQUIPO',
+              tr(lang, 'standings.team'),
               style: TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.bold,
@@ -72,13 +76,13 @@ class StandingsTable extends StatelessWidget {
               ),
             ),
           ),
-          _buildHeaderCell('PTS'),
-          _buildHeaderCell('J'),
-          _buildHeaderCell('G'),
-          _buildHeaderCell('E'),
-          _buildHeaderCell('P'),
-          _buildHeaderCell('TD+/-'),
-          _buildHeaderCell('CAS'),
+          _buildHeaderCell(tr(lang, 'standings.pts')),
+          _buildHeaderCell(tr(lang, 'standings.played')),
+          _buildHeaderCell(tr(lang, 'standings.wins')),
+          _buildHeaderCell(tr(lang, 'standings.draws')),
+          _buildHeaderCell(tr(lang, 'standings.losses')),
+          _buildHeaderCell(tr(lang, 'standings.tdDiff')),
+          _buildHeaderCell(tr(lang, 'standings.cas')),
         ],
       ),
     );
@@ -100,8 +104,10 @@ class StandingsTable extends StatelessWidget {
     );
   }
 
-  Widget _buildTeamRow(BuildContext context, int position, LeagueStanding standing) {
-    final isUserTeam = position == 1; // Simplified - should check actual user team
+  Widget _buildTeamRow(
+      BuildContext context, int position, LeagueStanding standing) {
+    final isUserTeam =
+        position == 1; // Simplified - should check actual user team
 
     return InkWell(
       onTap: () => context.go('/league/$leagueId/team/${standing.teamId}'),
@@ -170,7 +176,8 @@ class StandingsTable extends StatelessWidget {
                           standing.teamName,
                           style: TextStyle(
                             fontSize: 14,
-                            fontWeight: isUserTeam ? FontWeight.bold : FontWeight.w500,
+                            fontWeight:
+                                isUserTeam ? FontWeight.bold : FontWeight.w500,
                             color: AppColors.textPrimary,
                           ),
                           maxLines: 1,
@@ -182,11 +189,13 @@ class StandingsTable extends StatelessWidget {
                 ],
               ),
             ),
-            _buildDataCell('${standing.points}', isBold: true, color: AppColors.accent),
+            _buildDataCell('${standing.points}',
+                isBold: true, color: AppColors.accent),
             _buildDataCell('${standing.gamesPlayed}'),
             _buildDataCell('${standing.wins}', color: AppColors.success),
             _buildDataCell('${standing.draws}'),
-            _buildDataCell('${standing.losses}', color: standing.losses > 0 ? AppColors.error : null),
+            _buildDataCell('${standing.losses}',
+                color: standing.losses > 0 ? AppColors.error : null),
             _buildDataCell(
               '${standing.touchdownDiff >= 0 ? '+' : ''}${standing.touchdownDiff}',
               color: standing.touchdownDiff > 0

@@ -14,6 +14,28 @@ final teamRepositoryProvider = Provider<TeamRepository>((ref) {
   return TeamRepository(dio: ref.watch(dioProvider));
 });
 
+/// Fetches all perks from the backend.
+final allPerksProvider =
+    FutureProvider<List<Map<String, dynamic>>>((ref) async {
+  final repo = ref.watch(teamRepositoryProvider);
+  return repo.getPerks();
+});
+
+/// Fetches all star players from the backend.
+final allStarPlayersProvider =
+    FutureProvider<List<Map<String, dynamic>>>((ref) async {
+  final repo = ref.watch(teamRepositoryProvider);
+  return repo.getStarPlayers();
+});
+
+/// Fetches star players available for a specific team.
+final starPlayersForTeamProvider =
+    FutureProvider.family<List<Map<String, dynamic>>, String>(
+        (ref, teamId) async {
+  final repo = ref.watch(teamRepositoryProvider);
+  return repo.getStarPlayersForTeam(teamId);
+});
+
 class LeagueRepository {
   final Dio _dio;
 
@@ -139,7 +161,8 @@ class LeagueRepository {
     try {
       final response = await _dio.get('/leagues/my');
       return (response.data as List)
-          .map((json) => LeagueSummaryModel.fromJson(json as Map<String, dynamic>))
+          .map((json) =>
+              LeagueSummaryModel.fromJson(json as Map<String, dynamic>))
           .toList();
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
@@ -159,7 +182,8 @@ class LeagueRepository {
     try {
       final response = await _dio.post('/leagues/', data: {
         'name': name,
-        if (description != null && description.isNotEmpty) 'description': description,
+        if (description != null && description.isNotEmpty)
+          'description': description,
         'format': format,
         'max_teams': maxTeams,
         'rules': {
@@ -178,7 +202,8 @@ class LeagueRepository {
   Future<LeagueByCodePreview> getLeagueByCode(String code) async {
     try {
       final response = await _dio.get('/leagues/by-code/$code');
-      return LeagueByCodePreview.fromJson(response.data as Map<String, dynamic>);
+      return LeagueByCodePreview.fromJson(
+          response.data as Map<String, dynamic>);
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }
@@ -225,6 +250,143 @@ class LeagueRepository {
   Future<void> archiveLeague(String leagueId) async {
     try {
       await _dio.post('/leagues/$leagueId/archive');
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  Future<League> startLeague(String leagueId) async {
+    try {
+      final response = await _dio.post('/leagues/$leagueId/start');
+      return League.fromJson(response.data);
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  Future<void> leaveLeague(String leagueId, String teamId) async {
+    try {
+      await _dio.delete('/leagues/$leagueId/teams/$teamId');
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  // ── Live Match methods ──
+
+  Future<League> startMatch(String leagueId, String matchId) async {
+    try {
+      final response =
+          await _dio.post('/leagues/$leagueId/matches/$matchId/start');
+      return League.fromJson(response.data);
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  Future<Match> getMatchDetail(String leagueId, String matchId) async {
+    try {
+      final response = await _dio.get('/leagues/$leagueId/matches/$matchId');
+      return Match.fromJson(response.data);
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  Future<Match> addMatchEvent(
+    String leagueId,
+    String matchId, {
+    required String type,
+    required String team,
+    String? playerId,
+    String? playerName,
+    String? victimId,
+    String? victimName,
+    String? injury,
+    String? detail,
+    int half = 0,
+    int turn = 0,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/leagues/$leagueId/matches/$matchId/events',
+        data: {
+          'type': type,
+          'team': team,
+          if (playerId != null) 'player_id': playerId,
+          if (playerName != null) 'player_name': playerName,
+          if (victimId != null) 'victim_id': victimId,
+          if (victimName != null) 'victim_name': victimName,
+          if (injury != null) 'injury': injury,
+          if (detail != null) 'detail': detail,
+          'half': half,
+          'turn': turn,
+        },
+      );
+      return Match.fromJson(response.data);
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  Future<Match> deleteMatchEvent(
+    String leagueId,
+    String matchId,
+    String eventId,
+  ) async {
+    try {
+      final response = await _dio.delete(
+        '/leagues/$leagueId/matches/$matchId/events/$eventId',
+      );
+      return Match.fromJson(response.data);
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  Future<Match> updateMatchState(
+    String leagueId,
+    String matchId, {
+    int? scoreHome,
+    int? scoreAway,
+    int? currentHalf,
+    int? currentTurn,
+    String? weather,
+    String? kickoffEvent,
+    int? rerollsUsedHome,
+    int? rerollsUsedAway,
+    String? mvpHome,
+    String? mvpAway,
+    int? gate,
+  }) async {
+    try {
+      final response = await _dio.patch(
+        '/leagues/$leagueId/matches/$matchId/state',
+        data: {
+          if (scoreHome != null) 'score_home': scoreHome,
+          if (scoreAway != null) 'score_away': scoreAway,
+          if (currentHalf != null) 'current_half': currentHalf,
+          if (currentTurn != null) 'current_turn': currentTurn,
+          if (weather != null) 'weather': weather,
+          if (kickoffEvent != null) 'kickoff_event': kickoffEvent,
+          if (rerollsUsedHome != null) 'rerolls_used_home': rerollsUsedHome,
+          if (rerollsUsedAway != null) 'rerolls_used_away': rerollsUsedAway,
+          if (mvpHome != null) 'mvp_home': mvpHome,
+          if (mvpAway != null) 'mvp_away': mvpAway,
+          if (gate != null) 'gate': gate,
+        },
+      );
+      return Match.fromJson(response.data);
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  Future<League> completeMatch(String leagueId, String matchId) async {
+    try {
+      final response =
+          await _dio.post('/leagues/$leagueId/matches/$matchId/complete');
+      return League.fromJson(response.data);
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }
@@ -291,6 +453,24 @@ class TeamRepository {
     }
   }
 
+  /// Hires a star player for a team.
+  Future<void> hireStarPlayer(
+    String teamId, {
+    required String starPlayerId,
+    required String name,
+    required int number,
+  }) async {
+    try {
+      await _dio.post('/user-teams/$teamId/players/star', data: {
+        'star_player_id': starPlayerId,
+        'name': name,
+        'number': number,
+      });
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
   /// Updates team staff counts (rerolls, apothecary, cheerleaders, coaches, fan_factor).
   Future<UserTeamDetail> patchTeamStaff(
     String teamId, {
@@ -323,6 +503,27 @@ class TeamRepository {
     }
   }
 
+  /// Updates a player's name and/or jersey number.
+  Future<UserTeamDetail> updatePlayer(
+    String teamId,
+    String playerId, {
+    String? name,
+    int? number,
+  }) async {
+    try {
+      final response = await _dio.patch(
+        '/user-teams/$teamId/players/$playerId',
+        data: {
+          if (name != null) 'name': name,
+          if (number != null) 'number': number,
+        },
+      );
+      return UserTeamDetail.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
   /// Returns a summary list of all teams owned by the current user.
   Future<List<UserTeamSummary>> getUserTeams() async {
     try {
@@ -339,8 +540,7 @@ class TeamRepository {
   Future<UserTeamDetail> getUserTeamDetail(String teamId) async {
     try {
       final response = await _dio.get('/user-teams/$teamId');
-      return UserTeamDetail.fromJson(
-          response.data as Map<String, dynamic>);
+      return UserTeamDetail.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }
@@ -355,7 +555,8 @@ class TeamRepository {
     }
   }
 
-  Future<Character> addCharacter(String teamId, String positionId, String name) async {
+  Future<Character> addCharacter(
+      String teamId, String positionId, String name) async {
     try {
       final response = await _dio.post('/teams/$teamId/characters', data: {
         'position_id': positionId,
@@ -391,7 +592,8 @@ class TeamRepository {
     }
   }
 
-  Future<Character> addSkill(String teamId, String characterId, String skillId) async {
+  Future<Character> addSkill(
+      String teamId, String characterId, String skillId) async {
     try {
       final response = await _dio.post(
         '/teams/$teamId/characters/$characterId/skills',
@@ -442,6 +644,126 @@ class TeamRepository {
     try {
       final response = await _dio.get('/base-rosters/$rosterId');
       return BaseTeam.fromJson(response.data);
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  /// Fetches all perks/skills from the backend.
+  Future<List<Map<String, dynamic>>> getPerks() async {
+    try {
+      final response = await _dio.get('/perks/');
+      final data = response.data['data'] as List;
+      return data.cast<Map<String, dynamic>>();
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  // ── Star Players ──────────────────────────────────────────────────────────
+
+  Future<List<Map<String, dynamic>>> getStarPlayers() async {
+    try {
+      final response = await _dio.get('/star-players/');
+      return (response.data as List).cast<Map<String, dynamic>>();
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getAllStarPlayerDetails() async {
+    try {
+      final response = await _dio.get('/star-players/details');
+      return (response.data as List).cast<Map<String, dynamic>>();
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> getStarPlayer(String starPlayerId) async {
+    try {
+      final response = await _dio.get('/star-players/$starPlayerId');
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getStarPlayersForTeam(
+      String teamId) async {
+    try {
+      final response = await _dio.get('/star-players/team/$teamId');
+      return (response.data as List).cast<Map<String, dynamic>>();
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  // ── Tactics ──────────────────────────────────────────────────────────────
+
+  Future<Map<String, dynamic>> createTactic(Map<String, dynamic> body) async {
+    try {
+      final response = await _dio.post('/tactics/', data: body);
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getMyTactics() async {
+    try {
+      final response = await _dio.get('/tactics/');
+      return (response.data as List).cast<Map<String, dynamic>>();
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> getTactic(String tacticId) async {
+    try {
+      final response = await _dio.get('/tactics/$tacticId');
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> updateTactic(
+      String tacticId, Map<String, dynamic> body) async {
+    try {
+      final response = await _dio.patch('/tactics/$tacticId', data: body);
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  Future<void> deleteTactic(String tacticId) async {
+    try {
+      await _dio.delete('/tactics/$tacticId');
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  /// Adds a perk to a player on a user team.
+  Future<UserTeamDetail> addPerkToPlayer(
+    String teamId,
+    String playerId, {
+    required String perkId,
+    required String perkName,
+    String? category,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/user-teams/$teamId/players/$playerId/perks',
+        data: {
+          'perk_id': perkId,
+          'perk_name': perkName,
+          if (category != null) 'category': category,
+        },
+      );
+      return UserTeamDetail.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }

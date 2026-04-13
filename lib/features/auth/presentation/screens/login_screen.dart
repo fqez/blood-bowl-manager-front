@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/l10n/locale_provider.dart';
+import '../../../../core/l10n/translations.dart';
 import '../../data/providers/auth_provider.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -81,6 +83,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Widget _buildHeader() {
+    final lang = ref.watch(localeProvider);
     return Column(
       children: [
         Container(
@@ -98,7 +101,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         ),
         const SizedBox(height: 24),
         Text(
-          'BLOOD BOWL',
+          tr(lang, 'auth.bloodBowl'),
           style: TextStyle(
             fontFamily: AppTextStyles.displayFont,
             fontSize: 32,
@@ -108,7 +111,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         ),
         const SizedBox(height: 4),
         Text(
-          'LEAGUE MANAGER',
+          tr(lang, 'auth.leagueManager'),
           style: TextStyle(
             fontSize: 14,
             color: AppColors.textMuted,
@@ -117,7 +120,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         ),
         const SizedBox(height: 32),
         Text(
-          'Iniciar Sesión',
+          tr(lang, 'auth.signIn'),
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
@@ -159,21 +162,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Widget _buildEmailField() {
+    final lang = ref.watch(localeProvider);
     return TextFormField(
       controller: _emailController,
       keyboardType: TextInputType.emailAddress,
       textInputAction: TextInputAction.next,
-      decoration: const InputDecoration(
-        labelText: 'Email',
-        hintText: 'coach@bloodbowl.com',
-        prefixIcon: Icon(Icons.email_outlined),
+      decoration: InputDecoration(
+        labelText: tr(lang, 'auth.email'),
+        hintText: tr(lang, 'auth.emailHint'),
+        prefixIcon: const Icon(Icons.email_outlined),
       ),
       validator: (value) {
         if (value == null || value.isEmpty) {
-          return 'El email es obligatorio';
+          return tr(lang, 'auth.emailRequired');
         }
         if (!value.contains('@')) {
-          return 'Email inválido';
+          return tr(lang, 'auth.emailInvalid');
         }
         return null;
       },
@@ -181,13 +185,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Widget _buildPasswordField() {
+    final lang = ref.watch(localeProvider);
     return TextFormField(
       controller: _passwordController,
       obscureText: _obscurePassword,
       textInputAction: TextInputAction.done,
       onFieldSubmitted: (_) => _handleLogin(),
       decoration: InputDecoration(
-        labelText: 'Contraseña',
+        labelText: tr(lang, 'auth.password'),
         prefixIcon: const Icon(Icons.lock_outlined),
         suffixIcon: IconButton(
           icon: Icon(
@@ -198,10 +203,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       ),
       validator: (value) {
         if (value == null || value.isEmpty) {
-          return 'La contraseña es obligatoria';
+          return tr(lang, 'auth.passwordRequired');
         }
         if (value.length < 6) {
-          return 'Mínimo 6 caracteres';
+          return tr(lang, 'auth.minChars6');
         }
         return null;
       },
@@ -223,9 +228,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 color: AppColors.textPrimary,
               ),
             )
-          : const Text(
-              'ENTRAR',
-              style: TextStyle(
+          : Text(
+              tr(ref.watch(localeProvider), 'auth.enter'),
+              style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1,
               ),
@@ -234,16 +239,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Widget _buildRegisterLink() {
+    final lang = ref.watch(localeProvider);
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Text(
-          '¿No tienes cuenta? ',
+          tr(lang, 'auth.noAccount'),
           style: TextStyle(color: AppColors.textSecondary),
         ),
         TextButton(
           onPressed: () => context.go('/register'),
-          child: const Text('Regístrate'),
+          child: Text(tr(lang, 'auth.register')),
         ),
       ],
     );

@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import '../../../../core/l10n/locale_provider.dart';
+import '../../../../core/l10n/translations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../roster/domain/models/team.dart';
 import '../../domain/models/aftermatch.dart';
 
-class InjuryRecorder extends StatelessWidget {
+class InjuryRecorder extends ConsumerWidget {
   final Team? homeTeam;
   final Team? awayTeam;
   final List<InjuryRecord> injuries;
@@ -21,13 +24,16 @@ class InjuryRecorder extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final lang = ref.watch(localeProvider);
     return Column(
       children: [
         // Recorded injuries
         if (injuries.isNotEmpty) ...[
-          ...injuries.asMap().entries.map((entry) =>
-            _buildInjuryItem(entry.key, entry.value)),
+          ...injuries
+              .asMap()
+              .entries
+              .map((entry) => _buildInjuryItem(lang, entry.key, entry.value)),
           const SizedBox(height: 16),
         ],
         // Add injury buttons
@@ -36,6 +42,7 @@ class InjuryRecorder extends StatelessWidget {
             Expanded(
               child: _buildAddButton(
                 context,
+                lang: lang,
                 team: homeTeam,
                 isHome: true,
               ),
@@ -44,6 +51,7 @@ class InjuryRecorder extends StatelessWidget {
             Expanded(
               child: _buildAddButton(
                 context,
+                lang: lang,
                 team: awayTeam,
                 isHome: false,
               ),
@@ -66,7 +74,7 @@ class InjuryRecorder extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Solo registra lesiones que afecten al jugador (BH, SI, RSI, muerte). Las bajas normales se cuentan automáticamente.',
+                  tr(lang, 'aftermatch.injuryInfo'),
                   style: TextStyle(
                     fontSize: 12,
                     color: AppColors.info,
@@ -80,7 +88,7 @@ class InjuryRecorder extends StatelessWidget {
     );
   }
 
-  Widget _buildInjuryItem(int index, InjuryRecord injury) {
+  Widget _buildInjuryItem(String lang, int index, InjuryRecord injury) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
@@ -126,13 +134,14 @@ class InjuryRecorder extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
                         color: _getInjuryColor(injury.type).withOpacity(0.2),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
-                        _getInjuryLabel(injury.type),
+                        _getInjuryLabel(lang, injury.type),
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
@@ -166,11 +175,12 @@ class InjuryRecorder extends StatelessWidget {
 
   Widget _buildAddButton(
     BuildContext context, {
+    required String lang,
     required Team? team,
     required bool isHome,
   }) {
     return OutlinedButton(
-      onPressed: () => _showInjuryDialog(context, team, isHome),
+      onPressed: () => _showInjuryDialog(context, lang, team, isHome),
       style: OutlinedButton.styleFrom(
         padding: const EdgeInsets.all(16),
         side: BorderSide(color: AppColors.warning),
@@ -180,16 +190,23 @@ class InjuryRecorder extends StatelessWidget {
         children: [
           Icon(PhosphorIcons.firstAid(PhosphorIconsStyle.bold), size: 24),
           const SizedBox(height: 8),
-          Text('Lesión ${team?.name ?? (isHome ? "Local" : "Visitante")}'),
+          Text(trf(lang, 'aftermatch.injuryFor', {
+            'team': team?.name ??
+                (isHome
+                    ? tr(lang, 'aftermatch.home')
+                    : tr(lang, 'aftermatch.away'))
+          })),
         ],
       ),
     );
   }
 
-  void _showInjuryDialog(BuildContext context, Team? team, bool isHome) {
+  void _showInjuryDialog(
+      BuildContext context, String lang, Team? team, bool isHome) {
     if (team == null) return;
 
-    final players = team.characters.where((c) => c.status == PlayerStatus.healthy).toList();
+    final players =
+        team.characters.where((c) => c.status == PlayerStatus.healthy).toList();
     Character? selectedPlayer;
     InjuryType selectedType = InjuryType.badlyHurt;
     String? description;
@@ -214,7 +231,7 @@ class InjuryRecorder extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Registrar Lesión',
+                tr(lang, 'aftermatch.registerInjury'),
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -225,22 +242,24 @@ class InjuryRecorder extends StatelessWidget {
               // Player selector
               DropdownButtonFormField<Character>(
                 decoration: InputDecoration(
-                  labelText: 'Jugador lesionado',
+                  labelText: tr(lang, 'aftermatch.injuredPlayer'),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
                 dropdownColor: AppColors.surface,
-                items: players.map((p) => DropdownMenuItem(
-                  value: p,
-                  child: Text('#${p.number} ${p.name}'),
-                )).toList(),
+                items: players
+                    .map((p) => DropdownMenuItem(
+                          value: p,
+                          child: Text('#${p.number} ${p.name}'),
+                        ))
+                    .toList(),
                 onChanged: (v) => setState(() => selectedPlayer = v),
               ),
               const SizedBox(height: 16),
               // Injury type
               Text(
-                'Tipo de lesión',
+                tr(lang, 'aftermatch.injuryType'),
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
@@ -250,26 +269,29 @@ class InjuryRecorder extends StatelessWidget {
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
-                children: InjuryType.values.map((type) => ChoiceChip(
-                  label: Text(_getInjuryLabel(type)),
-                  selected: selectedType == type,
-                  onSelected: (v) => setState(() => selectedType = type),
-                  selectedColor: _getInjuryColor(type).withOpacity(0.3),
-                  backgroundColor: AppColors.surfaceLight,
-                  labelStyle: TextStyle(
-                    color: selectedType == type
-                        ? _getInjuryColor(type)
-                        : AppColors.textMuted,
-                    fontSize: 12,
-                  ),
-                )).toList(),
+                children: InjuryType.values
+                    .map((type) => ChoiceChip(
+                          label: Text(_getInjuryLabel(lang, type)),
+                          selected: selectedType == type,
+                          onSelected: (v) =>
+                              setState(() => selectedType = type),
+                          selectedColor: _getInjuryColor(type).withOpacity(0.3),
+                          backgroundColor: AppColors.surfaceLight,
+                          labelStyle: TextStyle(
+                            color: selectedType == type
+                                ? _getInjuryColor(type)
+                                : AppColors.textMuted,
+                            fontSize: 12,
+                          ),
+                        ))
+                    .toList(),
               ),
               const SizedBox(height: 16),
               // Description
               TextField(
                 decoration: InputDecoration(
-                  labelText: 'Descripción (opcional)',
-                  hintText: 'ej: -1 Fuerza',
+                  labelText: tr(lang, 'aftermatch.descriptionOptional'),
+                  hintText: tr(lang, 'aftermatch.descriptionHint'),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -292,7 +314,7 @@ class InjuryRecorder extends StatelessWidget {
                           ));
                         }
                       : null,
-                  child: const Text('Registrar lesión'),
+                  child: Text(tr(lang, 'aftermatch.registerInjuryBtn')),
                 ),
               ),
             ],
@@ -332,18 +354,18 @@ class InjuryRecorder extends StatelessWidget {
     }
   }
 
-  String _getInjuryLabel(InjuryType type) {
+  String _getInjuryLabel(String lang, InjuryType type) {
     switch (type) {
       case InjuryType.badlyHurt:
         return 'BH';
       case InjuryType.missNextGame:
-        return 'MNG';
+        return tr(lang, 'aftermatch.mng');
       case InjuryType.nigglingInjury:
         return 'NI';
       case InjuryType.statDecrease:
         return 'SD';
       case InjuryType.dead:
-        return 'Muerto';
+        return tr(lang, 'aftermatch.dead');
     }
   }
 }

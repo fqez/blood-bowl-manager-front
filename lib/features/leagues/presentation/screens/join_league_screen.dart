@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
+import '../../../../core/l10n/locale_provider.dart';
+import '../../../../core/l10n/translations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../my_teams/domain/models/user_team.dart';
 import '../../../shared/data/repositories.dart';
@@ -88,29 +90,31 @@ class _JoinLeagueScreenState extends ConsumerState<JoinLeagueScreen> {
   }
 
   String _friendlyError(Object e) {
+    final lang = ref.read(localeProvider);
     final msg = e.toString().toLowerCase();
     if (msg.contains('not found') || msg.contains('404')) {
-      return 'Código incorrecto — no se encontró ninguna liga';
+      return tr(lang, 'joinLeague.wrongCode');
     }
     if (msg.contains('invite') || msg.contains('código')) {
-      return 'Código de invitación incorrecto';
+      return tr(lang, 'joinLeague.wrongCode');
     }
     if (msg.contains('user already has')) {
-      return 'Ya tienes un equipo inscrito en esta liga';
+      return tr(lang, 'joinLeague.alreadyJoined');
     }
     if (msg.contains('already')) {
-      return 'Ya formas parte de esta liga con ese equipo';
+      return tr(lang, 'joinLeague.alreadyJoined');
     }
     if (msg.contains('full') || msg.contains('max')) {
-      return 'La liga ya está llena';
+      return tr(lang, 'joinLeague.leagueFull');
     }
-    return 'Error: $e';
+    return trf(lang, 'common.error', {'e': e.toString()});
   }
 
   // ── Build ──
 
   @override
   Widget build(BuildContext context) {
+    final lang = ref.watch(localeProvider);
     final isWide = MediaQuery.of(context).size.width >= 700;
 
     return Scaffold(
@@ -128,14 +132,14 @@ class _JoinLeagueScreenState extends ConsumerState<JoinLeagueScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildCodeStep(),
+                      _buildCodeStep(lang),
                       if (_preview != null) ...[
                         const SizedBox(height: 24),
                         _buildDivider(),
                         const SizedBox(height: 24),
-                        _buildPreviewCard(),
+                        _buildPreviewCard(lang),
                         const SizedBox(height: 24),
-                        _buildTeamStep(),
+                        _buildTeamStep(lang),
                       ],
                     ],
                   ),
@@ -149,6 +153,7 @@ class _JoinLeagueScreenState extends ConsumerState<JoinLeagueScreen> {
   }
 
   Widget _buildTopBar() {
+    final lang = ref.watch(localeProvider);
     return Container(
       color: AppColors.surface,
       child: SafeArea(
@@ -163,7 +168,7 @@ class _JoinLeagueScreenState extends ConsumerState<JoinLeagueScreen> {
                     color: AppColors.textSecondary),
               ),
               Text(
-                'UNIRSE A UNA LIGA',
+                tr(lang, 'joinLeague.title'),
                 style: TextStyle(
                   fontFamily: AppTextStyles.displayFont,
                   fontSize: 20,
@@ -178,12 +183,12 @@ class _JoinLeagueScreenState extends ConsumerState<JoinLeagueScreen> {
     );
   }
 
-  Widget _buildCodeStep() {
+  Widget _buildCodeStep(String lang) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'PASO 1 — CÓDIGO DE INVITACIÓN',
+          tr(lang, 'joinLeague.step1'),
           style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.bold,
@@ -192,7 +197,7 @@ class _JoinLeagueScreenState extends ConsumerState<JoinLeagueScreen> {
         ),
         const SizedBox(height: 16),
         Text(
-          'Introduce el código que te ha compartido el organizador de la liga:',
+          tr(lang, 'joinLeague.step1Body'),
           style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
         ),
         const SizedBox(height: 14),
@@ -245,8 +250,9 @@ class _JoinLeagueScreenState extends ConsumerState<JoinLeagueScreen> {
                       width: 18,
                       height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2))
-                  : Icon(PhosphorIcons.magnifyingGlass(PhosphorIconsStyle.bold)),
-              label: const Text('Buscar'),
+                  : Icon(
+                      PhosphorIcons.magnifyingGlass(PhosphorIconsStyle.bold)),
+              label: Text(tr(lang, 'joinLeague.search')),
               style: FilledButton.styleFrom(
                 backgroundColor: AppColors.accent,
                 foregroundColor: AppColors.background,
@@ -273,7 +279,7 @@ class _JoinLeagueScreenState extends ConsumerState<JoinLeagueScreen> {
     );
   }
 
-  Widget _buildPreviewCard() {
+  Widget _buildPreviewCard(String lang) {
     final p = _preview!;
     return Container(
       padding: const EdgeInsets.all(18),
@@ -321,7 +327,7 @@ class _JoinLeagueScreenState extends ConsumerState<JoinLeagueScreen> {
                   color: AppColors.error.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Text('LLENA',
+                child: Text(tr(lang, 'joinLeague.full'),
                     style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
@@ -337,7 +343,7 @@ class _JoinLeagueScreenState extends ConsumerState<JoinLeagueScreen> {
                 fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary),
           ),
-          Text('Organizada por ${p.ownerUsername}',
+          Text(trf(lang, 'joinLeague.organizedBy', {'name': p.ownerUsername}),
               style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
           const SizedBox(height: 14),
           Row(children: [
@@ -362,13 +368,12 @@ class _JoinLeagueScreenState extends ConsumerState<JoinLeagueScreen> {
                 fontSize: 13,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary)),
-        Text(label,
-            style: TextStyle(fontSize: 10, color: AppColors.textMuted)),
+        Text(label, style: TextStyle(fontSize: 10, color: AppColors.textMuted)),
       ]),
     ]);
   }
 
-  Widget _buildTeamStep() {
+  Widget _buildTeamStep(String lang) {
     if (_userTeams == null) return const SizedBox.shrink();
     final canJoin = _preview!.isDraft && !_preview!.isFull;
 
@@ -376,7 +381,7 @@ class _JoinLeagueScreenState extends ConsumerState<JoinLeagueScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'PASO 2 — ELIGE TU EQUIPO',
+          tr(lang, 'joinLeague.step2'),
           style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.bold,
@@ -399,8 +404,9 @@ class _JoinLeagueScreenState extends ConsumerState<JoinLeagueScreen> {
               Expanded(
                 child: Text(
                   _preview!.isFull
-                      ? 'Esta liga ya está llena y no acepta más equipos.'
-                      : 'Esta liga no está abierta a nuevas inscripciones.',
+                      ? tr(lang,
+                          'joinLeague.leagueFull') // 'Esta liga ya está llena y no acepta más equipos.'
+                      : 'Esta liga no está abierta a nuevas inscripciones.', // no exact key
                   style: TextStyle(color: AppColors.error, fontSize: 13),
                 ),
               ),
@@ -422,7 +428,7 @@ class _JoinLeagueScreenState extends ConsumerState<JoinLeagueScreen> {
                 child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('No tienes equipos creados.',
+                      Text(tr(lang, 'joinLeague.noTeams'),
                           style: TextStyle(
                               color: AppColors.warning,
                               fontWeight: FontWeight.bold,
@@ -430,7 +436,7 @@ class _JoinLeagueScreenState extends ConsumerState<JoinLeagueScreen> {
                       const SizedBox(height: 2),
                       GestureDetector(
                         onTap: () => context.go('/create-team'),
-                        child: Text('Crear un equipo →',
+                        child: Text(tr(lang, 'joinLeague.createTeam'),
                             style: TextStyle(
                                 color: AppColors.accent,
                                 fontSize: 12,
@@ -486,14 +492,18 @@ class _JoinLeagueScreenState extends ConsumerState<JoinLeagueScreen> {
           SizedBox(
             width: double.infinity,
             child: FilledButton.icon(
-              onPressed: _joining || _selectedTeamId == null ? null : _joinLeague,
+              onPressed:
+                  _joining || _selectedTeamId == null ? null : _joinLeague,
               icon: _joining
                   ? const SizedBox(
                       width: 18,
                       height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2))
                   : Icon(PhosphorIcons.door(PhosphorIconsStyle.bold)),
-              label: Text(_joining ? 'Uniéndose...' : 'Unirse a la Liga',
+              label: Text(
+                  _joining
+                      ? 'Uniéndose...'
+                      : 'Unirse a la Liga', // no exact key for join button label
                   style: const TextStyle(
                       fontSize: 15, fontWeight: FontWeight.bold)),
               style: FilledButton.styleFrom(

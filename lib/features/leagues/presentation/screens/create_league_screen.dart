@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
+import '../../../../core/l10n/locale_provider.dart';
+import '../../../../core/l10n/translations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../shared/data/repositories.dart';
 import '../../domain/models/league_summary.dart';
@@ -12,8 +14,7 @@ class CreateLeagueScreen extends ConsumerStatefulWidget {
   const CreateLeagueScreen({super.key});
 
   @override
-  ConsumerState<CreateLeagueScreen> createState() =>
-      _CreateLeagueScreenState();
+  ConsumerState<CreateLeagueScreen> createState() => _CreateLeagueScreenState();
 }
 
 class _CreateLeagueScreenState extends ConsumerState<CreateLeagueScreen> {
@@ -44,9 +45,7 @@ class _CreateLeagueScreenState extends ConsumerState<CreateLeagueScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
     try {
-      final league = await ref
-          .read(leagueRepositoryProvider)
-          .createLeagueFull(
+      final league = await ref.read(leagueRepositoryProvider).createLeagueFull(
             name: _nameController.text.trim(),
             description: _descController.text.trim().isEmpty
                 ? null
@@ -61,9 +60,10 @@ class _CreateLeagueScreenState extends ConsumerState<CreateLeagueScreen> {
       if (mounted) _showInviteCodeDialog(league);
     } catch (e) {
       if (mounted) {
+        final lang = ref.read(localeProvider);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error al crear la liga: $e'),
+            content: Text(trf(lang, 'createLeague.error', {'e': e.toString()})),
             backgroundColor: AppColors.error,
           ),
         );
@@ -75,6 +75,7 @@ class _CreateLeagueScreenState extends ConsumerState<CreateLeagueScreen> {
 
   void _showInviteCodeDialog(LeagueSummaryModel league) {
     final code = league.inviteCode ?? '—';
+    final lang = ref.read(localeProvider);
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -85,7 +86,7 @@ class _CreateLeagueScreenState extends ConsumerState<CreateLeagueScreen> {
           Icon(PhosphorIcons.checkCircle(PhosphorIconsStyle.fill),
               color: AppColors.success),
           const SizedBox(width: 10),
-          Text('¡Liga creada!',
+          Text(tr(lang, 'createLeague.created'),
               style: TextStyle(color: AppColors.textPrimary)),
         ]),
         content: Column(
@@ -93,7 +94,7 @@ class _CreateLeagueScreenState extends ConsumerState<CreateLeagueScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Comparte este código con los jugadores que quieras invitar:',
+              tr(lang, 'createLeague.shareCode'),
               style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
             ),
             const SizedBox(height: 16),
@@ -121,14 +122,14 @@ class _CreateLeagueScreenState extends ConsumerState<CreateLeagueScreen> {
                     onPressed: () {
                       Clipboard.setData(ClipboardData(text: code));
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text('Código copiado'),
-                            duration: Duration(seconds: 1)),
+                        SnackBar(
+                            content: Text(tr(lang, 'createLeague.codeCopied')),
+                            duration: const Duration(seconds: 1)),
                       );
                     },
                     icon: Icon(PhosphorIcons.copy(PhosphorIconsStyle.regular),
                         color: AppColors.accent),
-                    tooltip: 'Copiar código',
+                    tooltip: tr(lang, 'createLeague.copyCode'),
                   ),
                 ],
               ),
@@ -141,7 +142,7 @@ class _CreateLeagueScreenState extends ConsumerState<CreateLeagueScreen> {
               Navigator.of(context).pop();
               context.go('/leagues');
             },
-            child: Text('Ir a Mis Ligas',
+            child: Text(tr(lang, 'createLeague.goToLeagues'),
                 style: TextStyle(color: AppColors.textSecondary)),
           ),
           FilledButton(
@@ -153,7 +154,7 @@ class _CreateLeagueScreenState extends ConsumerState<CreateLeagueScreen> {
               backgroundColor: AppColors.primary,
               foregroundColor: AppColors.textPrimary,
             ),
-            child: const Text('Ver Liga'),
+            child: Text(tr(lang, 'createLeague.viewLeague')),
           ),
         ],
       ),
@@ -164,6 +165,7 @@ class _CreateLeagueScreenState extends ConsumerState<CreateLeagueScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final lang = ref.watch(localeProvider);
     final isWide = MediaQuery.of(context).size.width >= 700;
 
     return Scaffold(
@@ -183,21 +185,21 @@ class _CreateLeagueScreenState extends ConsumerState<CreateLeagueScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _sectionTitle('INFORMACIÓN DE LA LIGA'),
+                        _sectionTitle(tr(lang, 'createLeague.info')),
                         const SizedBox(height: 12),
-                        _buildNameField(),
+                        _buildNameField(lang),
                         const SizedBox(height: 14),
-                        _buildDescField(),
+                        _buildDescField(lang),
                         const SizedBox(height: 28),
-                        _sectionTitle('FORMATO Y PARTICIPANTES'),
+                        _sectionTitle(tr(lang, 'createLeague.format')),
                         const SizedBox(height: 12),
-                        _buildFormatSelector(),
+                        _buildFormatSelector(lang),
                         const SizedBox(height: 20),
-                        _buildMaxTeamsSlider(),
+                        _buildMaxTeamsSlider(lang),
                         const SizedBox(height: 28),
-                        _sectionTitle('REGLAS'),
+                        _sectionTitle(tr(lang, 'createLeague.rules')),
                         const SizedBox(height: 12),
-                        _buildBudgetChips(),
+                        _buildBudgetChips(lang),
                         const SizedBox(height: 16),
                         _buildRuleToggle(
                             'Resurrecciones',
@@ -220,7 +222,7 @@ class _CreateLeagueScreenState extends ConsumerState<CreateLeagueScreen> {
                             (v) => setState(() => _spiralingExpenses = v),
                             PhosphorIcons.trendUp(PhosphorIconsStyle.bold)),
                         const SizedBox(height: 32),
-                        _buildSubmitButton(),
+                        _buildSubmitButton(lang),
                         const SizedBox(height: 40),
                       ],
                     ),
@@ -235,6 +237,7 @@ class _CreateLeagueScreenState extends ConsumerState<CreateLeagueScreen> {
   }
 
   Widget _buildTopBar(BuildContext context) {
+    final lang = ref.watch(localeProvider);
     return Container(
       color: AppColors.surface,
       child: SafeArea(
@@ -249,7 +252,7 @@ class _CreateLeagueScreenState extends ConsumerState<CreateLeagueScreen> {
                     color: AppColors.textSecondary),
               ),
               Text(
-                'CREAR LIGA',
+                tr(lang, 'createLeague.create'),
                 style: TextStyle(
                   fontFamily: AppTextStyles.displayFont,
                   fontSize: 20,
@@ -273,10 +276,11 @@ class _CreateLeagueScreenState extends ConsumerState<CreateLeagueScreen> {
             letterSpacing: 1),
       );
 
-  Widget _buildNameField() => TextFormField(
+  Widget _buildNameField(String lang) => TextFormField(
         controller: _nameController,
         style: TextStyle(color: AppColors.textPrimary),
-        decoration: _inputDecoration('Nombre de la liga', required: true),
+        decoration: _inputDecoration(tr(lang, 'createLeague.leagueName'),
+            required: true),
         maxLength: 100,
         validator: (v) {
           if (v == null || v.trim().isEmpty) return 'El nombre es obligatorio';
@@ -285,24 +289,37 @@ class _CreateLeagueScreenState extends ConsumerState<CreateLeagueScreen> {
         },
       );
 
-  Widget _buildDescField() => TextFormField(
+  Widget _buildDescField(String lang) => TextFormField(
         controller: _descController,
         style: TextStyle(color: AppColors.textPrimary),
-        decoration: _inputDecoration('Descripción (opcional)'),
+        decoration: _inputDecoration(tr(lang, 'createLeague.descHint')),
         maxLength: 500,
         maxLines: 2,
       );
 
-  Widget _buildFormatSelector() {
+  Widget _buildFormatSelector(String lang) {
     final options = [
-      ('round_robin', 'Liga', 'Todos contra todos'),
-      ('knockout', 'Eliminatoria', 'Partidos de copa'),
-      ('swiss', 'Suiza', 'Rondas emparejadas'),
+      (
+        'round_robin',
+        tr(lang, 'createLeague.league'),
+        'Todos contra todos'
+      ), // no key for subtitle
+      (
+        'knockout',
+        tr(lang, 'createLeague.cup'),
+        'Partidos de copa'
+      ), // no key for subtitle
+      (
+        'swiss',
+        tr(lang, 'createLeague.swiss'),
+        'Rondas emparejadas'
+      ), // no key for subtitle
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Formato', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+        Text(tr(lang, 'createLeague.formatLabel'),
+            style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
         const SizedBox(height: 8),
         Row(
           children: options
@@ -324,12 +341,12 @@ class _CreateLeagueScreenState extends ConsumerState<CreateLeagueScreen> {
     );
   }
 
-  Widget _buildMaxTeamsSlider() {
+  Widget _buildMaxTeamsSlider(String lang) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(children: [
-          Text('Equipos máximos',
+          Text(tr(lang, 'createLeague.maxTeams'),
               style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
           const Spacer(),
           Text(
@@ -353,15 +370,17 @@ class _CreateLeagueScreenState extends ConsumerState<CreateLeagueScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('2', style: TextStyle(color: AppColors.textMuted, fontSize: 11)),
-            Text('20', style: TextStyle(color: AppColors.textMuted, fontSize: 11)),
+            Text('2',
+                style: TextStyle(color: AppColors.textMuted, fontSize: 11)),
+            Text('20',
+                style: TextStyle(color: AppColors.textMuted, fontSize: 11)),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildBudgetChips() {
+  Widget _buildBudgetChips(String lang) {
     final budgets = [
       (800000, '800k'),
       (1000000, '1000k'),
@@ -372,7 +391,7 @@ class _CreateLeagueScreenState extends ConsumerState<CreateLeagueScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Presupuesto inicial',
+        Text(tr(lang, 'createLeague.budget'),
             style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
         const SizedBox(height: 8),
         Wrap(
@@ -425,8 +444,7 @@ class _CreateLeagueScreenState extends ConsumerState<CreateLeagueScreen> {
                         fontWeight: FontWeight.w600,
                         fontSize: 14)),
                 Text(subtitle,
-                    style: TextStyle(
-                        color: AppColors.textMuted, fontSize: 11)),
+                    style: TextStyle(color: AppColors.textMuted, fontSize: 11)),
               ],
             ),
           ),
@@ -440,7 +458,7 @@ class _CreateLeagueScreenState extends ConsumerState<CreateLeagueScreen> {
     );
   }
 
-  Widget _buildSubmitButton() {
+  Widget _buildSubmitButton(String lang) {
     return SizedBox(
       width: double.infinity,
       child: FilledButton.icon(
@@ -452,7 +470,10 @@ class _CreateLeagueScreenState extends ConsumerState<CreateLeagueScreen> {
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
             : Icon(PhosphorIcons.plus(PhosphorIconsStyle.bold)),
-        label: Text(_isLoading ? 'Creando...' : 'Crear Liga',
+        label: Text(
+            _isLoading
+                ? 'Creando...'
+                : tr(lang, 'createLeague.create'), // 'Creando...' has no key
             style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
         style: FilledButton.styleFrom(
           backgroundColor: AppColors.primary,
@@ -510,7 +531,8 @@ class _FormatOption extends StatelessWidget {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
         decoration: BoxDecoration(
-          color: selected ? AppColors.primary.withOpacity(0.15) : AppColors.card,
+          color:
+              selected ? AppColors.primary.withOpacity(0.15) : AppColors.card,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
             color: selected ? AppColors.primary : AppColors.surfaceLight,
@@ -522,7 +544,8 @@ class _FormatOption extends StatelessWidget {
             Text(
               label,
               style: TextStyle(
-                color: selected ? AppColors.textPrimary : AppColors.textSecondary,
+                color:
+                    selected ? AppColors.textPrimary : AppColors.textSecondary,
                 fontWeight: FontWeight.bold,
                 fontSize: 13,
               ),

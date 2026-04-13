@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import '../../../../core/l10n/locale_provider.dart';
+import '../../../../core/l10n/translations.dart';
 import '../../../../core/theme/app_colors.dart';
 
-class StaffSection extends StatelessWidget {
+class StaffSection extends ConsumerWidget {
   final int rerolls;
   final int rerollCost;
   final bool hasApothecary;
@@ -31,12 +34,13 @@ class StaffSection extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final lang = ref.watch(localeProvider);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'PERSONAL & EQUIPO',
+          tr(lang, 'team.staffManagement').toUpperCase(),
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.bold,
@@ -51,7 +55,7 @@ class StaffSection extends StatelessWidget {
           children: [
             _buildStaffCard(
               icon: PhosphorIcons.arrowsClockwise(PhosphorIconsStyle.fill),
-              label: 'Re-rolls',
+              label: tr(lang, 'teamCreator.rerolls'),
               count: rerolls,
               cost: rerollCost,
               canBuy: !readOnly && treasury >= rerollCost,
@@ -59,7 +63,7 @@ class StaffSection extends StatelessWidget {
             ),
             _buildStaffCard(
               icon: PhosphorIcons.firstAidKit(PhosphorIconsStyle.fill),
-              label: 'Apotecario',
+              label: tr(lang, 'team.apothecary'),
               count: hasApothecary ? 1 : 0,
               cost: 50000,
               canBuy: !readOnly && !hasApothecary && treasury >= 50000,
@@ -68,7 +72,7 @@ class StaffSection extends StatelessWidget {
             ),
             _buildStaffCard(
               icon: PhosphorIcons.chalkboardTeacher(PhosphorIconsStyle.fill),
-              label: 'Asistentes',
+              label: tr(lang, 'team.assistantCoaches'),
               count: assistantCoaches,
               cost: 10000,
               canBuy: !readOnly && treasury >= 10000,
@@ -76,7 +80,7 @@ class StaffSection extends StatelessWidget {
             ),
             _buildStaffCard(
               icon: PhosphorIcons.megaphone(PhosphorIconsStyle.fill),
-              label: 'Animadoras',
+              label: tr(lang, 'team.cheerleaders'),
               count: cheerleaders,
               cost: 10000,
               canBuy: !readOnly && treasury >= 10000,
@@ -162,7 +166,8 @@ class StaffSection extends StatelessWidget {
                   side: BorderSide(
                     color: canBuy ? AppColors.accent : AppColors.surfaceLight,
                   ),
-                  foregroundColor: canBuy ? AppColors.accent : AppColors.textMuted,
+                  foregroundColor:
+                      canBuy ? AppColors.accent : AppColors.textMuted,
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,

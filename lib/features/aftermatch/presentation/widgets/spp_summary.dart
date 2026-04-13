@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import '../../../../core/l10n/locale_provider.dart';
+import '../../../../core/l10n/translations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../roster/domain/models/team.dart';
 import '../../domain/models/aftermatch.dart';
 
-class SppSummary extends StatelessWidget {
+class SppSummary extends ConsumerWidget {
   final List<TouchdownRecord> touchdowns;
   final List<InjuryRecord> injuries;
   final List<BonusSppRecord> bonusSpp;
@@ -25,13 +28,15 @@ class SppSummary extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final lang = ref.watch(localeProvider);
     // Calculate SPP by player
     final sppByPlayer = <String, _PlayerSpp>{};
 
     // TDs (4 SPP each)
     for (final td in touchdowns) {
-      sppByPlayer.putIfAbsent(td.playerId, () => _PlayerSpp(name: td.playerName));
+      sppByPlayer.putIfAbsent(
+          td.playerId, () => _PlayerSpp(name: td.playerName));
       sppByPlayer[td.playerId]!.touchdowns++;
     }
 
@@ -40,7 +45,8 @@ class SppSummary extends StatelessWidget {
 
     // Bonus SPP
     for (final spp in bonusSpp) {
-      sppByPlayer.putIfAbsent(spp.playerId, () => _PlayerSpp(name: spp.playerName));
+      sppByPlayer.putIfAbsent(
+          spp.playerId, () => _PlayerSpp(name: spp.playerName));
       sppByPlayer[spp.playerId]!.bonus += spp.amount;
       sppByPlayer[spp.playerId]!.bonusReasons.add(spp.reason);
     }
@@ -59,17 +65,19 @@ class SppSummary extends StatelessWidget {
               border: Border.all(color: AppColors.surfaceLight),
             ),
             child: Column(
-              children: sortedPlayers.map((entry) => _buildPlayerSppRow(
-                entry.key,
-                entry.value,
-              )).toList(),
+              children: sortedPlayers
+                  .map((entry) => _buildPlayerSppRow(
+                        entry.key,
+                        entry.value,
+                      ))
+                  .toList(),
             ),
           ),
           const SizedBox(height: 24),
         ],
         // Add bonus SPP
         Text(
-          'AÑADIR SPP BONUS',
+          tr(lang, 'aftermatch.sppBonus'),
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.bold,
@@ -83,8 +91,9 @@ class SppSummary extends StatelessWidget {
             Expanded(
               child: _buildBonusButton(
                 context,
+                lang: lang,
                 icon: PhosphorIcons.trophy(PhosphorIconsStyle.fill),
-                label: 'MVP',
+                label: tr(lang, 'aftermatch.mvp'),
                 amount: 4,
               ),
             ),
@@ -92,8 +101,9 @@ class SppSummary extends StatelessWidget {
             Expanded(
               child: _buildBonusButton(
                 context,
+                lang: lang,
                 icon: PhosphorIcons.football(PhosphorIconsStyle.fill),
-                label: 'Pase',
+                label: tr(lang, 'aftermatch.pass'),
                 amount: 1,
               ),
             ),
@@ -101,8 +111,9 @@ class SppSummary extends StatelessWidget {
             Expanded(
               child: _buildBonusButton(
                 context,
+                lang: lang,
                 icon: PhosphorIcons.handFist(PhosphorIconsStyle.fill),
-                label: 'Intercepción',
+                label: tr(lang, 'aftermatch.interception'),
                 amount: 2,
               ),
             ),
@@ -111,7 +122,10 @@ class SppSummary extends StatelessWidget {
         const SizedBox(height: 16),
         // Bonus SPP list
         if (bonusSpp.isNotEmpty)
-          ...bonusSpp.asMap().entries.map((entry) => _buildBonusSppItem(entry.key, entry.value)),
+          ...bonusSpp
+              .asMap()
+              .entries
+              .map((entry) => _buildBonusSppItem(entry.key, entry.value)),
       ],
     );
   }
@@ -221,12 +235,13 @@ class SppSummary extends StatelessWidget {
 
   Widget _buildBonusButton(
     BuildContext context, {
+    required String lang,
     required IconData icon,
     required String label,
     required int amount,
   }) {
     return OutlinedButton(
-      onPressed: () => _showBonusSppDialog(context, label, amount),
+      onPressed: () => _showBonusSppDialog(context, lang, label, amount),
       style: OutlinedButton.styleFrom(
         padding: const EdgeInsets.all(12),
         side: BorderSide(color: AppColors.accent),
@@ -293,10 +308,17 @@ class SppSummary extends StatelessWidget {
     );
   }
 
-  void _showBonusSppDialog(BuildContext context, String reason, int amount) {
+  void _showBonusSppDialog(
+      BuildContext context, String lang, String reason, int amount) {
     final allPlayers = [
-      ...(homeTeam?.characters.where((c) => c.status == PlayerStatus.healthy).toList() ?? []),
-      ...(awayTeam?.characters.where((c) => c.status == PlayerStatus.healthy).toList() ?? []),
+      ...(homeTeam?.characters
+              .where((c) => c.status == PlayerStatus.healthy)
+              .toList() ??
+          []),
+      ...(awayTeam?.characters
+              .where((c) => c.status == PlayerStatus.healthy)
+              .toList() ??
+          []),
     ];
 
     showModalBottomSheet(
@@ -312,7 +334,7 @@ class SppSummary extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Asignar $reason',
+              trf(lang, 'aftermatch.assign', {'reason': reason}),
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,

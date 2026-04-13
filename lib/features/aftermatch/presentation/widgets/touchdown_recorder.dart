@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import '../../../../core/l10n/locale_provider.dart';
+import '../../../../core/l10n/translations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../roster/domain/models/team.dart';
 import '../../domain/models/aftermatch.dart';
 
-class TouchdownRecorder extends StatelessWidget {
+class TouchdownRecorder extends ConsumerWidget {
   final Team? homeTeam;
   final Team? awayTeam;
   final int homeGoal;
@@ -25,13 +28,14 @@ class TouchdownRecorder extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final lang = ref.watch(localeProvider);
     return Column(
       children: [
         // Recorded touchdowns
         if (touchdowns.isNotEmpty) ...[
-          ...touchdowns.asMap().entries.map((entry) =>
-            _buildTouchdownItem(entry.key, entry.value)),
+          ...touchdowns.asMap().entries.map(
+              (entry) => _buildTouchdownItem(lang, entry.key, entry.value)),
           const SizedBox(height: 16),
         ],
         // Add touchdown buttons
@@ -40,18 +44,22 @@ class TouchdownRecorder extends StatelessWidget {
             Expanded(
               child: _buildAddButton(
                 context,
+                lang: lang,
                 team: homeTeam,
                 isHome: true,
-                remaining: homeGoal - touchdowns.where((t) => t.isHomeTeam).length,
+                remaining:
+                    homeGoal - touchdowns.where((t) => t.isHomeTeam).length,
               ),
             ),
             const SizedBox(width: 16),
             Expanded(
               child: _buildAddButton(
                 context,
+                lang: lang,
                 team: awayTeam,
                 isHome: false,
-                remaining: awayGoal - touchdowns.where((t) => !t.isHomeTeam).length,
+                remaining:
+                    awayGoal - touchdowns.where((t) => !t.isHomeTeam).length,
               ),
             ),
           ],
@@ -60,7 +68,7 @@ class TouchdownRecorder extends StatelessWidget {
     );
   }
 
-  Widget _buildTouchdownItem(int index, TouchdownRecord td) {
+  Widget _buildTouchdownItem(String lang, int index, TouchdownRecord td) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
@@ -103,7 +111,7 @@ class TouchdownRecorder extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  '${td.isHomeTeam ? "Local" : "Visitante"} • TD #${index + 1}',
+                  '${td.isHomeTeam ? tr(lang, 'aftermatch.home') : tr(lang, 'aftermatch.away')} • TD #${index + 1}',
                   style: TextStyle(
                     fontSize: 12,
                     color: AppColors.textMuted,
@@ -125,6 +133,7 @@ class TouchdownRecorder extends StatelessWidget {
 
   Widget _buildAddButton(
     BuildContext context, {
+    required String lang,
     required Team? team,
     required bool isHome,
     required int remaining,
@@ -132,7 +141,9 @@ class TouchdownRecorder extends StatelessWidget {
     final enabled = remaining > 0;
 
     return OutlinedButton(
-      onPressed: enabled ? () => _showPlayerSelector(context, team, isHome) : null,
+      onPressed: enabled
+          ? () => _showPlayerSelector(context, lang, team, isHome)
+          : null,
       style: OutlinedButton.styleFrom(
         padding: const EdgeInsets.all(16),
         side: BorderSide(
@@ -148,9 +159,12 @@ class TouchdownRecorder extends StatelessWidget {
         children: [
           Icon(PhosphorIcons.plusCircle(PhosphorIconsStyle.bold), size: 24),
           const SizedBox(height: 8),
-          Text(team?.name ?? (isHome ? 'Local' : 'Visitante')),
+          Text(team?.name ??
+              (isHome
+                  ? tr(lang, 'aftermatch.home')
+                  : tr(lang, 'aftermatch.away'))),
           Text(
-            '$remaining restantes',
+            trf(lang, 'aftermatch.remaining', {'n': '$remaining'}),
             style: TextStyle(
               fontSize: 11,
               color: AppColors.textMuted,
@@ -161,10 +175,12 @@ class TouchdownRecorder extends StatelessWidget {
     );
   }
 
-  void _showPlayerSelector(BuildContext context, Team? team, bool isHome) {
+  void _showPlayerSelector(
+      BuildContext context, String lang, Team? team, bool isHome) {
     if (team == null) return;
 
-    final players = team.characters.where((c) => c.status == PlayerStatus.healthy).toList();
+    final players =
+        team.characters.where((c) => c.status == PlayerStatus.healthy).toList();
 
     showModalBottomSheet(
       context: context,
@@ -179,7 +195,7 @@ class TouchdownRecorder extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Selecciona anotador',
+              tr(lang, 'aftermatch.selectScorer'),
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,

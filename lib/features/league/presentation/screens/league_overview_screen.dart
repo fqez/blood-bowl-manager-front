@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import '../../../../core/l10n/locale_provider.dart';
+import '../../../../core/l10n/translations.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../auth/data/providers/auth_provider.dart';
 import '../../../shared/data/repositories.dart';
 import '../../domain/models/league.dart';
 import '../widgets/standings_table.dart';
@@ -11,17 +15,20 @@ import '../widgets/activity_feed.dart';
 import '../widgets/bracket_widget.dart';
 
 // Providers
-final leagueProvider = FutureProvider.family<League, String>((ref, leagueId) async {
+final leagueProvider =
+    FutureProvider.family<League, String>((ref, leagueId) async {
   final repository = ref.watch(leagueRepositoryProvider);
   return repository.getLeague(leagueId);
 });
 
-final matchesProvider = FutureProvider.family<List<Match>, String>((ref, leagueId) async {
+final matchesProvider =
+    FutureProvider.family<List<Match>, String>((ref, leagueId) async {
   final repository = ref.watch(leagueRepositoryProvider);
   return repository.getLeagueMatches(leagueId);
 });
 
-final leagueFormatProvider = FutureProvider.family<String, String>((ref, leagueId) async {
+final leagueFormatProvider =
+    FutureProvider.family<String, String>((ref, leagueId) async {
   final repository = ref.watch(leagueRepositoryProvider);
   return repository.getLeagueFormat(leagueId);
 });
@@ -32,7 +39,8 @@ class LeagueOverviewScreen extends ConsumerStatefulWidget {
   const LeagueOverviewScreen({super.key, required this.leagueId});
 
   @override
-  ConsumerState<LeagueOverviewScreen> createState() => _LeagueOverviewScreenState();
+  ConsumerState<LeagueOverviewScreen> createState() =>
+      _LeagueOverviewScreenState();
 }
 
 class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
@@ -53,6 +61,7 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
 
   @override
   Widget build(BuildContext context) {
+    final lang = ref.watch(localeProvider);
     final leagueAsync = ref.watch(leagueProvider(widget.leagueId));
     final isWideScreen = MediaQuery.of(context).size.width >= 800;
 
@@ -61,29 +70,33 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
       appBar: _buildAppBar(leagueAsync),
       body: leagueAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(child: Text('Error: $error')),
-        data: (league) => Column(
-          children: [
-            _buildTabBar(),
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
+        error: (error, _) =>
+            Center(child: Text(trf(lang, 'common.error', {'e': '$error'}))),
+        data: (league) => league.status == LeagueStatus.draft
+            ? _buildDraftView(league, isWideScreen)
+            : Column(
                 children: [
-                  _buildStandingsTab(league, isWideScreen),
-                  _buildCalendarTab(league),
-                  _buildCurrentRoundTab(league, isWideScreen),
-                  _buildStatsTab(league),
-                  _buildBracketTab(),
+                  _buildTabBar(),
+                  Expanded(
+                    child: TabBarView(
+                      controller: _tabController,
+                      children: [
+                        _buildStandingsTab(league, isWideScreen),
+                        _buildCalendarTab(league),
+                        _buildCurrentRoundTab(league, isWideScreen),
+                        _buildStatsTab(league),
+                        _buildBracketTab(),
+                      ],
+                    ),
+                  ),
                 ],
               ),
-            ),
-          ],
-        ),
       ),
     );
   }
 
   PreferredSizeWidget _buildAppBar(AsyncValue<League> leagueAsync) {
+    final lang = ref.watch(localeProvider);
     return AppBar(
       leading: IconButton(
         icon: Icon(PhosphorIcons.arrowLeft(PhosphorIconsStyle.regular)),
@@ -124,7 +137,8 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
                 leagueAsync.value!.maxRounds,
                 (i) => DropdownMenuItem(
                   value: i + 1,
-                  child: Text('Jornada ${i + 1}'),
+                  child: Text(
+                      trf(lang, 'leagueOverview.round', {'n': '${i + 1}'})),
                 ),
               ),
               onChanged: (value) {
@@ -138,7 +152,7 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
         OutlinedButton.icon(
           onPressed: () => _showTeamsDialog(),
           icon: Icon(PhosphorIcons.users(PhosphorIconsStyle.regular), size: 18),
-          label: const Text('Ver Equipos'),
+          label: Text(tr(lang, 'leagueOverview.viewTeams')),
         ),
         const SizedBox(width: 16),
       ],
@@ -146,6 +160,7 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
   }
 
   Widget _buildTabBar() {
+    final lang = ref.watch(localeProvider);
     return Container(
       color: AppColors.surface,
       child: TabBar(
@@ -158,9 +173,10 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(PhosphorIcons.trophy(PhosphorIconsStyle.regular), size: 18),
+                Icon(PhosphorIcons.trophy(PhosphorIconsStyle.regular),
+                    size: 18),
                 const SizedBox(width: 8),
-                const Text('Clasificación'),
+                Text(tr(lang, 'leagueOverview.standings')),
               ],
             ),
           ),
@@ -168,9 +184,10 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(PhosphorIcons.calendar(PhosphorIconsStyle.regular), size: 18),
+                Icon(PhosphorIcons.calendar(PhosphorIconsStyle.regular),
+                    size: 18),
                 const SizedBox(width: 8),
-                const Text('Calendario'),
+                Text(tr(lang, 'leagueOverview.calendar')),
               ],
             ),
           ),
@@ -178,9 +195,10 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(PhosphorIcons.football(PhosphorIconsStyle.regular), size: 18),
+                Icon(PhosphorIcons.football(PhosphorIconsStyle.regular),
+                    size: 18),
                 const SizedBox(width: 8),
-                const Text('Jornada Actual'),
+                Text(tr(lang, 'leagueOverview.currentRound')),
               ],
             ),
           ),
@@ -188,9 +206,10 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(PhosphorIcons.chartBar(PhosphorIconsStyle.regular), size: 18),
+                Icon(PhosphorIcons.chartBar(PhosphorIconsStyle.regular),
+                    size: 18),
                 const SizedBox(width: 8),
-                const Text('Estadísticas'),
+                Text(tr(lang, 'leagueOverview.stats')),
               ],
             ),
           ),
@@ -200,9 +219,452 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
               children: [
                 Icon(PhosphorIcons.graph(PhosphorIconsStyle.regular), size: 18),
                 const SizedBox(width: 8),
-                const Text('Bracket'),
+                Text(tr(lang, 'leagueOverview.bracket')),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDraftView(League league, bool isWideScreen) {
+    final lang = ref.watch(localeProvider);
+    final currentUserId = ref.watch(authStateProvider).valueOrNull?.user?.id;
+    final isOwner = currentUserId != null && league.ownerId == currentUserId;
+
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(isWideScreen ? 24 : 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Status banner
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: AppColors.warning.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+              border:
+                  Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
+            ),
+            child: Column(
+              children: [
+                Icon(PhosphorIcons.usersThree(PhosphorIconsStyle.fill),
+                    color: AppColors.warning, size: 48),
+                const SizedBox(height: 12),
+                Text(
+                  tr(lang, 'league.draftTitle'),
+                  style: TextStyle(
+                    fontFamily: AppTextStyles.displayFont,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  trf(lang, 'league.draftSubtitle', {
+                    'current': '${league.teamsCount}',
+                    'max': '${league.maxTeams}',
+                  }),
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppColors.textSecondary,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Invite code section
+          if (league.inviteCode != null) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.card,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.surfaceLight),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(PhosphorIcons.key(PhosphorIconsStyle.fill),
+                          color: AppColors.primary, size: 20),
+                      const SizedBox(width: 8),
+                      Text(
+                        tr(lang, 'league.inviteCode'),
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceLight,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            league.inviteCode!,
+                            style: TextStyle(
+                              fontFamily: 'monospace',
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.accent,
+                              letterSpacing: 2,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        icon: Icon(
+                            PhosphorIcons.copy(PhosphorIconsStyle.regular)),
+                        onPressed: () {
+                          Clipboard.setData(
+                              ClipboardData(text: league.inviteCode!));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                                content:
+                                    Text(tr(lang, 'createLeague.codeCopied'))),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    tr(lang, 'league.shareInviteHint'),
+                    style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+          ],
+
+          // League info
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.card,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.surfaceLight),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(PhosphorIcons.info(PhosphorIconsStyle.fill),
+                        color: AppColors.primary, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      tr(lang, 'league.leagueInfo'),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                _buildInfoRow(
+                    tr(lang, 'league.format'),
+                    league.format == 'round_robin'
+                        ? tr(lang, 'createLeague.league')
+                        : league.format),
+                if (league.description != null &&
+                    league.description!.isNotEmpty)
+                  _buildInfoRow(tr(lang, 'createLeague.description'),
+                      league.description!),
+                _buildInfoRow(
+                    tr(lang, 'league.commissioner'), league.ownerUsername),
+                _buildInfoRow(
+                    tr(lang, 'createLeague.maxTeams'), '${league.maxTeams}'),
+                if (league.rules != null) ...[
+                  _buildInfoRow(tr(lang, 'createLeague.budget'),
+                      '${league.rules!.startingBudget ~/ 1000}k'),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Registered teams
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.card,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.surfaceLight),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(PhosphorIcons.shield(PhosphorIconsStyle.fill),
+                        color: AppColors.primary, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      trf(lang, 'league.registeredTeams', {
+                        'count': '${league.teamsCount}',
+                      }),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                if (league.teams.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Center(
+                      child: Text(
+                        tr(lang, 'league.noTeamsYet'),
+                        style: TextStyle(color: AppColors.textMuted),
+                      ),
+                    ),
+                  )
+                else
+                  ...league.teams.map((team) => Container(
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 10, horizontal: 12),
+                        decoration: BoxDecoration(
+                          border: Border(
+                              bottom:
+                                  BorderSide(color: AppColors.surfaceLight)),
+                        ),
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 16,
+                              backgroundColor: AppColors.surfaceLight,
+                              child: Text(
+                                team.teamName.isNotEmpty
+                                    ? team.teamName[0].toUpperCase()
+                                    : '?',
+                                style: TextStyle(
+                                    color: AppColors.textPrimary,
+                                    fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    team.teamName,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  ),
+                                  Text(
+                                    team.username,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: AppColors.textMuted,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (team.userId == currentUserId && !isOwner)
+                              TextButton.icon(
+                                onPressed: () =>
+                                    _confirmLeaveLeague(league, team),
+                                icon: Icon(
+                                    PhosphorIcons.signOut(
+                                        PhosphorIconsStyle.regular),
+                                    size: 16,
+                                    color: AppColors.error),
+                                label: Text(
+                                  tr(lang, 'league.leave'),
+                                  style: TextStyle(color: AppColors.error),
+                                ),
+                              ),
+                          ],
+                        ),
+                      )),
+              ],
+            ),
+          ),
+          const SizedBox(height: 32),
+
+          // Start League button (owner only)
+          if (isOwner)
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: league.teamsCount >= 2
+                    ? () => _confirmStartLeague(league)
+                    : null,
+                icon:
+                    Icon(PhosphorIcons.play(PhosphorIconsStyle.fill), size: 20),
+                label: Text(
+                  tr(lang, 'league.startLeague'),
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  backgroundColor: AppColors.success,
+                  disabledBackgroundColor: AppColors.surfaceLight,
+                ),
+              ),
+            ),
+          if (isOwner && league.teamsCount < 2) ...[
+            const SizedBox(height: 8),
+            Center(
+              child: Text(
+                tr(lang, 'league.needMoreTeams'),
+                style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Text(
+            '$label: ',
+            style: TextStyle(
+              fontSize: 14,
+              color: AppColors.textMuted,
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmStartLeague(League league) {
+    final lang = ref.read(localeProvider);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.card,
+        title: Text(tr(lang, 'league.startLeague')),
+        content: Text(
+          trf(lang, 'league.startLeagueConfirm', {
+            'count': '${league.teamsCount}',
+          }),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(tr(lang, 'common.cancel')),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              try {
+                final repo = ref.read(leagueRepositoryProvider);
+                await repo.startLeague(widget.leagueId);
+                ref.invalidate(leagueProvider(widget.leagueId));
+                ref.invalidate(matchesProvider(widget.leagueId));
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(tr(lang, 'league.leagueStarted'))),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                        content: Text(trf(lang, 'common.error', {'e': '$e'}))),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.success,
+            ),
+            child: Text(tr(lang, 'league.startLeague')),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmLeaveLeague(League league, LeagueTeam team) {
+    final lang = ref.read(localeProvider);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.card,
+        title: Text(tr(lang, 'league.leaveLeague')),
+        content: Text(tr(lang, 'league.leaveLeagueConfirm')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(tr(lang, 'common.cancel')),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              try {
+                final repo = ref.read(leagueRepositoryProvider);
+                await repo.leaveLeague(widget.leagueId, team.teamId);
+                ref.invalidate(leagueProvider(widget.leagueId));
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(tr(lang, 'league.leftLeague'))),
+                  );
+                  context.go('/dashboard');
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                        content: Text(trf(lang, 'common.error', {'e': '$e'}))),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+            ),
+            child: Text(tr(lang, 'league.leave')),
           ),
         ],
       ),
@@ -248,6 +710,7 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
   }
 
   Widget _buildCurrentRoundOverview(League league) {
+    final lang = ref.watch(localeProvider);
     final matchesAsync = ref.watch(matchesProvider(widget.leagueId));
 
     return Column(
@@ -256,10 +719,11 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
         Row(
           children: [
             Icon(PhosphorIcons.football(PhosphorIconsStyle.fill),
-                 color: AppColors.primary, size: 20),
+                color: AppColors.primary, size: 20),
             const SizedBox(width: 8),
             Text(
-              'JORNADA ${league.currentRound}',
+              trf(lang, 'leagueOverview.round',
+                  {'n': '${league.currentRound}'}),
               style: TextStyle(
                 fontFamily: AppTextStyles.displayFont,
                 fontSize: 18,
@@ -270,15 +734,16 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
             const Spacer(),
             TextButton.icon(
               onPressed: () => _tabController.animateTo(2),
-              icon: Icon(PhosphorIcons.arrowRight(PhosphorIconsStyle.bold), size: 16),
-              label: const Text('VER TODAS'),
+              icon: Icon(PhosphorIcons.arrowRight(PhosphorIconsStyle.bold),
+                  size: 16),
+              label: Text(tr(lang, 'leagueOverview.viewAll')),
             ),
           ],
         ),
         const SizedBox(height: 16),
         matchesAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, _) => Text('Error: $error'),
+          error: (error, _) => Text(trf(lang, 'common.error', {'e': '$error'})),
           data: (matches) {
             final currentRoundMatches = matches
                 .where((m) => m.round == league.currentRound)
@@ -286,22 +751,30 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
                 .toList();
 
             return Row(
-              children: currentRoundMatches.map((match) => Expanded(
-                child: Padding(
-                  padding: EdgeInsets.only(
-                    right: currentRoundMatches.indexOf(match) == 0 ? 8 : 0,
-                    left: currentRoundMatches.indexOf(match) == 1 ? 8 : 0,
-                  ),
-                  child: MatchCard(
-                    match: match,
-                    onTap: () {
-                      if (match.isPending) {
-                        context.go('/league/${widget.leagueId}/match/${match.id}/aftermatch');
-                      }
-                    },
-                  ),
-                ),
-              )).toList(),
+              children: currentRoundMatches
+                  .map((match) => Expanded(
+                        child: Padding(
+                          padding: EdgeInsets.only(
+                            right:
+                                currentRoundMatches.indexOf(match) == 0 ? 8 : 0,
+                            left:
+                                currentRoundMatches.indexOf(match) == 1 ? 8 : 0,
+                          ),
+                          child: MatchCard(
+                            match: match,
+                            onTap: () {
+                              if (match.isPending || match.isInProgress) {
+                                context.go(
+                                    '/league/${widget.leagueId}/match/${match.id}/live');
+                              } else if (match.isPlayed) {
+                                context.go(
+                                    '/league/${widget.leagueId}/match/${match.id}/live');
+                              }
+                            },
+                          ),
+                        ),
+                      ))
+                  .toList(),
             );
           },
         ),
@@ -310,16 +783,17 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
   }
 
   Widget _buildStandingsSection(League league) {
+    final lang = ref.watch(localeProvider);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
             Icon(PhosphorIcons.trophy(PhosphorIconsStyle.fill),
-                 color: AppColors.primary, size: 20),
+                color: AppColors.primary, size: 20),
             const SizedBox(width: 8),
             Text(
-              'CLASIFICACIÓN',
+              tr(lang, 'leagueOverview.standingsTitle'),
               style: TextStyle(
                 fontFamily: AppTextStyles.displayFont,
                 fontSize: 18,
@@ -333,9 +807,9 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
               onPressed: (index) {},
               borderRadius: BorderRadius.circular(8),
               constraints: const BoxConstraints(minWidth: 80, minHeight: 32),
-              children: const [
-                Text('General'),
-                Text('Bajas (CAS)'),
+              children: [
+                Text(tr(lang, 'leagueOverview.general')),
+                Text(tr(lang, 'leagueOverview.casualties')),
               ],
             ),
           ],
@@ -347,16 +821,17 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
   }
 
   Widget _buildLeagueActions(League league) {
+    final lang = ref.watch(localeProvider);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
             Icon(PhosphorIcons.gear(PhosphorIconsStyle.fill),
-                 color: AppColors.primary, size: 20),
+                color: AppColors.primary, size: 20),
             const SizedBox(width: 8),
             Text(
-              'ACCIONES DE LIGA',
+              tr(lang, 'leagueOverview.actions'),
               style: TextStyle(
                 fontFamily: AppTextStyles.displayFont,
                 fontSize: 18,
@@ -369,29 +844,29 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
         const SizedBox(height: 16),
         _buildActionButton(
           icon: PhosphorIcons.users(PhosphorIconsStyle.regular),
-          label: 'Ver Equipos y Plantillas',
+          label: tr(lang, 'leagueOverview.viewRosters'),
           onTap: () => _showTeamsDialog(),
         ),
         const SizedBox(height: 8),
         _buildActionButton(
           icon: PhosphorIcons.book(PhosphorIconsStyle.regular),
-          label: 'Reglamento de la Liga',
+          label: tr(lang, 'leagueOverview.rules'),
           onTap: () {},
         ),
         const SizedBox(height: 8),
         _buildActionButton(
           icon: PhosphorIcons.chatCircle(PhosphorIconsStyle.regular),
-          label: 'Contactar Comisario',
+          label: tr(lang, 'leagueOverview.contactCommish'),
           onTap: () {},
         ),
         const SizedBox(height: 24),
         Row(
           children: [
             Icon(PhosphorIcons.clockCounterClockwise(PhosphorIconsStyle.fill),
-                 color: AppColors.primary, size: 20),
+                color: AppColors.primary, size: 20),
             const SizedBox(width: 8),
             Text(
-              'ACTIVIDAD RECIENTE',
+              tr(lang, 'leagueOverview.recentActivity'),
               style: TextStyle(
                 fontFamily: AppTextStyles.displayFont,
                 fontSize: 18,
@@ -450,11 +925,13 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
   }
 
   Widget _buildCalendarTab(League league) {
+    final lang = ref.watch(localeProvider);
     final matchesAsync = ref.watch(matchesProvider(widget.leagueId));
 
     return matchesAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, _) => Center(child: Text('Error: $error')),
+      error: (error, _) =>
+          Center(child: Text(trf(lang, 'common.error', {'e': '$error'}))),
       data: (matches) {
         // Group matches by round
         final matchesByRound = <int, List<Match>>{};
@@ -469,7 +946,8 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
             final round = index + 1;
             final roundMatches = matchesByRound[round] ?? [];
 
-            return _buildRoundSection(round, roundMatches, league.currentRound ?? 1);
+            return _buildRoundSection(
+                round, roundMatches, league.currentRound ?? 1);
           },
         );
       },
@@ -477,6 +955,7 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
   }
 
   Widget _buildRoundSection(int round, List<Match> matches, int currentRound) {
+    final lang = ref.watch(localeProvider);
     final isCurrent = round == currentRound;
     final isPast = round < currentRound;
 
@@ -496,29 +975,34 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: isCurrent ? AppColors.primary.withOpacity(0.1) : AppColors.surfaceLight,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(11)),
+              color: isCurrent
+                  ? AppColors.primary.withOpacity(0.1)
+                  : AppColors.surfaceLight,
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(11)),
             ),
             child: Row(
               children: [
                 Text(
-                  'Jornada $round',
+                  trf(lang, 'leagueOverview.round', {'n': '$round'}),
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: isCurrent ? AppColors.primary : AppColors.textPrimary,
+                    color:
+                        isCurrent ? AppColors.primary : AppColors.textPrimary,
                   ),
                 ),
                 const SizedBox(width: 8),
                 if (isCurrent)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
                       color: AppColors.primary,
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
-                      'ACTUAL',
+                      tr(lang, 'leagueOverview.currentRound'),
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
@@ -528,13 +1012,14 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
                   )
                 else if (isPast)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
                       color: AppColors.success.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
-                      'COMPLETADA',
+                      tr(lang, 'status.completed'),
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
@@ -561,6 +1046,7 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
   }
 
   Widget _buildMatchRow(Match match) {
+    final lang = ref.watch(localeProvider);
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -589,7 +1075,9 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: match.isPlayed ? AppColors.textPrimary : AppColors.textMuted,
+                color: match.isPlayed
+                    ? AppColors.textPrimary
+                    : AppColors.textMuted,
               ),
             ),
           ),
@@ -603,12 +1091,14 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
               ),
             ),
           ),
-          if (match.isPending)
+          if (match.isPending || match.isInProgress)
             TextButton(
               onPressed: () => context.go(
-                '/league/${widget.leagueId}/match/${match.id}/aftermatch',
+                '/league/${widget.leagueId}/match/${match.id}/live',
               ),
-              child: const Text('Registrar'),
+              child: Text(match.isInProgress
+                  ? tr(lang, 'match.continueMatch')
+                  : tr(lang, 'match.startMatch')),
             ),
         ],
       ),
@@ -616,15 +1106,16 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
   }
 
   Widget _buildCurrentRoundTab(League league, bool isWideScreen) {
+    final lang = ref.watch(localeProvider);
     final matchesAsync = ref.watch(matchesProvider(widget.leagueId));
 
     return matchesAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, _) => Center(child: Text('Error: $error')),
+      error: (error, _) =>
+          Center(child: Text(trf(lang, 'common.error', {'e': '$error'}))),
       data: (matches) {
-        final currentRoundMatches = matches
-            .where((m) => m.round == league.currentRound)
-            .toList();
+        final currentRoundMatches =
+            matches.where((m) => m.round == league.currentRound).toList();
 
         return SingleChildScrollView(
           padding: EdgeInsets.all(isWideScreen ? 24 : 16),
@@ -632,7 +1123,8 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Jornada ${league.currentRound}',
+                trf(lang, 'leagueOverview.round',
+                    {'n': '${league.currentRound}'}),
                 style: TextStyle(
                   fontFamily: AppTextStyles.displayFont,
                   fontSize: 24,
@@ -657,8 +1149,12 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
                     expanded: true,
                     onTap: () {
                       final match = currentRoundMatches[index];
-                      if (match.isPending) {
-                        context.go('/league/${widget.leagueId}/match/${match.id}/aftermatch');
+                      if (match.isPending || match.isInProgress) {
+                        context.go(
+                            '/league/${widget.leagueId}/match/${match.id}/live');
+                      } else if (match.isPlayed) {
+                        context.go(
+                            '/league/${widget.leagueId}/match/${match.id}/live');
                       }
                     },
                   );
@@ -672,13 +1168,14 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
   }
 
   Widget _buildStatsTab(League league) {
+    final lang = ref.watch(localeProvider);
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Estadísticas de la Liga',
+            tr(lang, 'leagueOverview.stats'),
             style: TextStyle(
               fontFamily: AppTextStyles.displayFont,
               fontSize: 24,
@@ -713,12 +1210,14 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
   }
 
   Widget _buildBracketTab() {
+    final lang = ref.watch(localeProvider);
     final formatAsync = ref.watch(leagueFormatProvider(widget.leagueId));
     final matchesAsync = ref.watch(matchesProvider(widget.leagueId));
 
     return formatAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (_, __) => const Center(child: Text('Error al cargar formato')),
+      error: (_, __) =>
+          Center(child: Text(tr(lang, 'leagueOverview.errorFormat'))),
       data: (format) {
         if (format != 'knockout') {
           return Center(
@@ -734,7 +1233,7 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Este formato es "${format == 'round_robin' ? 'Liga' : format}"',
+                  'Este formato es "${format == 'round_robin' ? tr(lang, 'format.league') : format}"',
                   style: TextStyle(fontSize: 12, color: AppColors.textMuted),
                 ),
               ],
@@ -744,7 +1243,8 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
 
         return matchesAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (err, _) => Center(child: Text('Error: $err')),
+          error: (err, _) =>
+              Center(child: Text(trf(lang, 'common.error', {'e': '$err'}))),
           data: (matches) => BracketWidget(matches: matches),
         );
       },
@@ -752,18 +1252,19 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
   }
 
   void _showTeamsDialog() {
+    final lang = ref.read(localeProvider);
     showDialog(
       context: context,
       builder: (context) {
         final leagueAsync = ref.watch(leagueProvider(widget.leagueId));
 
         return AlertDialog(
-          title: const Text('Equipos de la Liga'),
+          title: Text(tr(lang, 'leagueOverview.leagueTeams')),
           content: SizedBox(
             width: 400,
             child: leagueAsync.when(
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (_, __) => const Text('Error al cargar equipos'),
+              error: (_, __) => Text(tr(lang, 'leagueOverview.errorTeams')),
               data: (league) => ListView.builder(
                 shrinkWrap: true,
                 itemCount: league.teams.length,
@@ -781,7 +1282,8 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
                     subtitle: Text('Coach: ${team.username}'),
                     onTap: () {
                       Navigator.pop(context);
-                      context.go('/league/${widget.leagueId}/team/${team.teamId}');
+                      context
+                          .go('/league/${widget.leagueId}/team/${team.teamId}');
                     },
                   );
                 },

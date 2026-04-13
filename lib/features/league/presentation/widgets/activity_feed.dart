@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/l10n/locale_provider.dart';
+import '../../../../core/l10n/translations.dart';
 import '../../../../core/theme/app_colors.dart';
 
-class ActivityFeed extends StatelessWidget {
+class ActivityFeed extends ConsumerWidget {
   final String leagueId;
 
   const ActivityFeed({super.key, required this.leagueId});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final lang = ref.watch(localeProvider);
     // Sample activity data
     final activities = [
       _ActivityItem(

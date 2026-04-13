@@ -5,12 +5,12 @@ class AppColors {
   AppColors._();
 
   // Primary colors
-  static const Color primary = Color(0xFFC41E3A);  // Blood red
+  static const Color primary = Color(0xFFC41E3A); // Blood red
   static const Color primaryDark = Color(0xFF8B0000);
   static const Color primaryLight = Color(0xFFE53935);
 
   // Accent colors
-  static const Color accent = Color(0xFFD4AF37);  // Gold
+  static const Color accent = Color(0xFFD4AF37); // Gold
   static const Color accentLight = Color(0xFFFFD700);
 
   // Background colors
@@ -38,7 +38,7 @@ class AppColors {
   static const Color dead = Color(0xFFE53935);
 
   // Skill families
-  static const Color skillGeneral = Color(0xFF9E9E9E);
+  static const Color skillGeneral = Color(0xFF00ACC1);
   static const Color skillAgility = Color(0xFF4CAF50);
   static const Color skillStrength = Color(0xFFE53935);
   static const Color skillPassing = Color(0xFF2196F3);
@@ -59,25 +59,25 @@ class AppTextStyles {
   static String? get displayFont => GoogleFonts.teko().fontFamily;
 
   static TextStyle get displayLarge => TextStyle(
-    fontFamily: displayFont,
-    fontSize: 32,
-    fontWeight: FontWeight.bold,
-    color: AppColors.textPrimary,
-  );
+        fontFamily: displayFont,
+        fontSize: 32,
+        fontWeight: FontWeight.bold,
+        color: AppColors.textPrimary,
+      );
 
   static TextStyle get displayMedium => TextStyle(
-    fontFamily: displayFont,
-    fontSize: 24,
-    fontWeight: FontWeight.bold,
-    color: AppColors.textPrimary,
-  );
+        fontFamily: displayFont,
+        fontSize: 24,
+        fontWeight: FontWeight.bold,
+        color: AppColors.textPrimary,
+      );
 
   static TextStyle get displaySmall => TextStyle(
-    fontFamily: displayFont,
-    fontSize: 20,
-    fontWeight: FontWeight.bold,
-    color: AppColors.textPrimary,
-  );
+        fontFamily: displayFont,
+        fontSize: 20,
+        fontWeight: FontWeight.bold,
+        color: AppColors.textPrimary,
+      );
 
   static const TextStyle headlineLarge = TextStyle(
     fontFamily: fontFamily,

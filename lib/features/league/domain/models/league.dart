@@ -48,7 +48,8 @@ class LeagueRules with _$LeagueRules {
     @JsonKey(name: 'max_team_value') int? maxTeamValue,
   }) = _LeagueRules;
 
-  factory LeagueRules.fromJson(Map<String, dynamic> json) => _$LeagueRulesFromJson(json);
+  factory LeagueRules.fromJson(Map<String, dynamic> json) =>
+      _$LeagueRulesFromJson(json);
 }
 
 @freezed
@@ -65,7 +66,8 @@ class LeagueTeam with _$LeagueTeam {
     @JsonKey(name: 'joined_at') DateTime? joinedAt,
   }) = _LeagueTeam;
 
-  factory LeagueTeam.fromJson(Map<String, dynamic> json) => _$LeagueTeamFromJson(json);
+  factory LeagueTeam.fromJson(Map<String, dynamic> json) =>
+      _$LeagueTeamFromJson(json);
 }
 
 @freezed
@@ -87,7 +89,8 @@ class LeagueStanding with _$LeagueStanding {
     @JsonKey(name: 'games_played') @Default(0) int gamesPlayed,
   }) = _LeagueStanding;
 
-  factory LeagueStanding.fromJson(Map<String, dynamic> json) => _$LeagueStandingFromJson(json);
+  factory LeagueStanding.fromJson(Map<String, dynamic> json) =>
+      _$LeagueStandingFromJson(json);
 }
 
 enum LeagueStatus {
@@ -117,15 +120,51 @@ class Match with _$Match {
     @Default('scheduled') String status,
     @JsonKey(name: 'score_home') @Default(0) int scoreHome,
     @JsonKey(name: 'score_away') @Default(0) int scoreAway,
+    String? weather,
+    @JsonKey(name: 'kickoff_event') String? kickoffEvent,
+    @JsonKey(name: 'current_half') @Default(0) int currentHalf,
+    @JsonKey(name: 'current_turn') @Default(0) int currentTurn,
+    @JsonKey(name: 'rerolls_used_home') @Default(0) int rerollsUsedHome,
+    @JsonKey(name: 'rerolls_used_away') @Default(0) int rerollsUsedAway,
+    @JsonKey(name: 'mvp_home') String? mvpHome,
+    @JsonKey(name: 'mvp_away') String? mvpAway,
+    int? gate,
+    @Default([]) List<MatchEvent> events,
     @JsonKey(name: 'scheduled_at') DateTime? scheduledAt,
     @JsonKey(name: 'played_at') DateTime? playedAt,
+    @JsonKey(name: 'started_at') DateTime? startedAt,
   }) = _Match;
 
   factory Match.fromJson(Map<String, dynamic> json) => _$MatchFromJson(json);
 
   bool get isPlayed => status == 'completed';
   bool get isPending => status == 'scheduled' || status == 'pending';
-  String get scoreDisplay => isPlayed ? '$scoreHome - $scoreAway' : '? - ?';
+  bool get isInProgress => status == 'in_progress';
+  String get scoreDisplay =>
+      isPlayed || isInProgress ? '$scoreHome - $scoreAway' : '? - ?';
+}
+
+@freezed
+class MatchEvent with _$MatchEvent {
+  const factory MatchEvent({
+    required String id,
+    required String type,
+    required String team,
+    @JsonKey(name: 'player_id') String? playerId,
+    @JsonKey(name: 'player_name') String? playerName,
+    @JsonKey(name: 'victim_id') String? victimId,
+    @JsonKey(name: 'victim_name') String? victimName,
+    String? injury,
+    String? detail,
+    @Default(0) int half,
+    @Default(0) int turn,
+    DateTime? timestamp,
+    @JsonKey(name: 'created_by') String? createdBy,
+    @JsonKey(name: 'created_by_name') String? createdByName,
+  }) = _MatchEvent;
+
+  factory MatchEvent.fromJson(Map<String, dynamic> json) =>
+      _$MatchEventFromJson(json);
 }
 
 @freezed
@@ -133,10 +172,13 @@ class MatchTeamInfo with _$MatchTeamInfo {
   const factory MatchTeamInfo({
     @JsonKey(name: 'team_id') required String teamId,
     @JsonKey(name: 'team_name') required String teamName,
+    @JsonKey(name: 'user_id') @Default('') String userId,
     @Default('') String username,
+    @JsonKey(name: 'base_roster_id') @Default('') String baseRosterId,
   }) = _MatchTeamInfo;
 
-  factory MatchTeamInfo.fromJson(Map<String, dynamic> json) => _$MatchTeamInfoFromJson(json);
+  factory MatchTeamInfo.fromJson(Map<String, dynamic> json) =>
+      _$MatchTeamInfoFromJson(json);
 }
 
 enum MatchStatus {
@@ -144,6 +186,8 @@ enum MatchStatus {
   scheduled,
   @JsonValue('pending')
   pending,
+  @JsonValue('in_progress')
+  inProgress,
   @JsonValue('completed')
   completed,
 }
@@ -158,7 +202,8 @@ class LeagueInvitation with _$LeagueInvitation {
     @JsonKey(name: 'created_at') DateTime? createdAt,
   }) = _LeagueInvitation;
 
-  factory LeagueInvitation.fromJson(Map<String, dynamic> json) => _$LeagueInvitationFromJson(json);
+  factory LeagueInvitation.fromJson(Map<String, dynamic> json) =>
+      _$LeagueInvitationFromJson(json);
 }
 
 @freezed
@@ -171,5 +216,6 @@ class LeagueActivity with _$LeagueActivity {
     Map<String, dynamic>? data,
   }) = _LeagueActivity;
 
-  factory LeagueActivity.fromJson(Map<String, dynamic> json) => _$LeagueActivityFromJson(json);
+  factory LeagueActivity.fromJson(Map<String, dynamic> json) =>
+      _$LeagueActivityFromJson(json);
 }

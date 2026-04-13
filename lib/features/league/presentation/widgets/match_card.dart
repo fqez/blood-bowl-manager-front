@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import '../../../../core/l10n/locale_provider.dart';
+import '../../../../core/l10n/translations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/models/league.dart';
 
-class MatchCard extends StatelessWidget {
+class MatchCard extends ConsumerWidget {
   final Match match;
   final bool expanded;
   final VoidCallback? onTap;
@@ -16,7 +19,8 @@ class MatchCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final lang = ref.watch(localeProvider);
     return Material(
       color: AppColors.card,
       borderRadius: BorderRadius.circular(12),
@@ -28,18 +32,19 @@ class MatchCard extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: match.isPending ? AppColors.primary : AppColors.surfaceLight,
+              color:
+                  match.isPending ? AppColors.primary : AppColors.surfaceLight,
             ),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _buildStatus(),
+              _buildStatus(lang),
               const SizedBox(height: 12),
               _buildTeams(),
-              if (match.isPending) ...[
+              if (match.isPending || match.isInProgress) ...[
                 const SizedBox(height: 16),
-                _buildActionButton(),
+                _buildActionButton(lang),
               ],
             ],
           ),
@@ -48,7 +53,7 @@ class MatchCard extends StatelessWidget {
     );
   }
 
-  Widget _buildStatus() {
+  Widget _buildStatus(String lang) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -59,7 +64,7 @@ class MatchCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(4),
           ),
           child: Text(
-            _getStatusLabel(),
+            _getStatusLabel(lang),
             style: TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.bold,
@@ -157,17 +162,8 @@ class MatchCard extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (match.isPlayed) ...[
-            IconButton(
-              icon: Icon(PhosphorIcons.minus(PhosphorIconsStyle.bold)),
-              onPressed: null,
-              iconSize: 14,
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
-            ),
-          ],
           Text(
-            match.isPlayed ? '${match.scoreHome}' : '?',
+            (match.isPlayed || match.isInProgress) ? '${match.scoreHome}' : '?',
             style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
@@ -185,33 +181,29 @@ class MatchCard extends StatelessWidget {
             ),
           ),
           Text(
-            match.isPlayed ? '${match.scoreAway}' : '?',
+            (match.isPlayed || match.isInProgress) ? '${match.scoreAway}' : '?',
             style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
               color: AppColors.textPrimary,
             ),
           ),
-          if (match.isPlayed) ...[
-            IconButton(
-              icon: Icon(PhosphorIcons.plus(PhosphorIconsStyle.bold)),
-              onPressed: null,
-              iconSize: 14,
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
-            ),
-          ],
         ],
       ),
     );
   }
 
-  Widget _buildActionButton() {
+  Widget _buildActionButton(String lang) {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
         onPressed: onTap,
-        child: const Text('Registrar Post-Partido'),
+        style: match.isInProgress
+            ? ElevatedButton.styleFrom(backgroundColor: AppColors.warning)
+            : null,
+        child: Text(match.isInProgress
+            ? tr(lang, 'match.continueMatch')
+            : tr(lang, 'match.startMatch')),
       ),
     );
   }
@@ -230,16 +222,15 @@ class MatchCard extends StatelessWidget {
     }
   }
 
-  String _getStatusLabel() {
+  String _getStatusLabel(String lang) {
     switch (match.status) {
       case 'scheduled':
-        return 'POR JUGAR';
       case 'pending':
-        return 'PENDIENTE';
+        return tr(lang, 'match.pending');
       case 'in_progress':
-        return 'EN PROGRESO';
+        return tr(lang, 'match.inProgress');
       case 'completed':
-        return 'COMPLETADO';
+        return tr(lang, 'match.completed');
       default:
         return match.status.toUpperCase();
     }

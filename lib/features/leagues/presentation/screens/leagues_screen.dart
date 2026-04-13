@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
+import '../../../../core/l10n/locale_provider.dart';
+import '../../../../core/l10n/translations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../shared/data/repositories.dart';
 import '../../domain/models/league_summary.dart';
@@ -27,17 +29,19 @@ class _LeaguesScreenState extends ConsumerState<LeaguesScreen> {
   Widget build(BuildContext context) {
     final leaguesAsync = ref.watch(myLeaguesSummaryProvider);
     final isWide = MediaQuery.of(context).size.width >= 1000;
+    final lang = ref.watch(localeProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Column(
         children: [
-          _buildTopBar(context, isWide),
+          _buildTopBar(context, isWide, lang),
           Expanded(
             child: leaguesAsync.when(
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (err, _) => _buildError(err),
-              data: (leagues) => _buildDashboard(context, leagues, isWide),
+              error: (err, _) => _buildError(err, lang),
+              data: (leagues) =>
+                  _buildDashboard(context, leagues, isWide, lang),
             ),
           ),
         ],
@@ -49,7 +53,7 @@ class _LeaguesScreenState extends ConsumerState<LeaguesScreen> {
   // TOP BAR
   // ══════════════════════════════════════════════════════════════════════════
 
-  Widget _buildTopBar(BuildContext context, bool isWide) {
+  Widget _buildTopBar(BuildContext context, bool isWide, String lang) {
     return Container(
       color: AppColors.surface,
       child: SafeArea(
@@ -62,7 +66,7 @@ class _LeaguesScreenState extends ConsumerState<LeaguesScreen> {
               Row(
                 children: [
                   Text(
-                    'DASHBOARD',
+                    tr(lang, 'dashboard.title'),
                     style: TextStyle(
                       fontFamily: AppTextStyles.displayFont,
                       fontSize: 24,
@@ -73,7 +77,7 @@ class _LeaguesScreenState extends ConsumerState<LeaguesScreen> {
                   ),
                   const SizedBox(width: 16),
                   Text(
-                    'Resumen de actividad y ligas activas',
+                    tr(lang, 'dashboard.subtitle'),
                     style: TextStyle(fontSize: 12, color: AppColors.textMuted),
                   ),
                 ],
@@ -82,37 +86,52 @@ class _LeaguesScreenState extends ConsumerState<LeaguesScreen> {
               // Action buttons
               OutlinedButton.icon(
                 onPressed: () => context.go('/teams/create'),
-                icon: Icon(PhosphorIcons.plus(PhosphorIconsStyle.bold), size: 14),
-                label: Text(isWide ? 'Crear Equipo' : 'Equipo',
+                icon:
+                    Icon(PhosphorIcons.plus(PhosphorIconsStyle.bold), size: 14),
+                label: Text(
+                    isWide
+                        ? tr(lang, 'leagues.createTeam')
+                        : tr(lang, 'leagues.team'),
                     style: const TextStyle(fontSize: 12)),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppColors.textSecondary,
                   side: const BorderSide(color: AppColors.surfaceLight),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 ),
               ),
               const SizedBox(width: 10),
               OutlinedButton.icon(
                 onPressed: () => context.go('/leagues/create'),
-                icon: Icon(PhosphorIcons.trophy(PhosphorIconsStyle.bold), size: 14),
-                label: Text(isWide ? 'Crear Liga' : 'Liga',
+                icon: Icon(PhosphorIcons.trophy(PhosphorIconsStyle.bold),
+                    size: 14),
+                label: Text(
+                    isWide
+                        ? tr(lang, 'leagues.createLeague')
+                        : tr(lang, 'leagues.league'),
                     style: const TextStyle(fontSize: 12)),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppColors.accent,
                   side: const BorderSide(color: AppColors.accent),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 ),
               ),
               const SizedBox(width: 10),
               FilledButton.icon(
                 onPressed: () => context.go('/leagues/join'),
-                icon: Icon(PhosphorIcons.signIn(PhosphorIconsStyle.bold), size: 14),
-                label: Text(isWide ? 'Unirse a Liga' : 'Unirse',
+                icon: Icon(PhosphorIcons.signIn(PhosphorIconsStyle.bold),
+                    size: 14),
+                label: Text(
+                    isWide
+                        ? tr(lang, 'leagues.joinLeague')
+                        : tr(lang, 'leagues.join'),
                     style: const TextStyle(fontSize: 12)),
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.accent,
                   foregroundColor: AppColors.background,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 ),
               ),
               const SizedBox(width: 12),
@@ -138,10 +157,10 @@ class _LeaguesScreenState extends ConsumerState<LeaguesScreen> {
   // DASHBOARD BODY
   // ══════════════════════════════════════════════════════════════════════════
 
-  Widget _buildDashboard(
-      BuildContext context, List<LeagueSummaryModel> leagues, bool isWide) {
+  Widget _buildDashboard(BuildContext context, List<LeagueSummaryModel> leagues,
+      bool isWide, String lang) {
     if (leagues.isEmpty) {
-      return _buildEmpty(context);
+      return _buildEmpty(context, lang);
     }
 
     return RefreshIndicator(
@@ -153,13 +172,13 @@ class _LeaguesScreenState extends ConsumerState<LeaguesScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Stats row
-            _buildStatsRow(leagues),
+            _buildStatsRow(leagues, lang),
             const SizedBox(height: 24),
             // Main content
             if (isWide)
-              _buildWideLayout(context, leagues)
+              _buildWideLayout(context, leagues, lang)
             else
-              _buildNarrowLayout(context, leagues),
+              _buildNarrowLayout(context, leagues, lang),
           ],
         ),
       ),
@@ -170,7 +189,7 @@ class _LeaguesScreenState extends ConsumerState<LeaguesScreen> {
   // STATS ROW
   // ══════════════════════════════════════════════════════════════════════════
 
-  Widget _buildStatsRow(List<LeagueSummaryModel> leagues) {
+  Widget _buildStatsRow(List<LeagueSummaryModel> leagues, String lang) {
     // Calculate stats from leagues
     final activeLeagues = leagues.where((l) => l.isActive).length;
 
@@ -179,9 +198,9 @@ class _LeaguesScreenState extends ConsumerState<LeaguesScreen> {
         Expanded(
           child: _StatCard(
             icon: PhosphorIcons.usersThree(PhosphorIconsStyle.fill),
-            label: 'PARTIDOS JUGADOS',
+            label: tr(lang, 'dashboard.matchesPlayed'),
             value: '0',
-            subtext: '+0 esta temporada',
+            subtext: trf(lang, 'dashboard.matchesThisSeason', {'n': '0'}),
             subtextColor: AppColors.success,
           ),
         ),
@@ -189,9 +208,9 @@ class _LeaguesScreenState extends ConsumerState<LeaguesScreen> {
         Expanded(
           child: _StatCard(
             icon: PhosphorIcons.trophy(PhosphorIconsStyle.fill),
-            label: 'WIN RATE',
+            label: tr(lang, 'dashboard.winRate'),
             value: '0%',
-            subtext: '0 victorias totales',
+            subtext: trf(lang, 'dashboard.totalWinsCount', {'n': '0'}),
             subtextColor: AppColors.error,
           ),
         ),
@@ -199,18 +218,18 @@ class _LeaguesScreenState extends ConsumerState<LeaguesScreen> {
         Expanded(
           child: _StatCard(
             icon: PhosphorIcons.star(PhosphorIconsStyle.fill),
-            label: 'TOTAL SPP',
+            label: tr(lang, 'dashboard.totalSpp'),
             value: '0',
-            subtext: 'En todos los equipos activos',
+            subtext: tr(lang, 'dashboard.allActiveTeams'),
           ),
         ),
         const SizedBox(width: 16),
         Expanded(
           child: _StatCard(
             icon: PhosphorIcons.firstAid(PhosphorIconsStyle.fill),
-            label: 'BAJAS CAUSADAS',
+            label: tr(lang, 'dashboard.casualties'),
             value: '0',
-            subtext: 'Sangre para Nuffle',
+            subtext: tr(lang, 'dashboard.bloodForNuffle'),
             iconColor: AppColors.error,
           ),
         ),
@@ -222,31 +241,33 @@ class _LeaguesScreenState extends ConsumerState<LeaguesScreen> {
   // LAYOUTS
   // ══════════════════════════════════════════════════════════════════════════
 
-  Widget _buildWideLayout(BuildContext context, List<LeagueSummaryModel> leagues) {
+  Widget _buildWideLayout(
+      BuildContext context, List<LeagueSummaryModel> leagues, String lang) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Left: Active Leagues (larger)
         Expanded(
           flex: 3,
-          child: _buildLeaguesSection(context, leagues),
+          child: _buildLeaguesSection(context, leagues, lang),
         ),
         const SizedBox(width: 20),
         // Right: Notifications
         Expanded(
           flex: 2,
-          child: _buildNotificationsSection(),
+          child: _buildNotificationsSection(lang),
         ),
       ],
     );
   }
 
-  Widget _buildNarrowLayout(BuildContext context, List<LeagueSummaryModel> leagues) {
+  Widget _buildNarrowLayout(
+      BuildContext context, List<LeagueSummaryModel> leagues, String lang) {
     return Column(
       children: [
-        _buildLeaguesSection(context, leagues),
+        _buildLeaguesSection(context, leagues, lang),
         const SizedBox(height: 20),
-        _buildNotificationsSection(),
+        _buildNotificationsSection(lang),
       ],
     );
   }
@@ -255,7 +276,8 @@ class _LeaguesScreenState extends ConsumerState<LeaguesScreen> {
   // LEAGUES SECTION
   // ══════════════════════════════════════════════════════════════════════════
 
-  Widget _buildLeaguesSection(BuildContext context, List<LeagueSummaryModel> leagues) {
+  Widget _buildLeaguesSection(
+      BuildContext context, List<LeagueSummaryModel> leagues, String lang) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -266,7 +288,7 @@ class _LeaguesScreenState extends ConsumerState<LeaguesScreen> {
                 size: 18, color: AppColors.primary),
             const SizedBox(width: 8),
             Text(
-              'LIGAS ACTIVAS',
+              tr(lang, 'dashboard.activeLeagues'),
               style: TextStyle(
                 fontFamily: AppTextStyles.displayFont,
                 fontSize: 16,
@@ -303,9 +325,9 @@ class _LeaguesScreenState extends ConsumerState<LeaguesScreen> {
         const SizedBox(height: 16),
         // Leagues grid/list
         if (_isGridView)
-          _buildLeaguesGrid(context, leagues)
+          _buildLeaguesGrid(context, leagues, lang)
         else
-          _buildLeaguesList(context, leagues),
+          _buildLeaguesList(context, leagues, lang),
       ],
     );
   }
@@ -330,37 +352,49 @@ class _LeaguesScreenState extends ConsumerState<LeaguesScreen> {
     );
   }
 
-  Widget _buildLeaguesGrid(BuildContext context, List<LeagueSummaryModel> leagues) {
+  Widget _buildLeaguesGrid(
+      BuildContext context, List<LeagueSummaryModel> leagues, String lang) {
     return Wrap(
       spacing: 20,
       runSpacing: 20,
-      children: leagues.map((l) => SizedBox(
-        width: 420,
-        child: _DashboardLeagueCard(
-          league: l,
-          onManage: l.isOwner ? () => _showManageDialog(context, l) : null,
-        ),
-      )).toList(),
+      children: leagues
+          .map((l) => SizedBox(
+                width: 420,
+                child: _DashboardLeagueCard(
+                  league: l,
+                  lang: lang,
+                  onManage:
+                      l.isOwner ? () => _showManageDialog(context, l) : null,
+                ),
+              ))
+          .toList(),
     );
   }
 
-  Widget _buildLeaguesList(BuildContext context, List<LeagueSummaryModel> leagues) {
+  Widget _buildLeaguesList(
+      BuildContext context, List<LeagueSummaryModel> leagues, String lang) {
     return Column(
-      children: leagues.map((l) => Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: _DashboardLeagueCard(
-          league: l,
-          isListView: true,
-          onManage: l.isOwner ? () => _showManageDialog(context, l) : null,
-        ),
-      )).toList(),
+      children: leagues
+          .map((l) => Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _DashboardLeagueCard(
+                  league: l,
+                  lang: lang,
+                  isListView: true,
+                  onManage:
+                      l.isOwner ? () => _showManageDialog(context, l) : null,
+                ),
+              ))
+          .toList(),
     );
   }
 
-  Future<void> _showManageDialog(BuildContext context, LeagueSummaryModel league) async {
+  Future<void> _showManageDialog(
+      BuildContext context, LeagueSummaryModel league) async {
+    final lang = ref.read(localeProvider);
     final action = await showDialog<String>(
       context: context,
-      builder: (ctx) => _ManageLeagueDialog(league: league),
+      builder: (ctx) => _ManageLeagueDialog(league: league, lang: lang),
     );
 
     if (action == null || !mounted) return;
@@ -372,7 +406,8 @@ class _LeaguesScreenState extends ConsumerState<LeaguesScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Liga "${league.name}" archivada'),
+              content:
+                  Text(trf(lang, 'leagues.archived', {'name': league.name})),
               backgroundColor: AppColors.success,
             ),
           );
@@ -383,7 +418,8 @@ class _LeaguesScreenState extends ConsumerState<LeaguesScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Liga "${league.name}" eliminada'),
+              content:
+                  Text(trf(lang, 'leagues.deleted', {'name': league.name})),
               backgroundColor: AppColors.success,
             ),
           );
@@ -393,7 +429,7 @@ class _LeaguesScreenState extends ConsumerState<LeaguesScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: $e'),
+            content: Text(trf(lang, 'common.error', {'e': e.toString()})),
             backgroundColor: AppColors.error,
           ),
         );
@@ -405,7 +441,7 @@ class _LeaguesScreenState extends ConsumerState<LeaguesScreen> {
   // NOTIFICATIONS SECTION
   // ══════════════════════════════════════════════════════════════════════════
 
-  Widget _buildNotificationsSection() {
+  Widget _buildNotificationsSection(String lang) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -423,7 +459,7 @@ class _LeaguesScreenState extends ConsumerState<LeaguesScreen> {
                   size: 18, color: AppColors.accent),
               const SizedBox(width: 8),
               Text(
-                'AVISOS',
+                tr(lang, 'dashboard.notifications'),
                 style: TextStyle(
                   fontFamily: AppTextStyles.displayFont,
                   fontSize: 16,
@@ -454,15 +490,15 @@ class _LeaguesScreenState extends ConsumerState<LeaguesScreen> {
           // Placeholder notifications
           _NotificationItem(
             type: NotificationType.info,
-            title: 'Bienvenido al Dashboard',
-            description: 'Aquí verás las notificaciones de tus ligas y equipos.',
+            title: tr(lang, 'dashboard.welcome'),
+            description: tr(lang, 'dashboard.welcomeBody'),
             timeAgo: 'Ahora',
           ),
           const SizedBox(height: 12),
           _NotificationItem(
             type: NotificationType.tip,
-            title: 'Consejo',
-            description: 'Únete a una liga para empezar a jugar partidos.',
+            title: tr(lang, 'dashboard.tip'),
+            description: tr(lang, 'dashboard.tipBody'),
             timeAgo: '',
           ),
         ],
@@ -474,7 +510,7 @@ class _LeaguesScreenState extends ConsumerState<LeaguesScreen> {
   // EMPTY & ERROR STATES
   // ══════════════════════════════════════════════════════════════════════════
 
-  Widget _buildEmpty(BuildContext context) {
+  Widget _buildEmpty(BuildContext context, String lang) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -494,7 +530,7 @@ class _LeaguesScreenState extends ConsumerState<LeaguesScreen> {
             ),
             const SizedBox(height: 24),
             Text(
-              'No tienes ligas todavía',
+              tr(lang, 'dashboard.noLeagues'),
               style: TextStyle(
                 fontFamily: AppTextStyles.displayFont,
                 fontSize: 22,
@@ -504,7 +540,7 @@ class _LeaguesScreenState extends ConsumerState<LeaguesScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Crea una liga y comparte el código con tus amigos,\no únete a una existente con un código de invitación.',
+              tr(lang, 'dashboard.noLeaguesBody'),
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 14, color: AppColors.textMuted),
             ),
@@ -512,23 +548,27 @@ class _LeaguesScreenState extends ConsumerState<LeaguesScreen> {
             Row(mainAxisAlignment: MainAxisAlignment.center, children: [
               OutlinedButton.icon(
                 onPressed: () => context.go('/leagues/join'),
-                icon: Icon(PhosphorIcons.key(PhosphorIconsStyle.bold), size: 16),
-                label: const Text('Unirse con código'),
+                icon:
+                    Icon(PhosphorIcons.key(PhosphorIconsStyle.bold), size: 16),
+                label: Text(tr(lang, 'dashboard.joinWithCode')),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppColors.textSecondary,
                   side: const BorderSide(color: AppColors.surfaceLight),
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 ),
               ),
               const SizedBox(width: 16),
               FilledButton.icon(
                 onPressed: () => context.go('/leagues/create'),
-                icon: Icon(PhosphorIcons.plus(PhosphorIconsStyle.bold), size: 16),
-                label: const Text('Crear Liga'),
+                icon:
+                    Icon(PhosphorIcons.plus(PhosphorIconsStyle.bold), size: 16),
+                label: Text(tr(lang, 'dashboard.createLeague')),
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: AppColors.textPrimary,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 ),
               ),
             ]),
@@ -538,7 +578,7 @@ class _LeaguesScreenState extends ConsumerState<LeaguesScreen> {
     );
   }
 
-  Widget _buildError(Object err) {
+  Widget _buildError(Object err, String lang) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -564,7 +604,7 @@ class _LeaguesScreenState extends ConsumerState<LeaguesScreen> {
           FilledButton.icon(
             onPressed: () => ref.invalidate(myLeaguesSummaryProvider),
             icon: Icon(PhosphorIcons.arrowsClockwise(PhosphorIconsStyle.bold)),
-            label: const Text('Reintentar'),
+            label: Text(tr(lang, 'common.retry')),
           ),
         ],
       ),
@@ -677,11 +717,13 @@ class _StatCard extends StatelessWidget {
 
 class _DashboardLeagueCard extends StatelessWidget {
   final LeagueSummaryModel league;
+  final String lang;
   final bool isListView;
   final VoidCallback? onManage;
 
   const _DashboardLeagueCard({
     required this.league,
+    required this.lang,
     this.isListView = false,
     this.onManage,
   });
@@ -690,11 +732,11 @@ class _DashboardLeagueCard extends StatelessWidget {
   String get _formatLabel {
     switch (league.format) {
       case 'round_robin':
-        return 'LIGA';
+        return tr(lang, 'format.league');
       case 'knockout':
-        return 'COPA';
+        return tr(lang, 'format.cup');
       case 'swiss':
-        return 'SUIZO';
+        return tr(lang, 'format.swiss');
       default:
         return league.format.toUpperCase();
     }
@@ -757,7 +799,7 @@ class _DashboardLeagueCard extends StatelessWidget {
                   // Team info row
                   _buildInfoRow(
                     icon: PhosphorIcons.shield(PhosphorIconsStyle.fill),
-                    label: 'Tu equipo',
+                    label: tr(lang, 'leagues.yourTeam'),
                     value: league.userTeamName ?? 'Sin equipo',
                     valueColor: league.userTeamName != null
                         ? AppColors.textSecondary
@@ -767,17 +809,17 @@ class _DashboardLeagueCard extends StatelessWidget {
                   // Teams count
                   _buildInfoRow(
                     icon: PhosphorIcons.usersThree(PhosphorIconsStyle.fill),
-                    label: 'Equipos',
-                    value:
-                        '${league.teamCount} / ${league.maxTeams}',
+                    label: tr(lang, 'leagues.teams'),
+                    value: '${league.teamCount} / ${league.maxTeams}',
                     valueColor: AppColors.textSecondary,
                   ),
                   if (league.isActive) ...[
                     const SizedBox(height: 6),
                     _buildInfoRow(
                       icon: PhosphorIcons.football(PhosphorIconsStyle.fill),
-                      label: 'Jornada',
-                      value: 'Jornada ${league.currentRound ?? 1}',
+                      label: tr(lang, 'leagues.round'),
+                      value:
+                          '${tr(lang, 'leagues.round')} ${league.currentRound ?? 1}',
                       valueColor: AppColors.accent,
                     ),
                   ],
@@ -792,14 +834,19 @@ class _DashboardLeagueCard extends StatelessWidget {
                         const SizedBox(width: 10),
                         OutlinedButton.icon(
                           onPressed: onManage,
-                          icon: Icon(PhosphorIcons.sliders(PhosphorIconsStyle.bold), size: 13),
-                          label: const Text('GESTIONAR',
-                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                          icon: Icon(
+                              PhosphorIcons.sliders(PhosphorIconsStyle.bold),
+                              size: 13),
+                          label: Text(tr(lang, 'leagues.manage'),
+                              style: TextStyle(
+                                  fontSize: 11, fontWeight: FontWeight.bold)),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: AppColors.textSecondary,
-                            side: const BorderSide(color: AppColors.surfaceLight),
+                            side:
+                                const BorderSide(color: AppColors.surfaceLight),
                             minimumSize: const Size(0, 36),
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 0),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 0),
                           ),
                         ),
                       ],
@@ -889,12 +936,11 @@ class _DashboardLeagueCard extends StatelessWidget {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
-                                color:
-                                    AppColors.accent.withOpacity(0.15),
+                                color: AppColors.accent.withOpacity(0.15),
                                 borderRadius: BorderRadius.circular(3),
                               ),
                               child: Text(
-                                'COMISARIO',
+                                tr(lang, 'leagues.commissioner'),
                                 style: TextStyle(
                                   fontSize: 8,
                                   fontWeight: FontWeight.bold,
@@ -928,10 +974,10 @@ class _DashboardLeagueCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    _StatusBadge(status: league.status),
+                    _StatusBadge(status: league.status, lang: lang),
                     if (league.inviteCode != null && league.isDraft) ...[
                       const SizedBox(height: 6),
-                      _InviteCodeChip(code: league.inviteCode!),
+                      _InviteCodeChip(code: league.inviteCode!, lang: lang),
                     ],
                   ],
                 ),
@@ -955,8 +1001,7 @@ class _DashboardLeagueCard extends StatelessWidget {
         const SizedBox(width: 6),
         Text(
           label,
-          style:
-              const TextStyle(fontSize: 11, color: AppColors.textMuted),
+          style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
         ),
         const Spacer(),
         Text(
@@ -975,47 +1020,40 @@ class _DashboardLeagueCard extends StatelessWidget {
     if (league.isActive) {
       return FilledButton.icon(
         onPressed: () => context.go('/league/${league.id}'),
-        icon: Icon(PhosphorIcons.football(PhosphorIconsStyle.bold),
-            size: 13),
-        label: const Text('VER LIGA',
-            style:
-                TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+        icon: Icon(PhosphorIcons.football(PhosphorIconsStyle.bold), size: 13),
+        label: Text(tr(lang, 'leagues.viewLeague'),
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
         style: FilledButton.styleFrom(
           backgroundColor: AppColors.success,
           foregroundColor: Colors.white,
           minimumSize: const Size(0, 36),
-          padding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
         ),
       );
     } else if (league.isDraft) {
       return OutlinedButton.icon(
         onPressed: () => context.go('/league/${league.id}'),
         icon: Icon(PhosphorIcons.eye(PhosphorIconsStyle.bold), size: 13),
-        label: const Text('VER LIGA',
-            style:
-                TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+        label: Text(tr(lang, 'leagues.viewLeague'),
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.textSecondary,
           side: const BorderSide(color: AppColors.surfaceLight),
           minimumSize: const Size(0, 36),
-          padding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
         ),
       );
     } else {
       return OutlinedButton.icon(
         onPressed: () => context.go('/league/${league.id}'),
         icon: Icon(PhosphorIcons.trophy(PhosphorIconsStyle.bold), size: 13),
-        label: const Text('VER RESULTADOS',
-            style:
-                TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+        label: Text(tr(lang, 'leagues.viewResults'),
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.textMuted,
           side: const BorderSide(color: AppColors.surfaceLight),
           minimumSize: const Size(0, 36),
-          padding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
         ),
       );
     }
@@ -1028,7 +1066,8 @@ class _DashboardLeagueCard extends StatelessWidget {
 
 class _InviteCodeChip extends StatelessWidget {
   final String code;
-  const _InviteCodeChip({required this.code});
+  final String lang;
+  const _InviteCodeChip({required this.code, required this.lang});
 
   @override
   Widget build(BuildContext context) {
@@ -1036,8 +1075,8 @@ class _InviteCodeChip extends StatelessWidget {
       onTap: () {
         Clipboard.setData(ClipboardData(text: code));
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Código de invitación copiado'),
+          SnackBar(
+            content: Text(tr(lang, 'leagues.codeCopied')),
             duration: Duration(seconds: 1),
           ),
         );
@@ -1081,7 +1120,8 @@ class _InviteCodeChip extends StatelessWidget {
 
 class _StatusBadge extends StatelessWidget {
   final String status;
-  const _StatusBadge({required this.status});
+  final String lang;
+  const _StatusBadge({required this.status, required this.lang});
 
   @override
   Widget build(BuildContext context) {
@@ -1090,19 +1130,19 @@ class _StatusBadge extends StatelessWidget {
     switch (status) {
       case 'active':
         color = AppColors.success;
-        label = 'ACTIVA';
+        label = tr(lang, 'status.active');
         break;
       case 'draft':
         color = AppColors.warning;
-        label = 'INSCRIPCIÓN';
+        label = tr(lang, 'status.draft');
         break;
       case 'paused':
         color = AppColors.warning;
-        label = 'PAUSADA';
+        label = tr(lang, 'status.paused');
         break;
       case 'completed':
         color = AppColors.textMuted;
-        label = 'FINALIZADA';
+        label = tr(lang, 'status.completed');
         break;
       default:
         color = AppColors.textMuted;
@@ -1139,7 +1179,8 @@ class _StatusBadge extends StatelessWidget {
 
 class _ManageLeagueDialog extends StatelessWidget {
   final LeagueSummaryModel league;
-  const _ManageLeagueDialog({required this.league});
+  final String lang;
+  const _ManageLeagueDialog({required this.league, required this.lang});
 
   @override
   Widget build(BuildContext context) {
@@ -1184,15 +1225,15 @@ class _ManageLeagueDialog extends StatelessWidget {
               const SizedBox(height: 6),
               Text(
                 league.name,
-                style: const TextStyle(
-                    fontSize: 13, color: AppColors.textMuted),
+                style:
+                    const TextStyle(fontSize: 13, color: AppColors.textMuted),
               ),
               const SizedBox(height: 20),
               // Archive option
               _ManageOption(
                 icon: PhosphorIcons.trophy(PhosphorIconsStyle.fill),
                 color: AppColors.warning,
-                title: 'Archivar / Finalizar liga',
+                title: tr(lang, 'leagues.archive'),
                 description:
                     'Marca la liga como completada. Se conservan todos los resultados y estadísticas. Esta acción no se puede deshacer.',
                 enabled: !league.isDraft,
@@ -1206,7 +1247,7 @@ class _ManageLeagueDialog extends StatelessWidget {
               _ManageOption(
                 icon: PhosphorIcons.trash(PhosphorIconsStyle.fill),
                 color: AppColors.error,
-                title: 'Eliminar liga',
+                title: tr(lang, 'leagues.delete'),
                 description:
                     'Borra la liga permanentemente junto con todos sus datos. Solo disponible para ligas en fase de inscripción.',
                 enabled: league.isDraft,
@@ -1223,7 +1264,7 @@ class _ManageLeagueDialog extends StatelessWidget {
                 width: double.infinity,
                 child: TextButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Cancelar'),
+                  child: Text(tr(lang, 'leagues.cancel')),
                 ),
               ),
             ],
@@ -1252,7 +1293,7 @@ class _ManageLeagueDialog extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancelar',
+            child: Text(tr(lang, 'leagues.cancel'),
                 style: TextStyle(color: AppColors.textMuted)),
           ),
           FilledButton(
@@ -1260,9 +1301,8 @@ class _ManageLeagueDialog extends StatelessWidget {
               Navigator.of(ctx).pop(true);
               Navigator.of(context).pop('delete');
             },
-            style:
-                FilledButton.styleFrom(backgroundColor: AppColors.error),
-            child: const Text('Eliminar definitivamente'),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            child: Text(tr(lang, 'leagues.deletePermanently')),
           ),
         ],
       ),
@@ -1404,7 +1444,8 @@ class _NotificationItem extends StatelessWidget {
               if (timeAgo.isNotEmpty)
                 Text(
                   timeAgo,
-                  style: const TextStyle(fontSize: 10, color: AppColors.textMuted),
+                  style:
+                      const TextStyle(fontSize: 10, color: AppColors.textMuted),
                 ),
             ],
           ),
@@ -1420,7 +1461,8 @@ class _NotificationItem extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             description,
-            style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+            style:
+                const TextStyle(fontSize: 11, color: AppColors.textSecondary),
           ),
           if (onAction != null && actionLabel != null) ...[
             const SizedBox(height: 8),
@@ -1430,11 +1472,13 @@ class _NotificationItem extends StatelessWidget {
                   onPressed: onAction,
                   style: TextButton.styleFrom(
                     foregroundColor: _bgColor,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                     minimumSize: Size.zero,
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
-                  child: Text(actionLabel!, style: const TextStyle(fontSize: 11)),
+                  child:
+                      Text(actionLabel!, style: const TextStyle(fontSize: 11)),
                 ),
               ],
             ),

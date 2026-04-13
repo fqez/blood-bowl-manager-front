@@ -39,7 +39,8 @@ class LeagueCard extends StatelessWidget {
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: statusColor.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(4),
@@ -114,33 +115,40 @@ class LeagueCard extends StatelessWidget {
               Row(
                 children: [
                   Icon(
-                    PhosphorIcons.calendar(PhosphorIconsStyle.regular),
+                    league.status == LeagueStatus.draft
+                        ? PhosphorIcons.usersThree(PhosphorIconsStyle.regular)
+                        : PhosphorIcons.calendar(PhosphorIconsStyle.regular),
                     size: 14,
                     color: AppColors.textMuted,
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    'Jornada Actual',
+                    league.status == LeagueStatus.draft
+                        ? '${league.teamsCount} / ${league.maxTeams} equipos'
+                        : 'Jornada ${league.currentRound} / ${league.maxRounds}',
                     style: TextStyle(
                       fontSize: 12,
                       color: AppColors.textMuted,
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Jornada ${league.currentRound} / ${league.maxRounds}',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.accent,
-                    ),
-                  ),
                   const Spacer(),
-                  if (league.status == LeagueStatus.active)
+                  if (league.status == LeagueStatus.draft)
                     ElevatedButton(
                       onPressed: onTap,
                       style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        minimumSize: Size.zero,
+                        backgroundColor: AppColors.warning,
+                      ),
+                      child: const Text('INSCRIPCIÓN'),
+                    )
+                  else if (league.status == LeagueStatus.active)
+                    ElevatedButton(
+                      onPressed: onTap,
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
                         minimumSize: Size.zero,
                       ),
                       child: const Text('JUGAR'),
@@ -149,7 +157,8 @@ class LeagueCard extends StatelessWidget {
                     OutlinedButton(
                       onPressed: onTap,
                       style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
                         minimumSize: Size.zero,
                       ),
                       child: const Text('VER'),

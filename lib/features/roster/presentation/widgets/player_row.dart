@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import '../../../../core/l10n/locale_provider.dart';
+import '../../../../core/l10n/translations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/models/team.dart';
 
-class PlayerRow extends StatelessWidget {
+class PlayerRow extends ConsumerWidget {
   final Character character;
   final VoidCallback? onTap;
 
@@ -14,7 +17,8 @@ class PlayerRow extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final lang = ref.watch(localeProvider);
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       color: AppColors.card,
@@ -22,7 +26,10 @@ class PlayerRow extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
           color: _getBorderColor(),
-          width: character.status == PlayerStatus.dead || character.status == PlayerStatus.injured ? 2 : 1,
+          width: character.status == PlayerStatus.dead ||
+                  character.status == PlayerStatus.injured
+              ? 2
+              : 1,
         ),
       ),
       child: InkWell(
@@ -32,9 +39,7 @@ class PlayerRow extends StatelessWidget {
           padding: const EdgeInsets.all(12),
           child: Row(
             children: [
-              _buildNumber(),
-              const SizedBox(width: 12),
-              _buildAvatar(),
+              _buildJerseyNumber(),
               const SizedBox(width: 12),
               Expanded(child: _buildInfo()),
               _buildStats(),
@@ -51,61 +56,59 @@ class PlayerRow extends StatelessWidget {
     );
   }
 
-  Widget _buildNumber() {
-    return Container(
-      width: 32,
-      height: 32,
-      decoration: BoxDecoration(
-        color: AppColors.surfaceLight,
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Center(
-        child: Text(
-          '#${character.number}',
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
-          ),
-        ),
-      ),
-    );
-  }
+  Widget _buildJerseyNumber() {
+    final isDead = character.status == PlayerStatus.dead;
+    final isInjured = character.status == PlayerStatus.injured;
+    final isMNG = character.missNextGame;
+    final borderColor = isDead
+        ? AppColors.textMuted.withOpacity(0.4)
+        : isInjured
+            ? AppColors.warning.withOpacity(0.6)
+            : isMNG
+                ? AppColors.error.withOpacity(0.6)
+                : AppColors.primary.withOpacity(0.4);
+    final textColor = isDead
+        ? AppColors.textMuted
+        : isInjured
+            ? AppColors.warning
+            : AppColors.textPrimary;
 
-  Widget _buildAvatar() {
     return Stack(
+      clipBehavior: Clip.none,
       children: [
         Container(
           width: 48,
           height: 48,
           decoration: BoxDecoration(
-            color: AppColors.surface,
-            shape: BoxShape.circle,
-            border: Border.all(color: AppColors.surfaceLight),
+            color: isDead
+                ? AppColors.surfaceLight.withOpacity(0.5)
+                : AppColors.primary.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: borderColor, width: 1.5),
           ),
-          child: ClipOval(
-            child: _buildPlaceholderAvatar(),
+          child: Center(
+            child: Text(
+              '${character.number}',
+              style: TextStyle(
+                fontFamily: AppTextStyles.displayFont,
+                fontSize: 28,
+                fontWeight: FontWeight.w700,
+                color: textColor,
+                height: 1,
+              ),
+            ),
           ),
         ),
-        if (character.status == PlayerStatus.dead) _buildStatusBadge(PhosphorIcons.skull(PhosphorIconsStyle.fill), AppColors.textMuted),
-        if (character.status == PlayerStatus.injured && character.status != PlayerStatus.dead)
-          _buildStatusBadge(PhosphorIcons.firstAid(PhosphorIconsStyle.fill), AppColors.warning),
-        if (character.missNextGame && character.status != PlayerStatus.dead && character.status != PlayerStatus.injured)
-          _buildStatusBadge(PhosphorIcons.prohibit(PhosphorIconsStyle.fill), AppColors.error),
+        if (isDead)
+          _buildStatusBadge(PhosphorIcons.skull(PhosphorIconsStyle.fill),
+              AppColors.textMuted),
+        if (isInjured && !isDead)
+          _buildStatusBadge(PhosphorIcons.firstAid(PhosphorIconsStyle.fill),
+              AppColors.warning),
+        if (isMNG && !isDead && !isInjured)
+          _buildStatusBadge(
+              PhosphorIcons.prohibit(PhosphorIconsStyle.fill), AppColors.error),
       ],
-    );
-  }
-
-  Widget _buildPlaceholderAvatar() {
-    return Center(
-      child: Text(
-        character.name.substring(0, 1).toUpperCase(),
-        style: TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-          color: AppColors.textMuted,
-        ),
-      ),
     );
   }
 
@@ -139,7 +142,9 @@ class PlayerRow extends StatelessWidget {
                   color: character.status == PlayerStatus.dead
                       ? AppColors.textMuted
                       : AppColors.textPrimary,
-                  decoration: character.status == PlayerStatus.dead ? TextDecoration.lineThrough : null,
+                  decoration: character.status == PlayerStatus.dead
+                      ? TextDecoration.lineThrough
+                      : null,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -215,7 +220,6 @@ class PlayerRow extends StatelessWidget {
   }
 
   Widget _buildStatItem(String label, int value) {
-
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: Column(
@@ -242,7 +246,8 @@ class PlayerRow extends StatelessWidget {
   }
 
   Color _getBorderColor() {
-    if (character.status == PlayerStatus.dead) return AppColors.textMuted.withOpacity(0.5);
+    if (character.status == PlayerStatus.dead)
+      return AppColors.textMuted.withOpacity(0.5);
     if (character.status == PlayerStatus.injured) return AppColors.warning;
     if (character.missNextGame) return AppColors.error;
     return AppColors.surfaceLight;

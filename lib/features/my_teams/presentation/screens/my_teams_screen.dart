@@ -3,12 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
+import '../../../../core/l10n/locale_provider.dart';
+import '../../../../core/l10n/translations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../shared/data/repositories.dart';
 import '../../domain/models/user_team.dart';
 
-final myUserTeamsProvider =
-    FutureProvider<List<UserTeamSummary>>((ref) async {
+final myUserTeamsProvider = FutureProvider<List<UserTeamSummary>>((ref) async {
   return ref.watch(teamRepositoryProvider).getUserTeams();
 });
 
@@ -17,31 +18,32 @@ class MyTeamsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final lang = ref.watch(localeProvider);
     final teamsAsync = ref.watch(myUserTeamsProvider);
     final isWide = MediaQuery.of(context).size.width >= 800;
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: _buildAppBar(context),
+      appBar: _buildAppBar(context, lang),
       body: RefreshIndicator(
         onRefresh: () async => ref.invalidate(myUserTeamsProvider),
         child: teamsAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (err, _) => _buildError(context, ref, err),
+          error: (err, _) => _buildError(context, ref, err, lang),
           data: (teams) => teams.isEmpty
-              ? _buildEmptyState(context)
+              ? _buildEmptyState(context, lang)
               : _buildTeamGrid(context, teams, isWide),
         ),
       ),
     );
   }
 
-  PreferredSizeWidget _buildAppBar(BuildContext context) {
+  PreferredSizeWidget _buildAppBar(BuildContext context, String lang) {
     return AppBar(
       title: Row(
         children: [
           Text(
-            'MIS EQUIPOS',
+            tr(lang, 'nav.myTeams').toUpperCase(),
             style: TextStyle(
               fontFamily: AppTextStyles.displayFont,
               fontSize: 20,
@@ -50,7 +52,7 @@ class MyTeamsScreen extends ConsumerWidget {
           ),
           const SizedBox(width: 12),
           Text(
-            'Gestión de plantillas',
+            tr(lang, 'team.rosterManagement'),
             style: TextStyle(
               fontSize: 14,
               color: AppColors.textMuted,
@@ -63,14 +65,15 @@ class MyTeamsScreen extends ConsumerWidget {
         ElevatedButton.icon(
           onPressed: () => context.go('/create-team'),
           icon: Icon(PhosphorIcons.plus(PhosphorIconsStyle.bold), size: 16),
-          label: const Text('Crear Equipo'),
+          label: Text(tr(lang, 'leagues.createTeam')),
         ),
         const SizedBox(width: 16),
       ],
     );
   }
 
-  Widget _buildError(BuildContext context, WidgetRef ref, Object error) {
+  Widget _buildError(
+      BuildContext context, WidgetRef ref, Object error, String lang) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -78,26 +81,25 @@ class MyTeamsScreen extends ConsumerWidget {
           Icon(PhosphorIcons.warning(PhosphorIconsStyle.fill),
               size: 48, color: AppColors.error),
           const SizedBox(height: 16),
-          Text('Error al cargar equipos',
+          Text(tr(lang, 'team.errorLoadingTeams'),
               style: TextStyle(
                   color: AppColors.textPrimary,
                   fontSize: 16,
                   fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           Text('$error',
-              style:
-                  TextStyle(color: AppColors.textMuted, fontSize: 12)),
+              style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
           const SizedBox(height: 24),
           ElevatedButton(
             onPressed: () => ref.invalidate(myUserTeamsProvider),
-            child: const Text('Reintentar'),
+            child: Text(tr(lang, 'common.retry')),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildEmptyState(BuildContext context) {
+  Widget _buildEmptyState(BuildContext context, String lang) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -134,10 +136,9 @@ class MyTeamsScreen extends ConsumerWidget {
           ElevatedButton.icon(
             onPressed: () => context.go('/create-team'),
             icon: Icon(PhosphorIcons.plus(PhosphorIconsStyle.bold), size: 18),
-            label: const Text('Crear Equipo'),
+            label: Text(tr(lang, 'leagues.createTeam')),
             style: ElevatedButton.styleFrom(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
             ),
           ),
         ],
@@ -209,8 +210,7 @@ class MyTeamsScreen extends ConsumerWidget {
                   fontWeight: FontWeight.bold,
                   color: AppColors.accent)),
           Text(label,
-              style:
-                  TextStyle(fontSize: 11, color: AppColors.textMuted)),
+              style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
         ],
       ),
     );
@@ -281,10 +281,8 @@ class _TeamCard extends StatelessWidget {
               // Stats row
               Row(
                 children: [
-                  _buildChip(
-                      PhosphorIcons.soccerBall(PhosphorIconsStyle.fill),
-                      '${team.playerCount}',
-                      'Jugadores'),
+                  _buildChip(PhosphorIcons.soccerBall(PhosphorIconsStyle.fill),
+                      '${team.playerCount}', 'Jugadores'),
                   const SizedBox(width: 8),
                   _buildChip(PhosphorIcons.trophy(PhosphorIconsStyle.fill),
                       '${team.teamValue ~/ 1000}k', 'TV'),
@@ -312,7 +310,7 @@ class _TeamCard extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(6),
         child: Image.asset(
-          'teams/${team.baseRosterId}/logo.png',
+          'teams/${team.baseRosterId}/logo.webp',
           fit: BoxFit.cover,
           errorBuilder: (_, __, ___) => Center(
             child: Icon(PhosphorIcons.shield(PhosphorIconsStyle.fill),

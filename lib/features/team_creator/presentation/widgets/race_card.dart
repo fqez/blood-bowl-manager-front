@@ -35,7 +35,7 @@ class RaceCard extends StatelessWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
         curve: Curves.easeInOut,
-        height: 270, // Mucho más alta para evitar cualquier overflow
+        height: 230,
         decoration: BoxDecoration(
           color:
               isSelected ? AppColors.primary.withOpacity(0.12) : AppColors.card,
@@ -85,7 +85,7 @@ class RaceCard extends StatelessWidget {
             Center(
               child: Padding(
                 padding:
-                    const EdgeInsets.symmetric(vertical: 28, horizontal: 10),
+                    const EdgeInsets.symmetric(vertical: 16, horizontal: 10),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -98,11 +98,11 @@ class RaceCard extends StatelessWidget {
                         errorBuilder: (_, __, ___) => Icon(
                           PhosphorIcons.shield(PhosphorIconsStyle.fill),
                           color: AppColors.textMuted,
-                          size: 64,
+                          size: 80,
                         ),
                       ),
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 12),
                     Text(
                       race.name.toUpperCase(),
                       textAlign: TextAlign.center,
@@ -113,7 +113,7 @@ class RaceCard extends StatelessWidget {
                         color: isSelected
                             ? AppColors.primary
                             : AppColors.textPrimary,
-                        letterSpacing: 1.0,
+                        letterSpacing: 1.2,
                         height: 1.1,
                       ),
                       maxLines: 2,

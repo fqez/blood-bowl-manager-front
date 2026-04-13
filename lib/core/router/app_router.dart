@@ -7,12 +7,17 @@ import '../../features/league/presentation/screens/league_overview_screen.dart';
 import '../../features/my_teams/presentation/screens/my_team_detail_screen.dart';
 import '../../features/roster/presentation/screens/player_card_screen.dart';
 import '../../features/aftermatch/presentation/screens/aftermatch_screen.dart';
+import '../../features/live_match/presentation/screens/live_match_screen.dart';
 import '../../features/team_creator/presentation/screens/team_creator_screen.dart';
 import '../../features/my_teams/presentation/screens/my_teams_screen.dart';
-import '../../features/my_teams/presentation/screens/my_team_detail_screen.dart';
 import '../../features/leagues/presentation/screens/leagues_screen.dart';
 import '../../features/leagues/presentation/screens/create_league_screen.dart';
 import '../../features/leagues/presentation/screens/join_league_screen.dart';
+import '../../features/wiki/presentation/screens/wiki_skills_screen.dart';
+import '../../features/wiki/presentation/screens/wiki_weather_screen.dart';
+import '../../features/wiki/presentation/screens/wiki_star_players_screen.dart';
+import '../../features/tactics/presentation/screens/tactics_screen.dart';
+import '../../features/tactics/presentation/screens/my_tactics_screen.dart';
 import '../../features/auth/data/providers/auth_provider.dart';
 import '../shell/app_shell.dart';
 
@@ -24,7 +29,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       final isLoggedIn = authState.valueOrNull?.isAuthenticated ?? false;
       final isAuthRoute = state.matchedLocation == '/login' ||
-                          state.matchedLocation == '/register';
+          state.matchedLocation == '/register';
 
       if (!isLoggedIn && !isAuthRoute) {
         return '/login';
@@ -118,6 +123,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   );
                 },
               ),
+              GoRoute(
+                path: 'match/:matchId/live',
+                name: 'live-match',
+                builder: (context, state) {
+                  final leagueId = state.pathParameters['leagueId']!;
+                  final matchId = state.pathParameters['matchId']!;
+                  return LiveMatchScreen(
+                    leagueId: leagueId,
+                    matchId: matchId,
+                  );
+                },
+              ),
             ],
           ),
           GoRoute(
@@ -155,6 +172,34 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 },
               ),
             ],
+          ),
+          GoRoute(
+            path: '/wiki/skills',
+            name: 'wiki-skills',
+            builder: (context, state) => const WikiSkillsScreen(),
+          ),
+          GoRoute(
+            path: '/wiki/weather',
+            name: 'wiki-weather',
+            builder: (context, state) => const WikiWeatherScreen(),
+          ),
+          GoRoute(
+            path: '/wiki/star-players',
+            name: 'wiki-star-players',
+            builder: (context, state) => const WikiStarPlayersScreen(),
+          ),
+          GoRoute(
+            path: '/tactics',
+            name: 'tactics',
+            builder: (context, state) {
+              final tacticId = state.uri.queryParameters['id'];
+              return TacticsScreen(tacticId: tacticId);
+            },
+          ),
+          GoRoute(
+            path: '/my-tactics',
+            name: 'my-tactics',
+            builder: (context, state) => const MyTacticsScreen(),
           ),
         ],
       ),

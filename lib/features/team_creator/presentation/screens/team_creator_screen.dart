@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
+import '../../../../core/l10n/locale_provider.dart';
+import '../../../../core/l10n/translations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../roster/domain/models/team.dart';
 import '../../../shared/data/repositories.dart';
@@ -127,6 +129,7 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final lang = ref.watch(localeProvider);
     final screenWidth = MediaQuery.of(context).size.width;
     final isWide = screenWidth >= 900;
 
@@ -135,7 +138,7 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
       appBar: isWide
           ? null
           : AppBar(
-              title: const Text('Crear Equipo'),
+              title: Text(tr(lang, 'teamCreator.title')),
               leading: IconButton(
                 icon: Icon(PhosphorIcons.arrowLeft(PhosphorIconsStyle.bold)),
                 onPressed: () => _showExitDialog(context),
@@ -212,13 +215,14 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
   }
 
   String _getStepTitle() {
+    final lang = ref.watch(localeProvider);
     switch (_currentStep) {
       case 0:
-        return 'Selecciona una raza';
+        return tr(lang, 'teamCreator.step1');
       case 1:
-        return 'Ficha jugadores';
+        return tr(lang, 'teamCreator.step2');
       case 2:
-        return 'Confirmar equipo';
+        return tr(lang, 'teamCreator.title');
       default:
         return '';
     }
@@ -388,7 +392,9 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
                     color: Colors.white,
                   ),
                 )
-              : Text(_currentStep < 2 ? 'Siguiente' : 'Crear Equipo'),
+              : Text(_currentStep < 2
+                  ? 'Siguiente'
+                  : tr(ref.watch(localeProvider), 'teamCreator.create')),
           style: ElevatedButton.styleFrom(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           ),
@@ -480,6 +486,7 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
   }
 
   Widget _buildRaceStep(bool isWide) {
+    final lang = ref.watch(localeProvider);
     final racesAsync = ref.watch(baseRostersProvider);
 
     return racesAsync.when(
@@ -505,7 +512,7 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
             const SizedBox(height: 8),
             ElevatedButton(
               onPressed: () => ref.invalidate(baseRostersProvider),
-              child: const Text('Reintentar'),
+              child: Text(tr(lang, 'common.retry')),
             ),
           ],
         ),
@@ -515,6 +522,7 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
   }
 
   Widget _buildRaceStepContent(bool isWide, List<BaseTeam> races) {
+    final lang = ref.watch(localeProvider);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -584,7 +592,7 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
                           ),
                           child: ClipOval(
                             child: Image.asset(
-                              'teams/${_selectedRace!.id}/logo.png',
+                              'teams/${_selectedRace!.id}/logo.webp',
                               fit: BoxFit.cover,
                               errorBuilder: (_, __, ___) => Icon(
                                 PhosphorIcons.shield(PhosphorIconsStyle.fill),
@@ -633,8 +641,8 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
         // Team name input
         TextField(
           decoration: InputDecoration(
-            labelText: 'Nombre del equipo',
-            hintText: 'ej: Los Leones de Altdorf',
+            labelText: tr(lang, 'teamCreator.teamName'),
+            hintText: tr(lang, 'teamCreator.teamNameHint'),
             prefixIcon: Icon(PhosphorIcons.flag(PhosphorIconsStyle.bold)),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -657,10 +665,10 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: isWide ? 5 : 3,
-            childAspectRatio: 2.4,
-            crossAxisSpacing: 10,
-            mainAxisSpacing: 10,
+            crossAxisCount: isWide ? 4 : 2,
+            childAspectRatio: 1.1,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
           ),
           itemCount: races.length,
           itemBuilder: (context, index) {
@@ -784,7 +792,7 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
                     ClipRRect(
                       borderRadius: BorderRadius.circular(6),
                       child: Image.asset(
-                        'assets/teams/${race.id}/logo.png',
+                        'assets/teams/${race.id}/logo.webp',
                         width: 36,
                         height: 36,
                         errorBuilder: (_, __, ___) => Container(
@@ -867,6 +875,7 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
 
     // ── Tabla de reclutamiento ────────────────────────────────────────────────
     Widget buildRecruitmentTable(bool wide) {
+      final lang = ref.watch(localeProvider);
       return Container(
         decoration: BoxDecoration(
           color: AppColors.card,
@@ -910,7 +919,7 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
                       ),
                     ),
                     child: Text(
-                      'Jugadores:  $_rosterCount / 16',
+                      trf(lang, 'roster.playerCount', {'n': '$_rosterCount'}),
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
@@ -965,6 +974,7 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
 
     // ── Panel izquierdo: identidad del equipo ─────────────────────────────────
     Widget buildIdentityPanel() {
+      final lang = ref.watch(localeProvider);
       return Container(
         decoration: BoxDecoration(
           color: AppColors.card,
@@ -1043,7 +1053,7 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              'Nombre del Equipo',
+              tr(lang, 'teamCreator.teamName'),
               style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
             ),
             const SizedBox(height: 6),
@@ -1051,7 +1061,7 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
               controller: _teamNameController,
               style: TextStyle(color: AppColors.textPrimary, fontSize: 14),
               decoration: InputDecoration(
-                hintText: 'Ej. Gouged Eye',
+                hintText: tr(lang, 'teamCreator.teamNameHint'),
                 hintStyle: TextStyle(color: AppColors.textMuted),
                 isDense: true,
                 contentPadding:
@@ -1108,6 +1118,159 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
             ],
           ],
         ),
+      );
+    }
+
+    // ── Jugadores estrella disponibles ──────────────────────────────────────
+    Widget buildStarPlayersSection() {
+      final raceId = _selectedRace?.id;
+      if (raceId == null) return const SizedBox.shrink();
+
+      final asyncStar = ref.watch(starPlayersForTeamProvider(raceId));
+
+      return asyncStar.when(
+        loading: () => const SizedBox.shrink(),
+        error: (_, __) => const SizedBox.shrink(),
+        data: (stars) {
+          if (stars.isEmpty) return const SizedBox.shrink();
+          return Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.card,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.accent.withOpacity(0.25)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(PhosphorIcons.star(PhosphorIconsStyle.fill),
+                        color: AppColors.accent, size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      'JUGADORES ESTRELLA DISPONIBLES',
+                      style: TextStyle(
+                        fontFamily: AppTextStyles.displayFont,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.accent,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: AppColors.accent.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        '${stars.length}',
+                        style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.accent),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Contratable como Inducement durante los partidos.',
+                  style: TextStyle(fontSize: 11, color: AppColors.textMuted),
+                ),
+                const SizedBox(height: 12),
+                // Horizontal scroll of mini star cards
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: stars.map((sp) {
+                      final id = sp['id'] as String? ?? '';
+                      final name = sp['name'] as String? ?? '';
+                      final cost = sp['cost'] as int? ?? 0;
+                      final types =
+                          (sp['player_types'] as List?)?.cast<String>() ?? [];
+                      return Container(
+                        width: 150,
+                        margin: const EdgeInsets.only(right: 10),
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                              color: AppColors.accent.withOpacity(0.2)),
+                        ),
+                        child: Column(
+                          children: [
+                            // Image
+                            Container(
+                              width: 52,
+                              height: 52,
+                              decoration: BoxDecoration(
+                                color: AppColors.card,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                    color: AppColors.accent.withOpacity(0.2)),
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(7),
+                                child: Image.asset(
+                                  'assets/images/star_players/$id.png',
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => Icon(
+                                    PhosphorIcons.star(PhosphorIconsStyle.fill),
+                                    size: 20,
+                                    color: AppColors.accent.withOpacity(0.3),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              name.toUpperCase(),
+                              textAlign: TextAlign.center,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontFamily: AppTextStyles.displayFont,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textPrimary,
+                                height: 1.2,
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              '${cost ~/ 1000}K',
+                              style: TextStyle(
+                                fontFamily: AppTextStyles.displayFont,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.accent,
+                              ),
+                            ),
+                            if (types.isNotEmpty) ...[
+                              const SizedBox(height: 3),
+                              Text(
+                                types.join(', '),
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                    fontSize: 8, color: AppColors.textMuted),
+                              ),
+                            ],
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
       );
     }
 
@@ -1302,11 +1465,13 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
                       ),
                     ),
                     const SizedBox(width: 20),
-                    // Columna derecha: tabla + staff + estado
+                    // Columna derecha: tabla + staff + estrellas + estado
                     Expanded(
                       child: Column(
                         children: [
                           buildRecruitmentTable(true),
+                          const SizedBox(height: 16),
+                          buildStarPlayersSection(),
                           const SizedBox(height: 16),
                           buildStaffPanel(true),
                           const SizedBox(height: 16),
@@ -1319,6 +1484,8 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
               : Column(
                   children: [
                     buildRecruitmentTable(false),
+                    const SizedBox(height: 16),
+                    buildStarPlayersSection(),
                     const SizedBox(height: 16),
                     buildStaffPanel(false),
                     const SizedBox(height: 16),
@@ -2108,7 +2275,7 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
                 ),
                 child: ClipOval(
                   child: Image.asset(
-                    'teams/${_selectedRace?.id}/logo.png',
+                    'teams/${_selectedRace?.id}/logo.webp',
                     fit: BoxFit.cover,
                     errorBuilder: (_, __, ___) => Icon(
                       PhosphorIcons.shield(PhosphorIconsStyle.fill),
@@ -2257,6 +2424,7 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
   }
 
   Widget _buildNavigationButtons() {
+    final lang = ref.watch(localeProvider);
     final canProceed = _canProceed() && !_isCreating;
 
     return Container(
@@ -2300,7 +2468,9 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
                         color: Colors.white,
                       ),
                     )
-                  : Text(_currentStep < 2 ? 'Siguiente' : 'Crear Equipo'),
+                  : Text(_currentStep < 2
+                      ? 'Siguiente'
+                      : tr(lang, 'teamCreator.create')),
             ),
           ),
         ],
@@ -2328,6 +2498,7 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
   }
 
   void _showExitDialog(BuildContext context) {
+    final lang = ref.watch(localeProvider);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -2341,7 +2512,7 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
+            child: Text(tr(lang, 'common.cancel')),
           ),
           ElevatedButton(
             onPressed: () {

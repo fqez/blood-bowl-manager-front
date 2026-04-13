@@ -1,16 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
+import '../../../../core/l10n/locale_provider.dart';
+import '../../../../core/l10n/translations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/models/league.dart';
 
-class BracketWidget extends StatelessWidget {
+class BracketWidget extends ConsumerWidget {
   final List<Match> matches;
 
   const BracketWidget({super.key, required this.matches});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final lang = ref.watch(localeProvider);
     if (matches.isEmpty) {
       return Center(
         child: Column(
@@ -19,10 +23,10 @@ class BracketWidget extends StatelessWidget {
             Icon(PhosphorIcons.graph(PhosphorIconsStyle.light),
                 size: 56, color: AppColors.textMuted),
             const SizedBox(height: 16),
-            Text('Bracket no generado todavía',
+            Text(tr(lang, 'bracket.notGenerated'),
                 style: TextStyle(fontSize: 16, color: AppColors.textMuted)),
             const SizedBox(height: 8),
-            Text('Inicia la liga para generar los enfrentamientos',
+            Text(tr(lang, 'bracket.startLeague'),
                 style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
           ],
         ),
@@ -35,7 +39,7 @@ class BracketWidget extends StatelessWidget {
       matchesByRound.putIfAbsent(m.round, () => []).add(m);
     }
     final rounds = matchesByRound.keys.toList()..sort();
-    final roundNames = _buildRoundNames(rounds, matchesByRound);
+    final roundNames = _buildRoundNames(rounds, matchesByRound, lang);
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -47,7 +51,8 @@ class BracketWidget extends StatelessWidget {
             if (ri > 0) const SizedBox(width: 8),
             _buildRoundColumn(
               context,
-              roundName: roundNames[rounds[ri]] ?? 'Ronda ${rounds[ri]}',
+              roundName: roundNames[rounds[ri]] ??
+                  trf(lang, 'leagueOverview.round', {'n': '${rounds[ri]}'}),
               roundMatches: matchesByRound[rounds[ri]]!,
               totalRounds: rounds.length,
               roundIndex: ri,
@@ -59,22 +64,22 @@ class BracketWidget extends StatelessWidget {
   }
 
   Map<int, String> _buildRoundNames(
-      List<int> rounds, Map<int, List<Match>> byRound) {
+      List<int> rounds, Map<int, List<Match>> byRound, String lang) {
     final total = rounds.length;
     final result = <int, String>{};
     for (int i = 0; i < total; i++) {
       final round = rounds[i];
       final remaining = total - i;
       if (remaining == 1) {
-        result[round] = 'Final';
+        result[round] = tr(lang, 'bracket.final_');
       } else if (remaining == 2) {
-        result[round] = 'Semifinales';
+        result[round] = tr(lang, 'bracket.semis');
       } else if (remaining == 3) {
-        result[round] = 'Cuartos';
+        result[round] = tr(lang, 'bracket.quarters');
       } else if (remaining == 4) {
-        result[round] = 'Octavos';
+        result[round] = tr(lang, 'bracket.eighths');
       } else {
-        result[round] = 'Ronda $round';
+        result[round] = trf(lang, 'leagueOverview.round', {'n': '$round'});
       }
     }
     return result;
@@ -91,7 +96,8 @@ class BracketWidget extends StatelessWidget {
     final spacingFactor = 1 << roundIndex; // 1, 2, 4, 8 ...
     const matchCardHeight = 88.0;
     const matchSpacing = 8.0;
-    final verticalPad = (spacingFactor - 1) * (matchCardHeight + matchSpacing) / 2;
+    final verticalPad =
+        (spacingFactor - 1) * (matchCardHeight + matchSpacing) / 2;
 
     return SizedBox(
       width: 220,
@@ -121,7 +127,8 @@ class BracketWidget extends StatelessWidget {
           for (int i = 0; i < roundMatches.length; i++) ...[
             if (i > 0) SizedBox(height: matchSpacing * spacingFactor),
             Padding(
-              padding: EdgeInsets.symmetric(vertical: verticalPad > 0 ? verticalPad : 0),
+              padding: EdgeInsets.symmetric(
+                  vertical: verticalPad > 0 ? verticalPad : 0),
               child: _buildMatchCard(context, roundMatches[i]),
             ),
           ],
@@ -177,7 +184,8 @@ class BracketWidget extends StatelessWidget {
     return Container(
       height: 40,
       decoration: BoxDecoration(
-        color: isWinner ? AppColors.success.withOpacity(0.08) : Colors.transparent,
+        color:
+            isWinner ? AppColors.success.withOpacity(0.08) : Colors.transparent,
         borderRadius: isTop
             ? const BorderRadius.vertical(top: Radius.circular(9))
             : const BorderRadius.vertical(bottom: Radius.circular(9)),
@@ -197,7 +205,8 @@ class BracketWidget extends StatelessWidget {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: isWinner ? FontWeight.bold : FontWeight.normal,
-                color: isWinner ? AppColors.textPrimary : AppColors.textSecondary,
+                color:
+                    isWinner ? AppColors.textPrimary : AppColors.textSecondary,
               ),
               overflow: TextOverflow.ellipsis,
             ),

@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import '../../../../core/l10n/locale_provider.dart';
+import '../../../../core/l10n/translations.dart';
 import '../../../../core/theme/app_colors.dart';
 
-class ScoreInput extends StatelessWidget {
+class ScoreInput extends ConsumerWidget {
   final String homeTeamName;
   final String awayTeamName;
   final int homeScore;
@@ -21,7 +24,8 @@ class ScoreInput extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final lang = ref.watch(localeProvider);
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -37,6 +41,7 @@ class ScoreInput extends StatelessWidget {
               score: homeScore,
               onScoreChanged: onHomeScoreChanged,
               isHome: true,
+              lang: lang,
             ),
           ),
           Padding(
@@ -60,6 +65,7 @@ class ScoreInput extends StatelessWidget {
               score: awayScore,
               onScoreChanged: onAwayScoreChanged,
               isHome: false,
+              lang: lang,
             ),
           ),
         ],
@@ -73,12 +79,14 @@ class _TeamScoreInput extends StatelessWidget {
   final int score;
   final ValueChanged<int> onScoreChanged;
   final bool isHome;
+  final String lang;
 
   const _TeamScoreInput({
     required this.teamName,
     required this.score,
     required this.onScoreChanged,
     required this.isHome,
+    required this.lang,
   });
 
   @override
@@ -117,7 +125,7 @@ class _TeamScoreInput extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
         ),
         Text(
-          isHome ? 'Local' : 'Visitante',
+          isHome ? tr(lang, 'aftermatch.home') : tr(lang, 'aftermatch.away'),
           style: TextStyle(
             fontSize: 12,
             color: AppColors.textMuted,
@@ -178,7 +186,9 @@ class _TeamScoreInput extends StatelessWidget {
           alignment: Alignment.center,
           child: Icon(
             icon,
-            color: onPressed != null ? AppColors.textPrimary : AppColors.textMuted.withOpacity(0.5),
+            color: onPressed != null
+                ? AppColors.textPrimary
+                : AppColors.textMuted.withOpacity(0.5),
             size: 20,
           ),
         ),

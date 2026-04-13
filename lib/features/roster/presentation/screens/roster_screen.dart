@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
+import '../../../../core/l10n/locale_provider.dart';
+import '../../../../core/l10n/translations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../auth/data/providers/auth_provider.dart';
 import '../../../shared/data/repositories.dart';
@@ -31,6 +33,7 @@ class _RosterScreenState extends ConsumerState<RosterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final lang = ref.watch(localeProvider);
     final teamAsync = ref.watch(teamProvider(widget.teamId));
     final screenWidth = MediaQuery.of(context).size.width;
     final isWide = screenWidth >= 800;
@@ -43,16 +46,20 @@ class _RosterScreenState extends ConsumerState<RosterScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(PhosphorIcons.warning(PhosphorIconsStyle.bold), size: 48, color: AppColors.error),
+              Icon(PhosphorIcons.warning(PhosphorIconsStyle.bold),
+                  size: 48, color: AppColors.error),
               const SizedBox(height: 16),
-              Text('Error cargando el equipo', style: TextStyle(color: AppColors.textPrimary)),
+              Text('Error cargando el equipo',
+                  style: TextStyle(color: AppColors.textPrimary)),
               const SizedBox(height: 8),
-              Text('$error', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+              Text('$error',
+                  style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
             ],
           ),
         ),
         data: (team) {
-          final isOwner = currentUserId != null && team.ownerId == currentUserId;
+          final isOwner =
+              currentUserId != null && team.ownerId == currentUserId;
           return _buildContent(context, team, isWide, isOwner);
         },
       ),
@@ -61,14 +68,15 @@ class _RosterScreenState extends ConsumerState<RosterScreen> {
               teamAsync.valueOrNull!.ownerId == currentUserId
           ? FloatingActionButton.extended(
               onPressed: () => _showAddPlayerDialog(context),
-              label: const Text('Fichar'),
+              label: Text(tr(lang, 'team.sign')),
               icon: Icon(PhosphorIcons.userPlus(PhosphorIconsStyle.bold)),
             )
           : null,
     );
   }
 
-  Widget _buildContent(BuildContext context, Team team, bool isWide, bool isOwner) {
+  Widget _buildContent(
+      BuildContext context, Team team, bool isWide, bool isOwner) {
     return CustomScrollView(
       slivers: [
         _buildHeader(team, isWide, isOwner),
@@ -82,6 +90,7 @@ class _RosterScreenState extends ConsumerState<RosterScreen> {
   }
 
   Widget _buildHeader(Team team, bool isWide, bool isOwner) {
+    final lang = ref.watch(localeProvider);
     return SliverAppBar(
       expandedHeight: isWide ? 180 : 140,
       pinned: true,
@@ -94,7 +103,7 @@ class _RosterScreenState extends ConsumerState<RosterScreen> {
           IconButton(
             icon: Icon(PhosphorIcons.pencilSimple(PhosphorIconsStyle.bold)),
             onPressed: () {},
-            tooltip: 'Editar equipo',
+            tooltip: tr(lang, 'team.editPlayer'),
           ),
           IconButton(
             icon: Icon(PhosphorIcons.gear(PhosphorIconsStyle.bold)),
@@ -105,7 +114,7 @@ class _RosterScreenState extends ConsumerState<RosterScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             child: Chip(
-              label: Text('Solo lectura',
+              label: Text(tr(lang, 'team.readOnly'),
                   style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
               backgroundColor: AppColors.surfaceLight,
               side: BorderSide.none,
@@ -145,7 +154,7 @@ class _RosterScreenState extends ConsumerState<RosterScreen> {
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(10),
                       child: Image.asset(
-                        'teams/${_teamAssetPath(team.baseTeamId)}/logo.png',
+                        'teams/${_teamAssetPath(team.baseTeamId)}/logo.webp',
                         fit: BoxFit.cover,
                         errorBuilder: (_, __, ___) => Icon(
                           PhosphorIcons.shield(PhosphorIconsStyle.bold),
@@ -174,9 +183,11 @@ class _RosterScreenState extends ConsumerState<RosterScreen> {
                           children: [
                             _buildStatChip('TV', '${team.teamValue ~/ 1000}k'),
                             const SizedBox(width: 8),
-                            _buildStatChip('Jugadores', '${team.characters.where((c) => c.status == PlayerStatus.healthy).length}'),
+                            _buildStatChip(tr(lang, 'roster.title'),
+                                '${team.characters.where((c) => c.status == PlayerStatus.healthy).length}'),
                             const SizedBox(width: 8),
-                            _buildStatChip('Re-rolls', '${team.rerolls}'),
+                            _buildStatChip(tr(lang, 'teamCreator.rerolls'),
+                                '${team.rerolls}'),
                           ],
                         ),
                       ],
@@ -229,7 +240,8 @@ class _RosterScreenState extends ConsumerState<RosterScreen> {
       ),
       child: Row(
         children: [
-          Icon(PhosphorIcons.coins(PhosphorIconsStyle.fill), color: AppColors.accent, size: 28),
+          Icon(PhosphorIcons.coins(PhosphorIconsStyle.fill),
+              color: AppColors.accent, size: 28),
           const SizedBox(width: 12),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -255,8 +267,8 @@ class _RosterScreenState extends ConsumerState<RosterScreen> {
           ),
           const Spacer(),
           if (isOwner) ...[
-            _buildQuickBuyButton('Re-roll', team.rerollCost,
-                () => _buyReroll(team)),
+            _buildQuickBuyButton(
+                'Re-roll', team.rerollCost, () => _buyReroll(team)),
             const SizedBox(width: 8),
             _buildQuickBuyButton('Apotecario', team.apothecary ? null : 50000,
                 team.apothecary ? null : () => _buyApothecary(team)),
@@ -266,7 +278,8 @@ class _RosterScreenState extends ConsumerState<RosterScreen> {
     );
   }
 
-  Widget _buildQuickBuyButton(String label, int? cost, VoidCallback? onPressed) {
+  Widget _buildQuickBuyButton(
+      String label, int? cost, VoidCallback? onPressed) {
     final enabled = cost != null && onPressed != null;
 
     return OutlinedButton(
@@ -289,7 +302,9 @@ class _RosterScreenState extends ConsumerState<RosterScreen> {
               '${cost ~/ 1000}k',
               style: TextStyle(
                 fontSize: 10,
-                color: enabled ? AppColors.textMuted : AppColors.textMuted.withOpacity(0.5),
+                color: enabled
+                    ? AppColors.textMuted
+                    : AppColors.textMuted.withOpacity(0.5),
               ),
             )
           else
@@ -317,17 +332,21 @@ class _RosterScreenState extends ConsumerState<RosterScreen> {
             ),
           ),
           const Spacer(),
-          _buildFilterChip('Activos', _showActives, (v) => setState(() => _showActives = v)),
+          _buildFilterChip(
+              'Activos', _showActives, (v) => setState(() => _showActives = v)),
           const SizedBox(width: 8),
-          _buildFilterChip('Lesionados', _showInjured, (v) => setState(() => _showInjured = v)),
+          _buildFilterChip('Lesionados', _showInjured,
+              (v) => setState(() => _showInjured = v)),
           const SizedBox(width: 8),
-          _buildFilterChip('Muertos', _showDead, (v) => setState(() => _showDead = v)),
+          _buildFilterChip(
+              'Muertos', _showDead, (v) => setState(() => _showDead = v)),
         ],
       ),
     );
   }
 
-  Widget _buildFilterChip(String label, bool selected, Function(bool) onChanged) {
+  Widget _buildFilterChip(
+      String label, bool selected, Function(bool) onChanged) {
     return FilterChip(
       label: Text(label),
       selected: selected,
@@ -382,8 +401,7 @@ class _RosterScreenState extends ConsumerState<RosterScreen> {
             return PlayerRow(
               character: player,
               onTap: () => context.go(
-                '/league/${widget.leagueId}/team/${widget.teamId}/player/${player.id}'
-              ),
+                  '/league/${widget.leagueId}/team/${widget.teamId}/player/${player.id}'),
             );
           },
           childCount: filteredPlayers.length,
