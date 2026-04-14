@@ -55,9 +55,9 @@ class WikiWeatherScreen extends ConsumerWidget {
                 children: [
                   _buildHeader(lang),
                   const SizedBox(height: 28),
-                  _buildWeatherTable(lang),
-                  const SizedBox(height: 32),
                   _buildPreGameSection(lang),
+                  const SizedBox(height: 32),
+                  _buildWeatherTable(lang),
                   const SizedBox(height: 32),
                   _buildKickoffSequence(lang),
                   const SizedBox(height: 40),
@@ -156,6 +156,198 @@ class WikiWeatherScreen extends ConsumerWidget {
             tr(lang, 'wikiWeather.subtitle'),
             style:
                 const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Pre-game sequence ─────────────────────────────────────────────────────
+
+  Widget _buildPreGameSection(String lang) {
+    final steps = [
+      _PreGameStep(
+        number: '1',
+        title: 'PETTY CASH',
+        icon: PhosphorIcons.coins(PhosphorIconsStyle.fill),
+        color: const Color(0xFFD4AF37),
+        description: 'Ambos entrenadores revelan su Valor de Equipo (TV). '
+            'El equipo con menor TV recibe la diferencia entre ambos TVs como '
+            'Petty Cash, que puede gastar en Inducements para ese partido.',
+      ),
+      _PreGameStep(
+        number: '2',
+        title: 'COMPRAR INDUCEMENTS',
+        icon: PhosphorIcons.shoppingCart(PhosphorIconsStyle.fill),
+        color: const Color(0xFF7E57C2),
+        description: 'El entrenador que recibió Petty Cash gasta su dinero en '
+            'Inducements (Jugadores Estrella, Sobornos, pociones, etc.). '
+            'El otro entrenador también puede comprar Inducements con su propio tesoro.',
+      ),
+      _PreGameStep(
+        number: '3',
+        title: 'TIRADA DE CLIMA',
+        icon: PhosphorIcons.cloudSun(PhosphorIconsStyle.fill),
+        color: const Color(0xFF42A5F5),
+        description: 'Tira 2D6 y consulta la tabla de clima para determinar '
+            'las condiciones meteorológicas del partido. El resultado se aplica '
+            'durante todo el encuentro.',
+      ),
+      _PreGameStep(
+        number: '4',
+        title: 'SORTEO DE CAMPO',
+        icon: PhosphorIcons.coinVertical(PhosphorIconsStyle.fill),
+        color: const Color(0xFFEF5350),
+        description: 'Ambos entrenadores tiran 1D6 (repitiendo empates). '
+            'El ganador elige si hace el kickoff o si recibe. '
+            'En la segunda mitad se invierten los roles.',
+      ),
+      _PreGameStep(
+        number: '5',
+        title: 'COLOCACIÓN DE JUGADORES',
+        icon: PhosphorIcons.usersThree(PhosphorIconsStyle.fill),
+        color: const Color(0xFF66BB6A),
+        description: 'El entrenador que hace el kickoff coloca primero a '
+            'sus jugadores en su mitad del campo (mín. 3 en la Línea de Scrimmage, '
+            'máx. 11 en total). Después, el equipo receptor se coloca igual.',
+      ),
+      _PreGameStep(
+        number: '6',
+        title: 'KICKOFF',
+        icon: PhosphorIcons.football(PhosphorIconsStyle.fill),
+        color: const Color(0xFFFFA726),
+        description:
+            'El equipo que patea realiza el kickoff, lanzando el balón al '
+            'campo rival. Se tira en la Tabla de Kickoff (2D6) para un evento '
+            'especial (Riot, Perfect Defence, Blitz!, etc.).',
+      ),
+    ];
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.surfaceLight),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(PhosphorIcons.listNumbers(PhosphorIconsStyle.fill),
+                  color: AppColors.accent, size: 20),
+              const SizedBox(width: 10),
+              Text(
+                tr(lang, 'wikiWeather.preGame'),
+                style: TextStyle(
+                  fontFamily: AppTextStyles.displayFont,
+                  fontSize: 30,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                  letterSpacing: 1,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Pasos a seguir antes de que comience la acción en el campo.',
+            style: TextStyle(fontSize: 15, color: AppColors.textMuted),
+          ),
+          const SizedBox(height: 20),
+          ...steps.map((s) => _buildPreGameStepCard(s)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPreGameStepCard(_PreGameStep step) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Step number circle
+          Column(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [step.color, step.color.withOpacity(0.6)],
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: step.color.withOpacity(0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Text(
+                    step.number,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 18,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+              if (int.parse(step.number) < 6)
+                Container(
+                  width: 2,
+                  height: 24,
+                  color: step.color.withOpacity(0.3),
+                ),
+            ],
+          ),
+          const SizedBox(width: 14),
+          // Content
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    step.color.withOpacity(0.08),
+                    Colors.transparent,
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: step.color.withOpacity(0.2)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(step.icon, color: step.color, size: 18),
+                      const SizedBox(width: 8),
+                      Text(
+                        step.title,
+                        style: TextStyle(
+                          fontFamily: AppTextStyles.displayFont,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: step.color,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  _buildRichDescription(step.description),
+                ],
+              ),
+            ),
           ),
         ],
       ),
@@ -326,198 +518,6 @@ class WikiWeatherScreen extends ConsumerWidget {
                 const SizedBox(height: 6),
                 _buildRichDescription(w.description),
               ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── Pre-game sequence ─────────────────────────────────────────────────────
-
-  Widget _buildPreGameSection(String lang) {
-    final steps = [
-      _PreGameStep(
-        number: '1',
-        title: 'PETTY CASH',
-        icon: PhosphorIcons.coins(PhosphorIconsStyle.fill),
-        color: const Color(0xFFD4AF37),
-        description: 'Ambos entrenadores revelan su Valor de Equipo (TV). '
-            'El equipo con menor TV recibe la diferencia entre ambos TVs como '
-            'Petty Cash, que puede gastar en Inducements para ese partido.',
-      ),
-      _PreGameStep(
-        number: '2',
-        title: 'COMPRAR INDUCEMENTS',
-        icon: PhosphorIcons.shoppingCart(PhosphorIconsStyle.fill),
-        color: const Color(0xFF7E57C2),
-        description: 'El entrenador que recibió Petty Cash gasta su dinero en '
-            'Inducements (Jugadores Estrella, Sobornos, pociones, etc.). '
-            'El otro entrenador también puede comprar Inducements con su propio tesoro.',
-      ),
-      _PreGameStep(
-        number: '3',
-        title: 'TIRADA DE CLIMA',
-        icon: PhosphorIcons.cloudSun(PhosphorIconsStyle.fill),
-        color: const Color(0xFF42A5F5),
-        description: 'Tira 2D6 y consulta la tabla de clima para determinar '
-            'las condiciones meteorológicas del partido. El resultado se aplica '
-            'durante todo el encuentro.',
-      ),
-      _PreGameStep(
-        number: '4',
-        title: 'SORTEO DE CAMPO',
-        icon: PhosphorIcons.coinVertical(PhosphorIconsStyle.fill),
-        color: const Color(0xFFEF5350),
-        description: 'Ambos entrenadores tiran 1D6 (repitiendo empates). '
-            'El ganador elige si hace el kickoff o si recibe. '
-            'En la segunda mitad se invierten los roles.',
-      ),
-      _PreGameStep(
-        number: '5',
-        title: 'COLOCACIÓN DE JUGADORES',
-        icon: PhosphorIcons.usersThree(PhosphorIconsStyle.fill),
-        color: const Color(0xFF66BB6A),
-        description: 'El entrenador que hace el kickoff coloca primero a '
-            'sus jugadores en su mitad del campo (mín. 3 en la Línea de Scrimmage, '
-            'máx. 11 en total). Después, el equipo receptor se coloca igual.',
-      ),
-      _PreGameStep(
-        number: '6',
-        title: 'KICKOFF',
-        icon: PhosphorIcons.football(PhosphorIconsStyle.fill),
-        color: const Color(0xFFFFA726),
-        description:
-            'El equipo que patea realiza el kickoff, lanzando el balón al '
-            'campo rival. Se tira en la Tabla de Kickoff (2D6) para un evento '
-            'especial (Riot, Perfect Defence, Blitz!, etc.).',
-      ),
-    ];
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.surfaceLight),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(PhosphorIcons.listNumbers(PhosphorIconsStyle.fill),
-                  color: AppColors.accent, size: 20),
-              const SizedBox(width: 10),
-              Text(
-                tr(lang, 'wikiWeather.preGame'),
-                style: TextStyle(
-                  fontFamily: AppTextStyles.displayFont,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                  letterSpacing: 1,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            'Pasos a seguir antes de que comience la acción en el campo.',
-            style: TextStyle(fontSize: 12, color: AppColors.textMuted),
-          ),
-          const SizedBox(height: 20),
-          ...steps.map((s) => _buildPreGameStepCard(s)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPreGameStepCard(_PreGameStep step) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Step number circle
-          Column(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [step.color, step.color.withOpacity(0.6)],
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: step.color.withOpacity(0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Center(
-                  child: Text(
-                    step.number,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w900,
-                      fontSize: 18,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-              if (int.parse(step.number) < 6)
-                Container(
-                  width: 2,
-                  height: 24,
-                  color: step.color.withOpacity(0.3),
-                ),
-            ],
-          ),
-          const SizedBox(width: 14),
-          // Content
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    step.color.withOpacity(0.08),
-                    Colors.transparent,
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: step.color.withOpacity(0.2)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(step.icon, color: step.color, size: 18),
-                      const SizedBox(width: 8),
-                      Text(
-                        step.title,
-                        style: TextStyle(
-                          fontFamily: AppTextStyles.displayFont,
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                          color: step.color,
-                          letterSpacing: 1,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  _buildRichDescription(step.description),
-                ],
-              ),
             ),
           ),
         ],
@@ -716,7 +716,7 @@ class WikiWeatherScreen extends ConsumerWidget {
 /// Builds a [RichText] where glossary terms are highlighted and wrapped in
 /// [Tooltip] widgets so users can tap/hover to see explanations.
 Widget _buildRichDescription(String text,
-    {double fontSize = 12, Color color = AppColors.textSecondary}) {
+    {double fontSize = 13, Color color = AppColors.textSecondary}) {
   final style = TextStyle(fontSize: fontSize, color: color, height: 1.5);
   final boldStyle = TextStyle(
     fontSize: fontSize,

@@ -7,6 +7,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../league/domain/models/league.dart';
+import '../../../live_match/data/active_match_provider.dart';
 import '../../../my_teams/domain/models/user_team.dart';
 import '../../../shared/data/repositories.dart';
 
@@ -359,7 +360,16 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
             return const SizedBox.shrink();
           }
           _initFromMatch(match);
-          if (!_isQM) _loadTeams(match);
+          if (!_isQM) {
+            _loadTeams(match);
+          } else {
+            // Load teams for QM if there are temp-hired players to resolve
+            final tempData = ref.read(tempHiredPlayersProvider);
+            final hasTempPlayers =
+                tempData.getForTeam(match.home.teamId).isNotEmpty ||
+                    tempData.getForTeam(match.away.teamId).isNotEmpty;
+            if (hasTempPlayers) _loadTeams(match);
+          }
           return _buildBody(match);
         },
       ),
@@ -384,6 +394,8 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _buildMatchStatsSection(match),
+                  const SizedBox(height: 28),
+                  _buildTempHiredPlayersSection(match),
                   const SizedBox(height: 36),
                   Center(
                     child: SizedBox(
@@ -437,6 +449,8 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
                 _buildInjuriesSection(),
                 const SizedBox(height: 28),
                 _buildExpensiveMistakesSection(),
+                const SizedBox(height: 28),
+                _buildTempHiredPlayersSection(match),
                 const SizedBox(height: 36),
                 _buildSubmitButton(),
                 const SizedBox(height: 40),
@@ -520,7 +534,7 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
                   children: [
                     Text(match.home.teamName,
                         style: const TextStyle(
-                            color: AppColors.textMuted, fontSize: 11)),
+                            color: AppColors.textMuted, fontSize: 12)),
                     const SizedBox(height: 4),
                     Text('$_scoreHome',
                         style: AppTextStyles.displayLarge
@@ -537,7 +551,7 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
                   children: [
                     Text(match.away.teamName,
                         style: const TextStyle(
-                            color: AppColors.textMuted, fontSize: 11)),
+                            color: AppColors.textMuted, fontSize: 12)),
                     const SizedBox(height: 4),
                     Text('$_scoreAway',
                         style: AppTextStyles.displayLarge
@@ -742,7 +756,7 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Text('Fan Factor:',
-                  style: TextStyle(color: AppColors.textMuted, fontSize: 11)),
+                  style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
               const SizedBox(width: 6),
               _miniCounter(fanFactor, onFanChanged, color),
             ],
@@ -763,7 +777,7 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
               ),
               const SizedBox(width: 6),
               const Text('Stalling',
-                  style: TextStyle(color: AppColors.textMuted, fontSize: 11)),
+                  style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
             ],
           ),
           const SizedBox(height: 10),
@@ -874,7 +888,7 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Text('D6 Roll:',
-                  style: TextStyle(color: AppColors.textMuted, fontSize: 11)),
+                  style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
               const SizedBox(width: 6),
               SizedBox(
                 width: 50,
@@ -886,7 +900,7 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
           Text(resultLabel,
               style: TextStyle(
                   color: resultColor,
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: FontWeight.w600)),
           if (delta != 0)
             Text('New: ${currentFans + delta}',
@@ -952,7 +966,7 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
         OutlinedButton.icon(
           icon: Icon(PhosphorIcons.shuffle(PhosphorIconsStyle.bold),
               size: 14, color: color),
-          label: Text('Random', style: TextStyle(color: color, fontSize: 11)),
+          label: Text('Random', style: TextStyle(color: color, fontSize: 12)),
           style: OutlinedButton.styleFrom(
             side: BorderSide(color: color.withValues(alpha: 0.4)),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -988,7 +1002,7 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
                   Text('#${p.number}',
                       style: const TextStyle(
                           color: AppColors.textMuted,
-                          fontSize: 10,
+                          fontSize: 12,
                           fontWeight: FontWeight.bold)),
                   const SizedBox(width: 6),
                   Expanded(
@@ -1097,7 +1111,7 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
                       child: Text('Player',
                           style: TextStyle(
                               color: AppColors.textMuted,
-                              fontSize: 10,
+                              fontSize: 12,
                               fontWeight: FontWeight.bold))),
                   const Spacer(),
                   ..._sppHeaders(),
@@ -1122,7 +1136,7 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                       color: AppColors.textMuted,
-                      fontSize: 9,
+                      fontSize: 12,
                       fontWeight: FontWeight.bold)),
             ))
         .toList();
@@ -1146,7 +1160,7 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
             width: 70,
             child: Text(e.playerName,
                 style:
-                    const TextStyle(color: AppColors.textPrimary, fontSize: 11),
+                    const TextStyle(color: AppColors.textPrimary, fontSize: 12),
                 overflow: TextOverflow.ellipsis),
           ),
           const Spacer(),
@@ -1179,7 +1193,7 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
         textAlign: TextAlign.center,
         style: TextStyle(
             color: count > 0 ? AppColors.textPrimary : AppColors.textMuted,
-            fontSize: 11),
+            fontSize: 12),
       ),
     );
   }
@@ -1193,7 +1207,7 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
       icon: Icon(PhosphorIcons.plus(PhosphorIconsStyle.bold),
           size: 14, color: AppColors.accent),
       label: const Text('Add Bonus SPP',
-          style: TextStyle(color: AppColors.accent, fontSize: 11)),
+          style: TextStyle(color: AppColors.accent, fontSize: 12)),
       style: OutlinedButton.styleFrom(
         side: BorderSide(color: AppColors.accent.withValues(alpha: 0.3)),
       ),
@@ -1335,7 +1349,7 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
                                 fontWeight: FontWeight.w600)),
                         Text(inj.injuryLabel,
                             style: TextStyle(
-                                color: inj.injuryColor, fontSize: 11)),
+                                color: inj.injuryColor, fontSize: 12)),
                       ],
                     ),
                   ),
@@ -1355,7 +1369,7 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
             icon: Icon(PhosphorIcons.plus(PhosphorIconsStyle.bold),
                 size: 14, color: AppColors.error),
             label: const Text('Add Injury',
-                style: TextStyle(color: AppColors.error, fontSize: 11)),
+                style: TextStyle(color: AppColors.error, fontSize: 12)),
             style: OutlinedButton.styleFrom(
               side: BorderSide(color: AppColors.error.withValues(alpha: 0.3)),
             ),
@@ -1550,7 +1564,7 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
                   color: color, fontSize: 12, fontWeight: FontWeight.w700)),
           const SizedBox(height: 4),
           Text('Treasury: ${_fmtGold(treasury)} gp',
-              style: const TextStyle(color: AppColors.textMuted, fontSize: 11)),
+              style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
           const SizedBox(height: 8),
           if (!applies)
             const Text('< 100K — Safe',
@@ -1560,7 +1574,7 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const Text('D6:',
-                    style: TextStyle(color: AppColors.textMuted, fontSize: 11)),
+                    style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
                 const SizedBox(width: 6),
                 SizedBox(
                   width: 50,
@@ -1588,6 +1602,221 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
         ],
       ),
     );
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // Temporary Hired Players
+  // ═══════════════════════════════════════════════════════════
+
+  Widget _buildTempHiredPlayersSection(Match match) {
+    final tempData = ref.read(tempHiredPlayersProvider);
+    final homeId = match.home.teamId;
+    final awayId = match.away.teamId;
+    final homeTempIds = tempData.getForTeam(homeId);
+    final awayTempIds = tempData.getForTeam(awayId);
+
+    if (homeTempIds.isEmpty && awayTempIds.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    List<UserPlayer> homeTempPlayers = [];
+    List<UserPlayer> awayTempPlayers = [];
+    if (_homeTeam != null) {
+      homeTempPlayers =
+          _homeTeam!.players.where((p) => homeTempIds.contains(p.id)).toList();
+    }
+    if (_awayTeam != null) {
+      awayTempPlayers =
+          _awayTeam!.players.where((p) => awayTempIds.contains(p.id)).toList();
+    }
+
+    if (homeTempPlayers.isEmpty && awayTempPlayers.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return _sectionCard(
+      icon: PhosphorIcons.userSwitch(PhosphorIconsStyle.fill),
+      title: 'TEMPORARY HIRES',
+      subtitle: 'Players hired for this match only',
+      color: AppColors.accent,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (homeTempPlayers.isNotEmpty) ...[
+            Text(
+              _homeTeam?.name ?? match.home.teamName,
+              style: const TextStyle(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13),
+            ),
+            const SizedBox(height: 8),
+            ...homeTempPlayers.map((p) => _buildTempPlayerRow(p, homeId,
+                isStarPlayer: p.baseType.startsWith('star_'))),
+            const SizedBox(height: 16),
+          ],
+          if (awayTempPlayers.isNotEmpty) ...[
+            Text(
+              _awayTeam?.name ?? match.away.teamName,
+              style: const TextStyle(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13),
+            ),
+            const SizedBox(height: 8),
+            ...awayTempPlayers.map((p) => _buildTempPlayerRow(p, awayId,
+                isStarPlayer: p.baseType.startsWith('star_'))),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTempPlayerRow(UserPlayer player, String teamId,
+      {required bool isStarPlayer}) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.surfaceLight),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              color: isStarPlayer
+                  ? AppColors.accent.withValues(alpha: 0.2)
+                  : AppColors.info.withValues(alpha: 0.2),
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Text(
+                '#${player.number}',
+                style: TextStyle(
+                  color: isStarPlayer ? AppColors.accent : AppColors.info,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(player.name,
+                    style: const TextStyle(
+                        color: AppColors.textPrimary, fontSize: 13)),
+                Text(
+                  isStarPlayer ? '★ Star Player' : player.positionLabel,
+                  style: TextStyle(
+                    color:
+                        isStarPlayer ? AppColors.accent : AppColors.textMuted,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (isStarPlayer)
+            _tempActionButton(
+              label: 'Release',
+              color: AppColors.error,
+              icon: PhosphorIcons.userMinus(PhosphorIconsStyle.bold),
+              onPressed: () => _releaseTempPlayer(player, teamId),
+            )
+          else ...[
+            _tempActionButton(
+              label: 'Keep',
+              color: AppColors.success,
+              icon: PhosphorIcons.userPlus(PhosphorIconsStyle.bold),
+              onPressed: () => _keepTempPlayer(player, teamId),
+            ),
+            const SizedBox(width: 8),
+            _tempActionButton(
+              label: 'Release',
+              color: AppColors.error,
+              icon: PhosphorIcons.userMinus(PhosphorIconsStyle.bold),
+              onPressed: () => _releaseTempPlayer(player, teamId),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _tempActionButton({
+    required String label,
+    required Color color,
+    required IconData icon,
+    required VoidCallback onPressed,
+  }) {
+    return SizedBox(
+      height: 30,
+      child: ElevatedButton.icon(
+        onPressed: onPressed,
+        icon: Icon(icon, size: 14),
+        label: Text(label, style: const TextStyle(fontSize: 12)),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: color.withValues(alpha: 0.15),
+          foregroundColor: color,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      ),
+    );
+  }
+
+  void _keepTempPlayer(UserPlayer player, String teamId) {
+    final tempData = ref.read(tempHiredPlayersProvider);
+    setState(() {
+      tempData.getForTeam(teamId).remove(player.id);
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${player.name} added permanently to roster'),
+        backgroundColor: AppColors.success,
+      ),
+    );
+  }
+
+  Future<void> _releaseTempPlayer(UserPlayer player, String teamId) async {
+    try {
+      final repo = ref.read(teamRepositoryProvider);
+      await repo.fireUserPlayer(teamId, player.id);
+      final tempData = ref.read(tempHiredPlayersProvider);
+      setState(() {
+        tempData.getForTeam(teamId).remove(player.id);
+        // Remove from loaded team data so UI updates
+        if (_homeTeam != null && teamId == _homeTeam!.id) {
+          _homeTeam = null; // force reload
+        }
+        if (_awayTeam != null && teamId == _awayTeam!.id) {
+          _awayTeam = null; // force reload
+        }
+      });
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${player.name} released'),
+          backgroundColor: AppColors.info,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error releasing player: $e'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -1669,7 +1898,7 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
                     if (subtitle != null)
                       Text(subtitle,
                           style: const TextStyle(
-                              color: AppColors.textMuted, fontSize: 10)),
+                              color: AppColors.textMuted, fontSize: 12)),
                   ],
                 ),
               ),

@@ -23,8 +23,12 @@ const _t = <String, Map<String, String>>{
   'nav.liveMatch': {'es': 'Partido en Vivo', 'en': 'Live Match'},
   'nav.createTeam': {'es': 'Crear Equipo', 'en': 'Create Team'},
   'nav.wikiSkills': {'es': 'Wiki - Skills', 'en': 'Wiki - Skills'},
-  'nav.wikiWeather': {'es': 'Wiki - Clima', 'en': 'Wiki - Weather'},
+  'nav.wikiWeather': {'es': 'Wiki - Pre-partido', 'en': 'Wiki - Pre-match'},
   'nav.wikiStars': {'es': 'Wiki - Estrellas', 'en': 'Wiki - Star Players'},
+  'nav.wikiInjuries': {'es': 'Wiki - Lesiones', 'en': 'Wiki - Injuries'},
+  'nav.wikiBlocking': {'es': 'Wiki - Bloqueos', 'en': 'Wiki - Blocking'},
+  'nav.wikiPassing': {'es': 'Wiki - Pases', 'en': 'Wiki - Passing'},
+  'nav.wikiAchievements': {'es': 'Wiki - Logros', 'en': 'Wiki - Achievements'},
   'nav.tactics': {'es': 'Tácticas', 'en': 'Tactics'},
   'nav.myTactics': {'es': 'Mis Tácticas', 'en': 'My Tactics'},
   'nav.quickMatch': {'es': 'Partido Rápido', 'en': 'Quick Match'},
@@ -826,6 +830,93 @@ const _t = <String, Map<String, String>>{
     'en': 'Error loading star players',
   },
   'wikiStars.playsFor': {'es': 'Juega para:', 'en': 'Plays for:'},
+
+  // ── Wiki Injuries ───────────────────────────────────────────────────────
+  'wikiInjuries.title': {'es': 'TABLA DE LESIONES', 'en': 'INJURY TABLE'},
+  'wikiInjuries.subtitle': {
+    'es': 'Tiradas de armadura, lesiones y bajas',
+    'en': 'Armour rolls, injuries and casualties',
+  },
+  'wikiInjuries.procedure': {
+    'es': 'PROCEDIMIENTO DE ARMADURA',
+    'en': 'ARMOUR PROCEDURE',
+  },
+  'wikiInjuries.injuryTable': {
+    'es': 'TABLA DE LESIONES (2D6)',
+    'en': 'INJURY TABLE (2D6)',
+  },
+  'wikiInjuries.casualtyTable': {
+    'es': 'TABLA DE BAJAS (1D16)',
+    'en': 'CASUALTY TABLE (1D16)',
+  },
+  'wikiInjuries.modifiers': {'es': 'MODIFICADORES', 'en': 'MODIFIERS'},
+
+  // ── Wiki Blocking ──────────────────────────────────────────────────────
+  'wikiBlocking.title': {'es': 'GUÍA DE BLOQUEOS', 'en': 'BLOCKING GUIDE'},
+  'wikiBlocking.subtitle': {
+    'es': 'Dados de bloqueo, procedimiento y reglas especiales',
+    'en': 'Block dice, procedure and special rules',
+  },
+  'wikiBlocking.blockDice': {
+    'es': 'DADOS DE BLOQUEO',
+    'en': 'BLOCK DICE',
+  },
+  'wikiBlocking.procedure': {
+    'es': 'PROCEDIMIENTO DE BLOQUEO',
+    'en': 'BLOCK PROCEDURE',
+  },
+  'wikiBlocking.diceCount': {
+    'es': 'NÚMERO DE DADOS',
+    'en': 'NUMBER OF DICE',
+  },
+  'wikiBlocking.specialRules': {
+    'es': 'REGLAS ESPECIALES',
+    'en': 'SPECIAL RULES',
+  },
+
+  // ── Wiki Passing ───────────────────────────────────────────────────────
+  'wikiPassing.title': {'es': 'GUÍA DE PASES', 'en': 'PASSING GUIDE'},
+  'wikiPassing.subtitle': {
+    'es': 'Rangos de pase, modificadores e interceptaciones',
+    'en': 'Pass ranges, modifiers and interceptions',
+  },
+  'wikiPassing.ranges': {'es': 'RANGOS DE PASE', 'en': 'PASS RANGES'},
+  'wikiPassing.procedure': {
+    'es': 'PROCEDIMIENTO DE PASE',
+    'en': 'PASS PROCEDURE',
+  },
+  'wikiPassing.modifiers': {'es': 'MODIFICADORES', 'en': 'MODIFIERS'},
+  'wikiPassing.catchIntercept': {
+    'es': 'RECEPCIÓN E INTERCEPTACIÓN',
+    'en': 'CATCH & INTERCEPTION',
+  },
+  'wikiPassing.specialPlays': {
+    'es': 'JUGADAS ESPECIALES',
+    'en': 'SPECIAL PLAYS',
+  },
+
+  // ── Wiki Achievements ─────────────────────────────────────────────────
+  'wikiAchievements.title': {
+    'es': 'TABLA DE LOGROS',
+    'en': 'ACHIEVEMENT TABLE'
+  },
+  'wikiAchievements.subtitle': {
+    'es': 'Puntos de Estrella (SPP) y mejoras de jugadores',
+    'en': 'Star Player Points (SPP) and player advancements',
+  },
+  'wikiAchievements.sppTable': {
+    'es': 'TABLA DE SPP',
+    'en': 'SPP TABLE',
+  },
+  'wikiAchievements.advancementTable': {
+    'es': 'TABLA DE AVANCE',
+    'en': 'ADVANCEMENT TABLE',
+  },
+  'wikiAchievements.improvements': {'es': 'MEJORAS', 'en': 'IMPROVEMENTS'},
+  'wikiAchievements.specialRules': {
+    'es': 'REGLAS ESPECIALES',
+    'en': 'SPECIAL RULES',
+  },
 
   // ── Tactics ─────────────────────────────────────────────────────────────
   'tactics.title': {'es': 'EDITOR DE TÁCTICAS', 'en': 'TACTICS EDITOR'},

@@ -17,6 +17,10 @@ import '../../features/quick_match/presentation/screens/quick_match_setup_screen
 import '../../features/wiki/presentation/screens/wiki_skills_screen.dart';
 import '../../features/wiki/presentation/screens/wiki_weather_screen.dart';
 import '../../features/wiki/presentation/screens/wiki_star_players_screen.dart';
+import '../../features/wiki/presentation/screens/wiki_injuries_screen.dart';
+import '../../features/wiki/presentation/screens/wiki_blocking_screen.dart';
+import '../../features/wiki/presentation/screens/wiki_passing_screen.dart';
+import '../../features/wiki/presentation/screens/wiki_achievements_screen.dart';
 import '../../features/tactics/presentation/screens/tactics_screen.dart';
 import '../../features/tactics/presentation/screens/my_tactics_screen.dart';
 import '../../features/auth/data/providers/auth_provider.dart';
@@ -188,6 +192,26 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: '/wiki/star-players',
             name: 'wiki-star-players',
             builder: (context, state) => const WikiStarPlayersScreen(),
+          ),
+          GoRoute(
+            path: '/wiki/injuries',
+            name: 'wiki-injuries',
+            builder: (context, state) => const WikiInjuriesScreen(),
+          ),
+          GoRoute(
+            path: '/wiki/blocking',
+            name: 'wiki-blocking',
+            builder: (context, state) => const WikiBlockingScreen(),
+          ),
+          GoRoute(
+            path: '/wiki/passing',
+            name: 'wiki-passing',
+            builder: (context, state) => const WikiPassingScreen(),
+          ),
+          GoRoute(
+            path: '/wiki/achievements',
+            name: 'wiki-achievements',
+            builder: (context, state) => const WikiAchievementsScreen(),
           ),
           GoRoute(
             path: '/tactics',

@@ -103,7 +103,8 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: AppColors.surfaceLight,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide.none,
@@ -135,7 +136,7 @@ class AppTheme {
         backgroundColor: AppColors.surfaceLight,
         labelStyle: const TextStyle(
           color: AppColors.textPrimary,
-          fontSize: 12,
+          fontSize: 15,
         ),
         selectedColor: AppColors.primary,
         shape: RoundedRectangleBorder(
@@ -150,7 +151,8 @@ class AppTheme {
         selectedItemColor: AppColors.primary,
         unselectedItemColor: AppColors.textMuted,
         type: BottomNavigationBarType.fixed,
-        selectedLabelStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+        selectedLabelStyle:
+            TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
         unselectedLabelStyle: TextStyle(fontSize: 12),
       ),
 
@@ -203,7 +205,7 @@ class AppTheme {
         dataRowColor: WidgetStatePropertyAll(AppColors.card),
         headingTextStyle: TextStyle(
           fontFamily: 'OpenSans',
-          fontSize: 12,
+          fontSize: 15,
           fontWeight: FontWeight.w600,
           color: AppColors.textSecondary,
           letterSpacing: 0.5,
@@ -276,7 +278,7 @@ class AppTheme {
         ),
         bodySmall: TextStyle(
           fontFamily: 'OpenSans',
-          fontSize: 12,
+          fontSize: 13,
           color: AppColors.textSecondary,
         ),
         labelLarge: TextStyle(
@@ -288,14 +290,14 @@ class AppTheme {
         ),
         labelMedium: TextStyle(
           fontFamily: 'OpenSans',
-          fontSize: 12,
+          fontSize: 13,
           fontWeight: FontWeight.w500,
           color: AppColors.textSecondary,
           letterSpacing: 0.5,
         ),
         labelSmall: TextStyle(
           fontFamily: 'OpenSans',
-          fontSize: 10,
+          fontSize: 12,
           fontWeight: FontWeight.w500,
           color: AppColors.textMuted,
           letterSpacing: 0.5,

@@ -112,6 +112,30 @@ class _AppShellState extends ConsumerState<AppShell> {
         route: '/wiki/star-players',
       ),
       _NavItem(
+        icon: PhosphorIcons.heartBreak(PhosphorIconsStyle.regular),
+        selectedIcon: PhosphorIcons.heartBreak(PhosphorIconsStyle.fill),
+        label: tr(lang, 'nav.wikiInjuries'),
+        route: '/wiki/injuries',
+      ),
+      _NavItem(
+        icon: PhosphorIcons.handFist(PhosphorIconsStyle.regular),
+        selectedIcon: PhosphorIcons.handFist(PhosphorIconsStyle.fill),
+        label: tr(lang, 'nav.wikiBlocking'),
+        route: '/wiki/blocking',
+      ),
+      _NavItem(
+        icon: PhosphorIcons.football(PhosphorIconsStyle.regular),
+        selectedIcon: PhosphorIcons.football(PhosphorIconsStyle.fill),
+        label: tr(lang, 'nav.wikiPassing'),
+        route: '/wiki/passing',
+      ),
+      _NavItem(
+        icon: PhosphorIcons.trophy(PhosphorIconsStyle.regular),
+        selectedIcon: PhosphorIcons.trophy(PhosphorIconsStyle.fill),
+        label: tr(lang, 'nav.wikiAchievements'),
+        route: '/wiki/achievements',
+      ),
+      _NavItem(
         icon: PhosphorIcons.crosshair(PhosphorIconsStyle.regular),
         selectedIcon: PhosphorIcons.crosshair(PhosphorIconsStyle.fill),
         label: tr(lang, 'nav.tactics'),
@@ -131,12 +155,16 @@ class _AppShellState extends ConsumerState<AppShell> {
       ),
     ];
   }
-  // indices: 0=Mis Ligas, 1=Mis Equipos, 2=Vista de Liga, 3=Plantilla, 4=Jugador, 5=Post-Partido, 6=Live Match, 7=Crear Equipo, 8=Wiki Skills, 9=Wiki Clima, 10=Wiki Estrellas, 11=Tácticas, 12=Mis Tácticas, 13=Partido Rápido
+  // indices: 0=Mis Ligas, 1=Mis Equipos, 2=Vista de Liga, 3=Plantilla, 4=Jugador, 5=Post-Partido, 6=Live Match, 7=Crear Equipo, 8=Wiki Skills, 9=Wiki Clima, 10=Wiki Estrellas, 11=Wiki Lesiones, 12=Wiki Bloqueos, 13=Wiki Pases, 14=Wiki Logros, 15=Tácticas, 16=Mis Tácticas, 17=Partido Rápido
 
   int _resolveSelectedIndex(String location) {
-    if (location.startsWith('/quick-match')) return 13;
-    if (location.startsWith('/my-tactics')) return 12;
-    if (location.startsWith('/tactics')) return 11;
+    if (location.startsWith('/quick-match')) return 17;
+    if (location.startsWith('/my-tactics')) return 16;
+    if (location.startsWith('/tactics')) return 15;
+    if (location.startsWith('/wiki/achievements')) return 14;
+    if (location.startsWith('/wiki/passing')) return 13;
+    if (location.startsWith('/wiki/blocking')) return 12;
+    if (location.startsWith('/wiki/injuries')) return 11;
     if (location.startsWith('/wiki/star-players')) return 10;
     if (location.startsWith('/wiki/weather')) return 9;
     if (location.startsWith('/wiki')) return 8;
@@ -197,14 +225,18 @@ class _AppShellState extends ConsumerState<AppShell> {
                 _buildNavItem(0, navItems[0], selectedIndex),
                 _buildNavItem(1, navItems[1], selectedIndex),
                 _buildNavItem(7, navItems[7], selectedIndex),
-                _buildNavItem(12, navItems[12], selectedIndex),
-                _buildNavItem(13, navItems[13], selectedIndex),
+                _buildNavItem(16, navItems[16], selectedIndex),
+                _buildNavItem(17, navItems[17], selectedIndex),
                 const Divider(height: 32),
                 if (_sidebarExpanded) _buildSectionLabel(tr(lang, 'nav.wiki')),
                 _buildNavItem(8, navItems[8], selectedIndex),
                 _buildNavItem(9, navItems[9], selectedIndex),
                 _buildNavItem(10, navItems[10], selectedIndex),
                 _buildNavItem(11, navItems[11], selectedIndex),
+                _buildNavItem(12, navItems[12], selectedIndex),
+                _buildNavItem(13, navItems[13], selectedIndex),
+                _buildNavItem(14, navItems[14], selectedIndex),
+                _buildNavItem(15, navItems[15], selectedIndex),
                 const Divider(height: 32),
                 if (_sidebarExpanded)
                   _buildSectionLabel(tr(lang, 'nav.activeLeague')),
@@ -547,6 +579,11 @@ class _AppShellState extends ConsumerState<AppShell> {
                 _buildSectionLabel(tr(ref.watch(localeProvider), 'nav.wiki')),
                 _buildNavItem(8, navItems[8], selectedIndex),
                 _buildNavItem(9, navItems[9], selectedIndex),
+                _buildNavItem(10, navItems[10], selectedIndex),
+                _buildNavItem(11, navItems[11], selectedIndex),
+                _buildNavItem(12, navItems[12], selectedIndex),
+                _buildNavItem(13, navItems[13], selectedIndex),
+                _buildNavItem(14, navItems[14], selectedIndex),
                 const Divider(height: 32),
                 _buildSectionLabel(
                     tr(ref.watch(localeProvider), 'nav.activeLeague')),

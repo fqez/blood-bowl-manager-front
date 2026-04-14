@@ -245,7 +245,6 @@ class _TeamCard extends StatelessWidget {
               // Header row: logo + name
               Row(
                 children: [
-                  _buildLogo(),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -278,6 +277,10 @@ class _TeamCard extends StatelessWidget {
                 ],
               ),
               const Spacer(),
+              Center(
+                child: _buildLogo(),
+              ),
+              const Spacer(),
               // Stats row
               Row(
                 children: [
@@ -300,13 +303,9 @@ class _TeamCard extends StatelessWidget {
 
   Widget _buildLogo() {
     return Container(
-      width: 48,
-      height: 48,
-      decoration: BoxDecoration(
-        color: AppColors.surfaceLight,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.primary.withOpacity(0.4), width: 2),
-      ),
+      width: 150,
+      height: 150,
+
       child: ClipRRect(
         borderRadius: BorderRadius.circular(6),
         child: Image.asset(

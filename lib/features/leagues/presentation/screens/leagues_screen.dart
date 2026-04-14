@@ -462,7 +462,7 @@ class _LeaguesScreenState extends ConsumerState<LeaguesScreen> {
                 tr(lang, 'dashboard.notifications'),
                 style: TextStyle(
                   fontFamily: AppTextStyles.displayFont,
-                  fontSize: 16,
+                  fontSize: 22,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textPrimary,
                   letterSpacing: 1,
@@ -746,7 +746,7 @@ class _DashboardLeagueCard extends StatelessWidget {
   Color get _formatColor {
     switch (league.format) {
       case 'round_robin':
-        return AppColors.primary;
+        return const Color.fromARGB(255, 97, 131, 66);
       case 'knockout':
         return AppColors.accent;
       case 'swiss':
@@ -783,13 +783,13 @@ class _DashboardLeagueCard extends StatelessWidget {
                   Row(
                     children: [
                       Icon(PhosphorIcons.crown(PhosphorIconsStyle.fill),
-                          size: 12, color: AppColors.accent),
+                          size: 15, color: AppColors.accent),
                       const SizedBox(width: 5),
                       Expanded(
                         child: Text(
                           league.ownerUsername,
                           style: const TextStyle(
-                              fontSize: 12, color: AppColors.textMuted),
+                              fontSize: 15, color: AppColors.textMuted),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -923,7 +923,7 @@ class _DashboardLeagueCard extends StatelessWidget {
                             child: Text(
                               _formatLabel,
                               style: TextStyle(
-                                fontSize: 8,
+                                fontSize: 12,
                                 fontWeight: FontWeight.bold,
                                 color: _formatColor,
                                 letterSpacing: 0.8,
@@ -942,7 +942,7 @@ class _DashboardLeagueCard extends StatelessWidget {
                               child: Text(
                                 tr(lang, 'leagues.commissioner'),
                                 style: TextStyle(
-                                  fontSize: 8,
+                                  fontSize: 12,
                                   fontWeight: FontWeight.bold,
                                   color: AppColors.accent,
                                   letterSpacing: 0.8,
@@ -952,12 +952,12 @@ class _DashboardLeagueCard extends StatelessWidget {
                           ],
                         ],
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 8),
                       Text(
                         league.name.toUpperCase(),
                         style: TextStyle(
                           fontFamily: AppTextStyles.displayFont,
-                          fontSize: 22,
+                          fontSize: 32,
                           fontWeight: FontWeight.bold,
                           color: AppColors.textPrimary,
                           letterSpacing: 0.5,
@@ -997,17 +997,17 @@ class _DashboardLeagueCard extends StatelessWidget {
   }) {
     return Row(
       children: [
-        Icon(icon, size: 12, color: AppColors.textMuted),
+        Icon(icon, size: 15, color: AppColors.textMuted),
         const SizedBox(width: 6),
         Text(
           label,
-          style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+          style: const TextStyle(fontSize: 15, color: AppColors.textMuted),
         ),
         const Spacer(),
         Text(
           value,
           style: TextStyle(
-            fontSize: 12,
+            fontSize: 15,
             fontWeight: FontWeight.w600,
             color: valueColor,
           ),

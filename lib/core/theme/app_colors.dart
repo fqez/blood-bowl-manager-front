@@ -116,7 +116,7 @@ class AppTextStyles {
 
   static const TextStyle bodySmall = TextStyle(
     fontFamily: fontFamily,
-    fontSize: 12,
+    fontSize: 15,
     fontWeight: FontWeight.normal,
     color: AppColors.textSecondary,
   );
@@ -131,7 +131,7 @@ class AppTextStyles {
 
   static const TextStyle labelMedium = TextStyle(
     fontFamily: fontFamily,
-    fontSize: 12,
+    fontSize: 15,
     fontWeight: FontWeight.w500,
     color: AppColors.textSecondary,
     letterSpacing: 0.5,
@@ -139,7 +139,7 @@ class AppTextStyles {
 
   static const TextStyle labelSmall = TextStyle(
     fontFamily: fontFamily,
-    fontSize: 10,
+    fontSize: 15,
     fontWeight: FontWeight.w500,
     color: AppColors.textMuted,
     letterSpacing: 0.5,
@@ -154,7 +154,7 @@ class AppTextStyles {
 
   static const TextStyle statLabel = TextStyle(
     fontFamily: fontFamily,
-    fontSize: 10,
+    fontSize: 15,
     fontWeight: FontWeight.w500,
     color: AppColors.textMuted,
     letterSpacing: 1,

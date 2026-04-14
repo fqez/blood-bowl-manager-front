@@ -386,10 +386,10 @@ class MyTacticsScreen extends ConsumerWidget {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        isAttack ? 'ATQ' : 'DEF',
+                        isAttack ? 'ATAQUE' : 'DEFENSA',
                         style: TextStyle(
                           fontFamily: AppTextStyles.displayFont,
-                          fontSize: 11,
+                          fontSize: 24,
                           fontWeight: FontWeight.bold,
                           color: isAttack
                               ? AppColors.error

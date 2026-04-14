@@ -299,7 +299,7 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
             headers[i],
             style: TextStyle(
               fontFamily: AppTextStyles.displayFont,
-              fontSize: 13,
+              fontSize: 18,
               fontWeight: FontWeight.bold,
               color: headerColors[i],
               letterSpacing: 0.5,
@@ -346,7 +346,7 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
                             Text(
                               row[colIdx],
                               style: TextStyle(
-                                fontSize: 12,
+                                fontSize: 15,
                                 color: textColor,
                                 fontWeight: weight,
                                 decoration: TextDecoration.underline,
@@ -533,12 +533,12 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
             border: Border.all(color: color.withOpacity(0.4)),
           ),
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               // Perk image
               Container(
-                width: 48,
-                height: 48,
+                width: 80,
+                height: 80,
                 decoration: BoxDecoration(
                   color: color.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(8),
@@ -567,7 +567,7 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
                       nameEs.toUpperCase(),
                       style: TextStyle(
                         fontFamily: AppTextStyles.displayFont,
-                        fontSize: 16,
+                        fontSize: 20,
                         fontWeight: FontWeight.bold,
                         color: AppColors.textPrimary,
                       ),
@@ -575,7 +575,7 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
                     if (nameEn.isNotEmpty)
                       Text(nameEn,
                           style: const TextStyle(
-                              fontSize: 10, color: AppColors.textMuted)),
+                              fontSize: 16, color: AppColors.textMuted)),
                     const SizedBox(height: 6),
                     Text(
                       descEs,
