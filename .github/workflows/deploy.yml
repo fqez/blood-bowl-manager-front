@@ -33,4 +33,4 @@ jobs:
         with:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          command: pages deploy build/web --project-name=blood-bowl-manager-front
+          command: pages deploy build/web --project-name=blood-bowl-manager-front --commit-dirty=true
