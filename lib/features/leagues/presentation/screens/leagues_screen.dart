@@ -893,7 +893,7 @@ class _DashboardLeagueCard extends StatelessWidget {
               child: Opacity(
                 opacity: 0.08,
                 child: Image.asset(
-                  'images/bb_logo.png',
+                  'assets/images/bb_logo.png',
                   height: 75,
                   fit: BoxFit.contain,
                 ),

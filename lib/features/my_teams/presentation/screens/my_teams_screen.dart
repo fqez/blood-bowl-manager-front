@@ -309,7 +309,7 @@ class _TeamCard extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(6),
         child: Image.asset(
-          'teams/${team.baseRosterId}/logo.webp',
+          'assets/teams/${team.baseRosterId}/logo.webp',
           fit: BoxFit.cover,
           errorBuilder: (_, __, ___) => Center(
             child: Icon(PhosphorIcons.shield(PhosphorIconsStyle.fill),

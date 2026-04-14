@@ -548,7 +548,7 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
                 fit: StackFit.expand,
                 children: [
                   Image.asset(
-                    'teams/${_selectedRace!.id}/wallpaper.png',
+                    'assets/teams/${_selectedRace!.id}/wallpaper.png',
                     fit: BoxFit.cover,
                     errorBuilder: (_, __, ___) => Container(
                       color: AppColors.surfaceLight,
@@ -592,7 +592,7 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
                           ),
                           child: ClipOval(
                             child: Image.asset(
-                              'teams/${_selectedRace!.id}/logo.webp',
+                              'assets/teams/${_selectedRace!.id}/logo.webp',
                               fit: BoxFit.cover,
                               errorBuilder: (_, __, ___) => Icon(
                                 PhosphorIcons.shield(PhosphorIconsStyle.fill),
@@ -2278,7 +2278,7 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
                 ),
                 child: ClipOval(
                   child: Image.asset(
-                    'teams/${_selectedRace?.id}/logo.webp',
+                    'assets/teams/${_selectedRace?.id}/logo.webp',
                     fit: BoxFit.cover,
                     errorBuilder: (_, __, ___) => Icon(
                       PhosphorIcons.shield(PhosphorIconsStyle.fill),

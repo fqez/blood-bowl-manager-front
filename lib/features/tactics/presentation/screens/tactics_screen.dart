@@ -814,7 +814,7 @@ class _TacticsScreenState extends ConsumerState<TacticsScreen> {
                 // Background pitch image
                 Positioned.fill(
                   child: Image.asset(
-                    'images/plantilla_pitch.png',
+                    'assets/images/plantilla_pitch.png',
                     fit: BoxFit.fill,
                     errorBuilder: (_, __, ___) => Container(
                       color: const Color(0xFF2E7D32),

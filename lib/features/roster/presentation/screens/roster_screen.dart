@@ -154,7 +154,7 @@ class _RosterScreenState extends ConsumerState<RosterScreen> {
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(10),
                       child: Image.asset(
-                        'teams/${_teamAssetPath(team.baseTeamId)}/logo.webp',
+                        'assets/teams/${_teamAssetPath(team.baseTeamId)}/logo.webp',
                         fit: BoxFit.cover,
                         errorBuilder: (_, __, ___) => Icon(
                           PhosphorIcons.shield(PhosphorIconsStyle.bold),

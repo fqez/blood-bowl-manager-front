@@ -93,7 +93,7 @@ class RaceCard extends StatelessWidget {
                       width: 90,
                       height: 90,
                       child: Image.asset(
-                        'teams/${race.id}/logo.webp',
+                        'assets/teams/${race.id}/logo.webp',
                         fit: BoxFit.contain,
                         errorBuilder: (_, __, ___) => Icon(
                           PhosphorIcons.shield(PhosphorIconsStyle.fill),
