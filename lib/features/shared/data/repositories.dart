@@ -643,7 +643,7 @@ class TeamRepository {
 
   Future<List<BaseTeam>> getBaseTeams() async {
     try {
-      final response = await _dio.get('/base-rosters');
+      final response = await _dio.get('/base-rosters/');
       return (response.data as List)
           .map((json) => BaseTeam.fromJson(json))
           .toList();
