@@ -2243,7 +2243,10 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
           Switch(
             value: enabled,
             onChanged: canToggle ? onToggle : null,
-            activeThumbColor: AppColors.success,
+            thumbColor: WidgetStateProperty.resolveWith((states) =>
+                states.contains(WidgetState.selected)
+                    ? AppColors.success
+                    : null),
           ),
         ],
       ),
