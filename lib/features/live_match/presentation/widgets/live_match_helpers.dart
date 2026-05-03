@@ -148,6 +148,9 @@ final _kickoffData = [
 // ══════════════════════════════════════════════
 
 extension _LiveMatchHelpers on _LiveMatchScreenState {
+  TextStyle get _displaySmall =>
+      Theme.of(context).textTheme.displaySmall ?? const TextStyle();
+
   String _fmtGold(int amount) => _goldFmt.format(amount);
 
   String _fmtStat(dynamic val) {
@@ -274,7 +277,7 @@ extension _LiveMatchHelpers on _LiveMatchScreenState {
         Container(width: 3, height: 20, color: AppColors.accent),
         const SizedBox(width: 10),
         Text(text,
-            style: AppTextStyles.displaySmall.copyWith(
+            style: _displaySmall.copyWith(
                 fontSize: 18,
                 color: AppColors.textPrimary,
                 fontStyle: FontStyle.italic)),

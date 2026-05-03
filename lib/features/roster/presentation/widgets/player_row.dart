@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
-import '../../../../core/l10n/locale_provider.dart';
-import '../../../../core/l10n/translations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/models/team.dart';
 
@@ -18,7 +16,6 @@ class PlayerRow extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final lang = ref.watch(localeProvider);
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       color: AppColors.card,
@@ -90,7 +87,7 @@ class PlayerRow extends ConsumerWidget {
             child: Text(
               '${character.number}',
               style: TextStyle(
-                fontFamily: AppTextStyles.displayFont,
+                fontFamily: AppTypography.displayFontFamily,
                 fontSize: 28,
                 fontWeight: FontWeight.w700,
                 color: textColor,

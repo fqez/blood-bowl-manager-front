@@ -4,6 +4,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../core/l10n/locale_provider.dart';
 import '../../../../core/l10n/translations.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/theme_context.dart';
 
 class ScoreInput extends ConsumerWidget {
   final String homeTeamName;
@@ -26,6 +27,7 @@ class ScoreInput extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final lang = ref.watch(localeProvider);
+    final textTheme = context.textTheme;
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -50,9 +52,7 @@ class ScoreInput extends ConsumerWidget {
               children: [
                 Text(
                   'VS',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
+                  style: textTheme.titleLarge?.copyWith(
                     color: AppColors.textMuted,
                   ),
                 ),
@@ -91,6 +91,7 @@ class _TeamScoreInput extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = context.textTheme;
     return Column(
       children: [
         // Team icon
@@ -104,9 +105,8 @@ class _TeamScoreInput extends StatelessWidget {
           child: Center(
             child: Text(
               teamName.substring(0, 1).toUpperCase(),
-              style: TextStyle(
+              style: textTheme.displayMedium?.copyWith(
                 fontSize: 28,
-                fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary,
               ),
             ),
@@ -115,8 +115,7 @@ class _TeamScoreInput extends StatelessWidget {
         const SizedBox(height: 12),
         Text(
           teamName,
-          style: TextStyle(
-            fontSize: 16,
+          style: textTheme.titleSmall?.copyWith(
             fontWeight: FontWeight.w600,
             color: AppColors.textPrimary,
           ),
@@ -126,8 +125,7 @@ class _TeamScoreInput extends StatelessWidget {
         ),
         Text(
           isHome ? tr(lang, 'aftermatch.home') : tr(lang, 'aftermatch.away'),
-          style: TextStyle(
-            fontSize: 12,
+          style: textTheme.bodySmall?.copyWith(
             color: AppColors.textMuted,
           ),
         ),
@@ -152,9 +150,8 @@ class _TeamScoreInput extends StatelessWidget {
               child: Center(
                 child: Text(
                   '$score',
-                  style: TextStyle(
+                  style: textTheme.displayLarge?.copyWith(
                     fontSize: 40,
-                    fontWeight: FontWeight.bold,
                     color: AppColors.primary,
                   ),
                 ),

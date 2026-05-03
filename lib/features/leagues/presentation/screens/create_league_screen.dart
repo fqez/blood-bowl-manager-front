@@ -254,7 +254,7 @@ class _CreateLeagueScreenState extends ConsumerState<CreateLeagueScreen> {
               Text(
                 tr(lang, 'createLeague.create'),
                 style: TextStyle(
-                  fontFamily: AppTextStyles.displayFont,
+                  fontFamily: AppTypography.displayFontFamily,
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textPrimary,
@@ -352,7 +352,7 @@ class _CreateLeagueScreenState extends ConsumerState<CreateLeagueScreen> {
           Text(
             '$_maxTeams',
             style: TextStyle(
-                fontFamily: AppTextStyles.displayFont,
+                fontFamily: AppTypography.displayFontFamily,
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary),

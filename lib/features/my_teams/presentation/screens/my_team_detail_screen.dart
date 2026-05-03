@@ -8,6 +8,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../core/l10n/locale_provider.dart';
 import '../../../../core/l10n/translations.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/theme_context.dart';
 import '../../../auth/data/providers/auth_provider.dart';
 import '../../../roster/domain/models/team.dart';
 import '../../../shared/data/repositories.dart';
@@ -63,7 +64,7 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
     if (_isMutating) return;
     setState(() => _isMutating = true);
     try {
-      final updated = await ref.read(teamRepositoryProvider).patchTeamStaff(
+      await ref.read(teamRepositoryProvider).patchTeamStaff(
             widget.teamId,
             rerolls: rerolls,
             fanFactor: fanFactor,
@@ -179,7 +180,8 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
                   fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           Text('$err',
-              style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+              style: context.textTheme.bodySmall
+                  ?.copyWith(color: AppColors.textMuted),
               textAlign: TextAlign.center),
           const SizedBox(height: 24),
           ElevatedButton.icon(
@@ -197,6 +199,7 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
   Widget _buildTopBar(
       UserTeamDetail team, bool isWide, bool isOwner, String lang) {
     final isLeague = widget.leagueId != null;
+    final textTheme = context.textTheme;
     return Container(
       color: AppColors.surface,
       child: SafeArea(
@@ -224,8 +227,8 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
                         isLeague
                             ? tr(lang, 'nav.leagueView')
                             : tr(lang, 'nav.myTeams'),
-                        style:
-                            TextStyle(fontSize: 12, color: AppColors.textMuted),
+                        style: textTheme.bodySmall
+                            ?.copyWith(color: AppColors.textMuted),
                       ),
                       Icon(PhosphorIcons.caretRight(PhosphorIconsStyle.bold),
                           size: 12, color: AppColors.textMuted),
@@ -233,15 +236,16 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
                         isLeague
                             ? tr(lang, 'nav.roster')
                             : tr(lang, 'team.rosterManagement'),
-                        style: TextStyle(
-                            fontSize: 12, color: AppColors.textSecondary),
+                        style: textTheme.bodySmall
+                            ?.copyWith(color: AppColors.textSecondary),
                       ),
                     ]),
                     Text(
                       team.name,
-                      style: TextStyle(
-                        fontFamily: AppTextStyles.displayFont,
-                        fontSize: isWide ? 18 : 15,
+                      style: (isWide
+                              ? textTheme.titleMedium
+                              : textTheme.bodyMedium)
+                          ?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: AppColors.textPrimary,
                       ),
@@ -256,8 +260,8 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
                   padding: const EdgeInsets.only(right: 8),
                   child: Chip(
                     label: Text(tr(lang, 'team.readOnly'),
-                        style: TextStyle(
-                            fontSize: 11, color: AppColors.textMuted)),
+                        style: textTheme.bodySmall
+                            ?.copyWith(color: AppColors.textMuted)),
                     backgroundColor: AppColors.surfaceLight,
                     side: BorderSide.none,
                     padding: EdgeInsets.zero,
@@ -291,7 +295,7 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
                       isWide
                           ? tr(lang, 'team.hirePlayer')
                           : tr(lang, 'team.hire'),
-                      style: const TextStyle(fontSize: 13)),
+                      style: textTheme.bodyMedium),
                   style: FilledButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: AppColors.textPrimary,
@@ -313,6 +317,7 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
   Widget _buildTeamHeader(UserTeamDetail team, String lang) {
     final activeCount = team.players.where((p) => p.status == 'healthy').length;
     final isValid = activeCount >= 11;
+    final textTheme = context.textTheme;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -343,16 +348,14 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
             children: [
               Text(
                 '${team.name} Roster',
-                style: TextStyle(
-                  fontFamily: AppTextStyles.displayFont,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
+                style: textTheme.displayMedium?.copyWith(
                   color: AppColors.textPrimary,
                 ),
               ),
               Text(
                 'Gestiona tu plantilla, tesorería, staff y preparativos para el próximo partido.',
-                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                style: textTheme.bodySmall
+                    ?.copyWith(color: AppColors.textSecondary),
               ),
             ],
           ),
@@ -375,11 +378,11 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(tr(lang, 'team.status'),
-                  style: TextStyle(
-                      fontSize: 11,
-                      color: AppColors.textMuted,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 0.5)),
+                  style: textTheme.bodySmall?.copyWith(
+                    color: AppColors.textMuted,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                  )),
               Container(
                   width: 8,
                   height: 8,
@@ -391,10 +394,10 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
                 isValid
                     ? tr(lang, 'team.validRoster')
                     : tr(lang, 'team.invalidRoster'),
-                style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: isValid ? AppColors.success : AppColors.warning),
+                style: textTheme.bodySmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: isValid ? AppColors.success : AppColors.warning,
+                ),
               ),
             ],
           ),
@@ -1054,7 +1057,7 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
             child: Text(
               '${player.number}',
               style: TextStyle(
-                fontFamily: AppTextStyles.displayFont,
+                fontFamily: AppTypography.displayFontFamily,
                 fontSize: 24,
                 fontWeight: FontWeight.w700,
                 color: textColor,

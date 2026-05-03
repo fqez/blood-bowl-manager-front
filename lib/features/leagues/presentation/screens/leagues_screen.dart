@@ -68,7 +68,7 @@ class _LeaguesScreenState extends ConsumerState<LeaguesScreen> {
                   Text(
                     tr(lang, 'dashboard.title'),
                     style: TextStyle(
-                      fontFamily: AppTextStyles.displayFont,
+                      fontFamily: AppTypography.displayFontFamily,
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
                       color: AppColors.textPrimary,
@@ -190,9 +190,6 @@ class _LeaguesScreenState extends ConsumerState<LeaguesScreen> {
   // ══════════════════════════════════════════════════════════════════════════
 
   Widget _buildStatsRow(List<LeagueSummaryModel> leagues, String lang) {
-    // Calculate stats from leagues
-    final activeLeagues = leagues.where((l) => l.isActive).length;
-
     return Row(
       children: [
         Expanded(
@@ -290,7 +287,7 @@ class _LeaguesScreenState extends ConsumerState<LeaguesScreen> {
             Text(
               tr(lang, 'dashboard.activeLeagues'),
               style: TextStyle(
-                fontFamily: AppTextStyles.displayFont,
+                fontFamily: AppTypography.displayFontFamily,
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary,
@@ -461,7 +458,7 @@ class _LeaguesScreenState extends ConsumerState<LeaguesScreen> {
               Text(
                 tr(lang, 'dashboard.notifications'),
                 style: TextStyle(
-                  fontFamily: AppTextStyles.displayFont,
+                  fontFamily: AppTypography.displayFontFamily,
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textPrimary,
@@ -532,7 +529,7 @@ class _LeaguesScreenState extends ConsumerState<LeaguesScreen> {
             Text(
               tr(lang, 'dashboard.noLeagues'),
               style: TextStyle(
-                fontFamily: AppTextStyles.displayFont,
+                fontFamily: AppTypography.displayFontFamily,
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary,
@@ -589,7 +586,7 @@ class _LeaguesScreenState extends ConsumerState<LeaguesScreen> {
           Text(
             'Error al cargar el dashboard',
             style: TextStyle(
-              fontFamily: AppTextStyles.displayFont,
+              fontFamily: AppTypography.displayFontFamily,
               fontSize: 18,
               color: AppColors.textPrimary,
             ),
@@ -673,7 +670,7 @@ class _StatCard extends StatelessWidget {
                 Text(
                   value,
                   style: TextStyle(
-                    fontFamily: AppTextStyles.displayFont,
+                    fontFamily: AppTypography.displayFontFamily,
                     fontSize: 32,
                     fontWeight: FontWeight.bold,
                     color: AppColors.textPrimary,
@@ -956,7 +953,7 @@ class _DashboardLeagueCard extends StatelessWidget {
                       Text(
                         league.name.toUpperCase(),
                         style: TextStyle(
-                          fontFamily: AppTextStyles.displayFont,
+                          fontFamily: AppTypography.displayFontFamily,
                           fontSize: 32,
                           fontWeight: FontWeight.bold,
                           color: AppColors.textPrimary,
@@ -1205,7 +1202,7 @@ class _ManageLeagueDialog extends StatelessWidget {
                     child: Text(
                       'GESTIONAR LIGA',
                       style: TextStyle(
-                        fontFamily: AppTextStyles.displayFont,
+                        fontFamily: AppTypography.displayFontFamily,
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                         color: AppColors.textPrimary,
@@ -1282,7 +1279,7 @@ class _ManageLeagueDialog extends StatelessWidget {
         title: Text(
           'Confirmar eliminación',
           style: TextStyle(
-            fontFamily: AppTextStyles.displayFont,
+            fontFamily: AppTypography.displayFontFamily,
             color: AppColors.textPrimary,
           ),
         ),
@@ -1398,16 +1395,12 @@ class _NotificationItem extends StatelessWidget {
   final String title;
   final String description;
   final String timeAgo;
-  final VoidCallback? onAction;
-  final String? actionLabel;
 
   const _NotificationItem({
     required this.type,
     required this.title,
     required this.description,
     required this.timeAgo,
-    this.onAction,
-    this.actionLabel,
   });
 
   @override
@@ -1464,25 +1457,6 @@ class _NotificationItem extends StatelessWidget {
             style:
                 const TextStyle(fontSize: 11, color: AppColors.textSecondary),
           ),
-          if (onAction != null && actionLabel != null) ...[
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                TextButton(
-                  onPressed: onAction,
-                  style: TextButton.styleFrom(
-                    foregroundColor: _bgColor,
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                  child:
-                      Text(actionLabel!, style: const TextStyle(fontSize: 11)),
-                ),
-              ],
-            ),
-          ],
         ],
       ),
     );

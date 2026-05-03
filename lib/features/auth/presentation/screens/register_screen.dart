@@ -113,7 +113,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         Text(
           tr(lang, 'auth.bloodBowl'),
           style: TextStyle(
-            fontFamily: AppTextStyles.displayFont,
+            fontFamily: AppTypography.displayFontFamily,
             fontSize: 32,
             fontWeight: FontWeight.bold,
             color: AppColors.primary,

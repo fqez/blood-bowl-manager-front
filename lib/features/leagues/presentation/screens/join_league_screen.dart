@@ -170,7 +170,7 @@ class _JoinLeagueScreenState extends ConsumerState<JoinLeagueScreen> {
               Text(
                 tr(lang, 'joinLeague.title'),
                 style: TextStyle(
-                  fontFamily: AppTextStyles.displayFont,
+                  fontFamily: AppTypography.displayFontFamily,
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textPrimary,
@@ -338,7 +338,7 @@ class _JoinLeagueScreenState extends ConsumerState<JoinLeagueScreen> {
           Text(
             p.name,
             style: TextStyle(
-                fontFamily: AppTextStyles.displayFont,
+                fontFamily: AppTypography.displayFontFamily,
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary),

@@ -5,6 +5,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../core/l10n/locale_provider.dart';
 import '../../../../core/l10n/translations.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../widgets/wiki_page_layout.dart';
 
 // ignore_for_file: deprecated_member_use
 
@@ -42,121 +43,21 @@ class WikiWeatherScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final lang = ref.watch(localeProvider);
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: Column(
-        children: [
-          _buildTopBar(context, lang),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildHeader(lang),
-                  const SizedBox(height: 28),
-                  _buildPreGameSection(lang),
-                  const SizedBox(height: 32),
-                  _buildWeatherTable(lang),
-                  const SizedBox(height: 32),
-                  _buildKickoffSequence(lang),
-                  const SizedBox(height: 40),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── Top bar ─────────────────────────────────────────────────────────────────
-
-  Widget _buildTopBar(BuildContext context, String lang) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(bottom: BorderSide(color: AppColors.surfaceLight)),
-      ),
-      child: SafeArea(
-        bottom: false,
-        child: Row(
-          children: [
-            Icon(PhosphorIcons.book(PhosphorIconsStyle.fill),
-                color: AppColors.accent, size: 22),
-            const SizedBox(width: 12),
-            Text(
-              'WIKI',
-              style: TextStyle(
-                fontFamily: AppTextStyles.displayFont,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-                letterSpacing: 1,
-              ),
-            ),
-            const Text('  >  ',
-                style: TextStyle(fontSize: 11, color: Colors.white38)),
-            Text(
-              tr(lang, 'wikiWeather.title'),
-              style: TextStyle(
-                fontFamily: AppTextStyles.displayFont,
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                color: AppColors.accent,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ── Header ──────────────────────────────────────────────────────────────────
-
-  Widget _buildHeader(String lang) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-          colors: [
-            const Color(0xFF1565C0).withOpacity(0.3),
-            AppColors.surface,
-          ],
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF1565C0).withOpacity(0.3)),
-      ),
+    return WikiPageLayout(
+      title: tr(lang, 'wikiWeather.title'),
+      heroIcon: PhosphorIcons.cloudSun(PhosphorIconsStyle.fill),
+      subtitle: tr(lang, 'wikiWeather.subtitle'),
+      accentColor: AppColors.accent,
+      gradientColor: const Color(0xFF1565C0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(PhosphorIcons.cloudSun(PhosphorIconsStyle.fill),
-                  color: AppColors.accent, size: 28),
-              const SizedBox(width: 12),
-              Text(
-                tr(lang, 'wikiWeather.title'),
-                style: TextStyle(
-                  fontFamily: AppTextStyles.displayFont,
-                  fontSize: 36,
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.textPrimary,
-                  letterSpacing: 2,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            tr(lang, 'wikiWeather.subtitle'),
-            style:
-                const TextStyle(fontSize: 13, color: AppColors.textSecondary),
-          ),
+          _buildPreGameSection(lang),
+          const SizedBox(height: 32),
+          _buildWeatherTable(lang),
+          const SizedBox(height: 32),
+          _buildKickoffSequence(lang),
+          const SizedBox(height: 40),
         ],
       ),
     );
@@ -242,7 +143,7 @@ class WikiWeatherScreen extends ConsumerWidget {
               Text(
                 tr(lang, 'wikiWeather.preGame'),
                 style: TextStyle(
-                  fontFamily: AppTextStyles.displayFont,
+                  fontFamily: AppTypography.displayFontFamily,
                   fontSize: 30,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textPrimary,
@@ -334,7 +235,7 @@ class WikiWeatherScreen extends ConsumerWidget {
                       Text(
                         step.title,
                         style: TextStyle(
-                          fontFamily: AppTextStyles.displayFont,
+                          fontFamily: AppTypography.displayFontFamily,
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                           color: step.color,
@@ -428,7 +329,7 @@ class WikiWeatherScreen extends ConsumerWidget {
               Text(
                 tr(lang, 'wikiWeather.weatherTable'),
                 style: TextStyle(
-                  fontFamily: AppTextStyles.displayFont,
+                  fontFamily: AppTypography.displayFontFamily,
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textPrimary,
@@ -476,7 +377,7 @@ class WikiWeatherScreen extends ConsumerWidget {
               child: Text(
                 w.roll,
                 style: TextStyle(
-                  fontFamily: AppTextStyles.displayFont,
+                  fontFamily: AppTypography.displayFontFamily,
                   fontSize: 18,
                   fontWeight: FontWeight.w900,
                   color: w.color,
@@ -497,7 +398,7 @@ class WikiWeatherScreen extends ConsumerWidget {
                     Text(
                       w.name,
                       style: TextStyle(
-                        fontFamily: AppTextStyles.displayFont,
+                        fontFamily: AppTypography.displayFontFamily,
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                         color: w.color,
@@ -633,7 +534,7 @@ class WikiWeatherScreen extends ConsumerWidget {
               Text(
                 tr(lang, 'wikiWeather.kickoff'),
                 style: TextStyle(
-                  fontFamily: AppTextStyles.displayFont,
+                  fontFamily: AppTypography.displayFontFamily,
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textPrimary,
@@ -679,7 +580,7 @@ class WikiWeatherScreen extends ConsumerWidget {
               child: Text(
                 e.roll,
                 style: TextStyle(
-                  fontFamily: AppTextStyles.displayFont,
+                  fontFamily: AppTypography.displayFontFamily,
                   fontSize: 15,
                   fontWeight: FontWeight.w900,
                   color: e.color,
@@ -695,7 +596,7 @@ class WikiWeatherScreen extends ConsumerWidget {
                 Text(
                   e.name,
                   style: TextStyle(
-                    fontFamily: AppTextStyles.displayFont,
+                    fontFamily: AppTypography.displayFontFamily,
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
                     color: e.color,

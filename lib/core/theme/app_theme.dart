@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
+import 'app_dimensions.dart';
 
 class AppTheme {
   AppTheme._();
@@ -46,7 +47,7 @@ class AppTheme {
         color: AppColors.card,
         elevation: 2,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
         ),
         margin: const EdgeInsets.all(8),
       ),
@@ -58,7 +59,7 @@ class AppTheme {
           foregroundColor: AppColors.textPrimary,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
           ),
           textStyle: const TextStyle(
             fontFamily: 'OpenSans',
@@ -76,7 +77,7 @@ class AppTheme {
           side: const BorderSide(color: AppColors.surfaceLight),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
           ),
           textStyle: const TextStyle(
             fontFamily: 'OpenSans',
@@ -106,19 +107,19 @@ class AppTheme {
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
           borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
           borderSide: BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
           borderSide: const BorderSide(color: AppColors.primary, width: 2),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
           borderSide: const BorderSide(color: AppColors.error, width: 1),
         ),
         hintStyle: const TextStyle(
@@ -140,7 +141,7 @@ class AppTheme {
         ),
         selectedColor: AppColors.primary,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       ),
@@ -152,8 +153,8 @@ class AppTheme {
         unselectedItemColor: AppColors.textMuted,
         type: BottomNavigationBarType.fixed,
         selectedLabelStyle:
-            TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-        unselectedLabelStyle: TextStyle(fontSize: 12),
+            TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+        unselectedLabelStyle: TextStyle(fontSize: 13),
       ),
 
       // Navigation rail theme
@@ -163,12 +164,12 @@ class AppTheme {
         unselectedIconTheme: IconThemeData(color: AppColors.textMuted),
         selectedLabelTextStyle: TextStyle(
           color: AppColors.primary,
-          fontSize: 12,
+          fontSize: 13,
           fontWeight: FontWeight.w600,
         ),
         unselectedLabelTextStyle: TextStyle(
           color: AppColors.textMuted,
-          fontSize: 12,
+          fontSize: 13,
         ),
       ),
 
@@ -176,7 +177,7 @@ class AppTheme {
       dialogTheme: DialogThemeData(
         backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
         ),
         titleTextStyle: const TextStyle(
           fontFamily: 'OpenSans',
@@ -194,7 +195,7 @@ class AppTheme {
           fontSize: 14,
         ),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
         ),
         behavior: SnackBarBehavior.floating,
       ),
@@ -278,7 +279,7 @@ class AppTheme {
         ),
         bodySmall: TextStyle(
           fontFamily: 'OpenSans',
-          fontSize: 13,
+          fontSize: 14,
           color: AppColors.textSecondary,
         ),
         labelLarge: TextStyle(
@@ -290,14 +291,14 @@ class AppTheme {
         ),
         labelMedium: TextStyle(
           fontFamily: 'OpenSans',
-          fontSize: 13,
+          fontSize: 14,
           fontWeight: FontWeight.w500,
           color: AppColors.textSecondary,
           letterSpacing: 0.5,
         ),
         labelSmall: TextStyle(
           fontFamily: 'OpenSans',
-          fontSize: 12,
+          fontSize: 13,
           fontWeight: FontWeight.w500,
           color: AppColors.textMuted,
           letterSpacing: 0.5,

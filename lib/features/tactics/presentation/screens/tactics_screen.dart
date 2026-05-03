@@ -399,7 +399,7 @@ class _TacticsScreenState extends ConsumerState<TacticsScreen> {
             Text(
               'TÁCTICAS',
               style: TextStyle(
-                fontFamily: AppTextStyles.displayFont,
+                fontFamily: AppTypography.displayFontFamily,
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary,
@@ -411,7 +411,7 @@ class _TacticsScreenState extends ConsumerState<TacticsScreen> {
             Text(
               'FORMACIÓN DE KICKOFF',
               style: TextStyle(
-                fontFamily: AppTextStyles.displayFont,
+                fontFamily: AppTypography.displayFontFamily,
                 fontSize: 13,
                 fontWeight: FontWeight.bold,
                 color: AppColors.accent,
@@ -425,7 +425,7 @@ class _TacticsScreenState extends ConsumerState<TacticsScreen> {
               label: Text(
                 tr(lang, 'myTactics.title'),
                 style: TextStyle(
-                  fontFamily: AppTextStyles.displayFont,
+                  fontFamily: AppTypography.displayFontFamily,
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 0.5,
@@ -473,7 +473,7 @@ class _TacticsScreenState extends ConsumerState<TacticsScreen> {
               Text(
                 tr(lang, 'tactics.title'),
                 style: TextStyle(
-                  fontFamily: AppTextStyles.displayFont,
+                  fontFamily: AppTypography.displayFontFamily,
                   fontSize: 30,
                   fontWeight: FontWeight.w900,
                   color: AppColors.textPrimary,
@@ -509,7 +509,7 @@ class _TacticsScreenState extends ConsumerState<TacticsScreen> {
         children: [
           Text(tr(lang, 'tactics.selectTeam'),
               style: TextStyle(
-                fontFamily: AppTextStyles.displayFont,
+                fontFamily: AppTypography.displayFontFamily,
                 fontSize: 17,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textMuted,
@@ -648,7 +648,7 @@ class _TacticsScreenState extends ConsumerState<TacticsScreen> {
                       ? tr(lang, 'tactics.save')
                       : tr(lang, 'tactics.save'),
                   style: TextStyle(
-                    fontFamily: AppTextStyles.displayFont,
+                    fontFamily: AppTypography.displayFontFamily,
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
                     letterSpacing: 0.5,
@@ -703,7 +703,7 @@ class _TacticsScreenState extends ConsumerState<TacticsScreen> {
             Text(
               label,
               style: TextStyle(
-                fontFamily: AppTextStyles.displayFont,
+                fontFamily: AppTypography.displayFontFamily,
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
                 color: selected ? color : AppColors.textMuted,
@@ -1020,7 +1020,7 @@ class _TacticsScreenState extends ConsumerState<TacticsScreen> {
               const SizedBox(width: 10),
               Text(tr(lang, 'tactics.yourPositions'),
                   style: TextStyle(
-                    fontFamily: AppTextStyles.displayFont,
+                    fontFamily: AppTypography.displayFontFamily,
                     fontSize: 17,
                     fontWeight: FontWeight.bold,
                     color: !_placingOpponent
@@ -1147,7 +1147,7 @@ class _TacticsScreenState extends ConsumerState<TacticsScreen> {
               const SizedBox(width: 10),
               Text(tr(lang, 'tactics.opponent'),
                   style: TextStyle(
-                    fontFamily: AppTextStyles.displayFont,
+                    fontFamily: AppTypography.displayFontFamily,
                     fontSize: 17,
                     fontWeight: FontWeight.bold,
                     color: _placingOpponent
@@ -1179,7 +1179,7 @@ class _TacticsScreenState extends ConsumerState<TacticsScreen> {
                   child: Text(
                     _placingOpponent ? 'COLOCANDO RIVAL' : 'ACTIVAR',
                     style: TextStyle(
-                      fontFamily: AppTextStyles.displayFont,
+                      fontFamily: AppTypography.displayFontFamily,
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
                       color: _placingOpponent
@@ -1282,7 +1282,7 @@ class _TacticsScreenState extends ConsumerState<TacticsScreen> {
         children: [
           Text('LEYENDA DE POSICIONES',
               style: TextStyle(
-                fontFamily: AppTextStyles.displayFont,
+                fontFamily: AppTypography.displayFontFamily,
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textMuted,
@@ -1351,7 +1351,7 @@ class _TacticsScreenState extends ConsumerState<TacticsScreen> {
         children: [
           Text('REGLAS DE SETUP',
               style: TextStyle(
-                fontFamily: AppTextStyles.displayFont,
+                fontFamily: AppTypography.displayFontFamily,
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textMuted,
@@ -1406,7 +1406,7 @@ class _TacticsScreenState extends ConsumerState<TacticsScreen> {
               const SizedBox(width: 8),
               Text('NOTAS',
                   style: TextStyle(
-                    fontFamily: AppTextStyles.displayFont,
+                    fontFamily: AppTypography.displayFontFamily,
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
                     color: AppColors.textMuted,
@@ -1467,7 +1467,7 @@ class _TacticsScreenState extends ConsumerState<TacticsScreen> {
               const SizedBox(width: 8),
               Text('BUENO CONTRA',
                   style: TextStyle(
-                    fontFamily: AppTextStyles.displayFont,
+                    fontFamily: AppTypography.displayFontFamily,
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
                     color: AppColors.textMuted,

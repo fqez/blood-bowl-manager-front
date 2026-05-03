@@ -7,6 +7,7 @@ import '../../../../core/l10n/translations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../shared/data/repositories.dart';
 import '../../../shared/presentation/widgets/skill_popup.dart';
+import '../widgets/wiki_page_chrome.dart';
 
 // ignore_for_file: deprecated_member_use
 
@@ -66,43 +67,16 @@ class _WikiStarPlayersScreenState extends ConsumerState<WikiStarPlayersScreen> {
   // ── Top bar ─────────────────────────────────────────────────────────────────
 
   Widget _buildTopBar(BuildContext context, String lang) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(bottom: BorderSide(color: AppColors.surfaceLight)),
-      ),
-      child: SafeArea(
-        bottom: false,
-        child: Row(
-          children: [
-            Icon(PhosphorIcons.book(PhosphorIconsStyle.fill),
-                color: AppColors.accent, size: 22),
-            const SizedBox(width: 12),
-            Text(
-              'WIKI',
-              style: TextStyle(
-                fontFamily: AppTextStyles.displayFont,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-                letterSpacing: 1,
-              ),
-            ),
-            const Text('  >  ',
-                style: TextStyle(fontSize: 11, color: Colors.white38)),
-            Text(
-              tr(lang, 'wikiStars.title'),
-              style: TextStyle(
-                fontFamily: AppTextStyles.displayFont,
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                color: AppColors.accent,
-              ),
-            ),
-          ],
-        ),
-      ),
+    return WikiPageTopBar(title: tr(lang, 'wikiStars.title'));
+  }
+
+  Widget _buildHeader(String lang) {
+    return WikiPageHeroHeader(
+      icon: PhosphorIcons.star(PhosphorIconsStyle.fill),
+      title: tr(lang, 'wikiStars.title'),
+      subtitle: tr(lang, 'wikiStars.subtitle'),
+      accentColor: const Color(0xFFCE93D8),
+      gradientColor: const Color(0xFF4A148C),
     );
   }
 
@@ -140,8 +114,6 @@ class _WikiStarPlayersScreenState extends ConsumerState<WikiStarPlayersScreen> {
     // Sort alphabetically
     filtered.sort((a, b) =>
         (a['name'] as String? ?? '').compareTo(b['name'] as String? ?? ''));
-
-    // Group by first letter
     final grouped = <String, List<Map<String, dynamic>>>{};
     for (final sp in filtered) {
       final letter =
@@ -150,15 +122,13 @@ class _WikiStarPlayersScreenState extends ConsumerState<WikiStarPlayersScreen> {
     }
     final sortedLetters = grouped.keys.toList()..sort();
 
-    // Prepare letter keys
     _letterKeys.clear();
-    for (final l in sortedLetters) {
-      _letterKeys[l] = GlobalKey();
+    for (final letter in sortedLetters) {
+      _letterKeys[letter] = GlobalKey();
     }
 
     return Column(
       children: [
-        // ── Search & filter bar ───────────────────────────────────────────
         Padding(
           padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
           child: Column(
@@ -167,70 +137,87 @@ class _WikiStarPlayersScreenState extends ConsumerState<WikiStarPlayersScreen> {
               const SizedBox(height: 16),
               Row(
                 children: [
-                  // Search
                   Expanded(
                     child: TextField(
-                      onChanged: (v) => setState(() => _search = v),
+                      onChanged: (value) => setState(() => _search = value),
                       style: const TextStyle(
-                          color: AppColors.textPrimary, fontSize: 13),
+                        color: AppColors.textPrimary,
+                        fontSize: 19,
+                      ),
                       decoration: InputDecoration(
                         hintText: tr(lang, 'wikiStars.search'),
                         hintStyle: const TextStyle(
-                            color: AppColors.textMuted, fontSize: 13),
+                          color: AppColors.textMuted,
+                          fontSize: 19,
+                        ),
                         prefixIcon: Icon(
-                            PhosphorIcons.magnifyingGlass(
-                                PhosphorIconsStyle.regular),
-                            color: AppColors.textMuted,
-                            size: 18),
+                          PhosphorIcons.magnifyingGlass(
+                              PhosphorIconsStyle.regular),
+                          color: AppColors.textMuted,
+                          size: 22,
+                        ),
                         filled: true,
                         fillColor: AppColors.card,
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: AppColors.surfaceLight),
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide:
+                              const BorderSide(color: AppColors.surfaceLight),
                         ),
                         enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: AppColors.surfaceLight),
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide:
+                              const BorderSide(color: AppColors.surfaceLight),
                         ),
                         contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 10),
+                          horizontal: 16,
+                          vertical: 16,
+                        ),
                       ),
                     ),
                   ),
                   const SizedBox(width: 12),
-                  // Type filter dropdown
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
                     decoration: BoxDecoration(
                       color: AppColors.card,
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(14),
                       border: Border.all(color: AppColors.surfaceLight),
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String?>(
                         value: _typeFilter,
-                        hint: const Text('Tipo',
-                            style: TextStyle(
-                                color: AppColors.textMuted, fontSize: 13)),
+                        hint: const Text(
+                          'Tipo',
+                          style: TextStyle(
+                            color: AppColors.textMuted,
+                            fontSize: 19,
+                          ),
+                        ),
                         dropdownColor: AppColors.card,
                         style: const TextStyle(
-                            color: AppColors.textPrimary, fontSize: 13),
+                          color: AppColors.textPrimary,
+                          fontSize: 19,
+                        ),
                         items: [
                           const DropdownMenuItem<String?>(
                             value: null,
                             child: Text('Todos'),
                           ),
-                          ...sortedTypes.map((t) =>
-                              DropdownMenuItem(value: t, child: Text(t))),
+                          ...sortedTypes.map(
+                            (type) => DropdownMenuItem<String?>(
+                              value: type,
+                              child: Text(type),
+                            ),
+                          ),
                         ],
-                        onChanged: (v) => setState(() => _typeFilter = v),
+                        onChanged: (value) =>
+                            setState(() => _typeFilter = value),
                       ),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 10),
-              // Alphabet index
               _buildAlphabetIndex(sortedLetters),
             ],
           ),
@@ -243,8 +230,11 @@ class _WikiStarPlayersScreenState extends ConsumerState<WikiStarPlayersScreen> {
             children: [
               Text(
                 '${filtered.length} ${tr(lang, 'wikiStars.title').toLowerCase()}',
-                style:
-                    const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: AppColors.textMuted,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ],
           ),
@@ -256,7 +246,7 @@ class _WikiStarPlayersScreenState extends ConsumerState<WikiStarPlayersScreen> {
               ? Center(
                   child: Text(
                     'No se encontraron jugadores estrella',
-                    style: TextStyle(color: AppColors.textMuted, fontSize: 14),
+                    style: TextStyle(color: AppColors.textMuted, fontSize: 18),
                   ),
                 )
               : SingleChildScrollView(
@@ -304,55 +294,6 @@ class _WikiStarPlayersScreenState extends ConsumerState<WikiStarPlayersScreen> {
     );
   }
 
-  // ── Header ──────────────────────────────────────────────────────────────────
-
-  Widget _buildHeader(String lang) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-          colors: [
-            AppColors.accent.withOpacity(0.25),
-            AppColors.surface,
-          ],
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.accent.withOpacity(0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(PhosphorIcons.star(PhosphorIconsStyle.fill),
-                  color: AppColors.accent, size: 28),
-              const SizedBox(width: 12),
-              Text(
-                tr(lang, 'wikiStars.title'),
-                style: TextStyle(
-                  fontFamily: AppTextStyles.displayFont,
-                  fontSize: 36,
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.textPrimary,
-                  letterSpacing: 2,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            tr(lang, 'wikiStars.subtitle'),
-            style:
-                const TextStyle(fontSize: 13, color: AppColors.textSecondary),
-          ),
-        ],
-      ),
-    );
-  }
-
   // ── Alphabet quick-access ─────────────────────────────────────────────────
 
   Widget _buildAlphabetIndex(List<String> letters) {
@@ -375,19 +316,19 @@ class _WikiStarPlayersScreenState extends ConsumerState<WikiStarPlayersScreen> {
                 }
               },
               child: Container(
-                width: 32,
-                height: 32,
+                width: 40,
+                height: 40,
                 decoration: BoxDecoration(
                   color: AppColors.accent.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(6),
+                  borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: AppColors.accent.withOpacity(0.25)),
                 ),
                 child: Center(
                   child: Text(
                     l,
                     style: TextStyle(
-                      fontFamily: AppTextStyles.displayFont,
-                      fontSize: 14,
+                      fontFamily: AppTypography.displayFontFamily,
+                      fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: AppColors.accent,
                     ),
@@ -403,22 +344,22 @@ class _WikiStarPlayersScreenState extends ConsumerState<WikiStarPlayersScreen> {
 
   Widget _buildLetterHeader(String letter) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [AppColors.primary.withOpacity(0.2), Colors.transparent],
         ),
-        borderRadius: BorderRadius.circular(6),
-        border: Border(left: BorderSide(color: AppColors.primary, width: 3)),
+        borderRadius: BorderRadius.circular(10),
+        border: Border(left: BorderSide(color: AppColors.primary, width: 4)),
       ),
       child: Text(
         letter,
         style: TextStyle(
-          fontFamily: AppTextStyles.displayFont,
-          fontSize: 24,
+          fontFamily: AppTypography.displayFontFamily,
+          fontSize: 32,
           fontWeight: FontWeight.w900,
           color: AppColors.primary,
-          letterSpacing: 2,
+          letterSpacing: 2.4,
         ),
       ),
     );
@@ -444,10 +385,10 @@ class _WikiStarPlayersScreenState extends ConsumerState<WikiStarPlayersScreen> {
           // ── Card body ──
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(14, 200, 14, 14),
+            padding: const EdgeInsets.fromLTRB(18, 208, 18, 18),
             decoration: BoxDecoration(
               color: AppColors.card,
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(18),
               border: Border.all(color: AppColors.surfaceLight),
             ),
             child: Column(
@@ -457,26 +398,26 @@ class _WikiStarPlayersScreenState extends ConsumerState<WikiStarPlayersScreen> {
                   name.toUpperCase(),
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontFamily: AppTextStyles.displayFont,
-                    fontSize: 20,
+                    fontFamily: AppTypography.displayFontFamily,
+                    fontSize: 28,
                     fontWeight: FontWeight.bold,
                     color: AppColors.textPrimary,
-                    letterSpacing: 0.5,
+                    letterSpacing: 0.8,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 8),
                 // Cost + types
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(PhosphorIcons.coins(PhosphorIconsStyle.fill),
-                        size: 15, color: AppColors.accent),
-                    const SizedBox(width: 4),
+                        size: 20, color: AppColors.accent),
+                    const SizedBox(width: 6),
                     Text(
                       '${(cost ~/ 1000)}K',
                       style: TextStyle(
-                        fontFamily: AppTextStyles.displayFont,
-                        fontSize: 17,
+                        fontFamily: AppTypography.displayFontFamily,
+                        fontSize: 22,
                         fontWeight: FontWeight.bold,
                         color: AppColors.accent,
                       ),
@@ -486,15 +427,15 @@ class _WikiStarPlayersScreenState extends ConsumerState<WikiStarPlayersScreen> {
                       ...types.map((t) => Container(
                             margin: const EdgeInsets.only(right: 4),
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 7, vertical: 2),
+                                horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
                               color: AppColors.primary.withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(4),
+                              borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
                               t,
                               style: const TextStyle(
-                                  fontSize: 11,
+                                  fontSize: 14,
                                   color: AppColors.primary,
                                   fontWeight: FontWeight.w600),
                             ),
@@ -508,26 +449,26 @@ class _WikiStarPlayersScreenState extends ConsumerState<WikiStarPlayersScreen> {
                 const SizedBox(height: 10),
                 // Skills – clickable, compact
                 Wrap(
-                  spacing: 4,
-                  runSpacing: 4,
+                  spacing: 6,
+                  runSpacing: 6,
                   alignment: WrapAlignment.center,
                   children: skills.map((s) {
                     return InkWell(
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: BorderRadius.circular(6),
                       onTap: () => showSkillPopup(context, ref, skillName: s),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
+                            horizontal: 10, vertical: 5),
                         decoration: BoxDecoration(
                           color: AppColors.surfaceLight.withOpacity(0.5),
-                          borderRadius: BorderRadius.circular(4),
+                          borderRadius: BorderRadius.circular(6),
                           border: Border.all(
                               color: AppColors.accent.withOpacity(0.15)),
                         ),
                         child: Text(
                           s,
                           style: TextStyle(
-                            fontSize: 10,
+                            fontSize: 14,
                             color: AppColors.textSecondary,
                             decoration: TextDecoration.underline,
                             decorationColor:
@@ -544,10 +485,10 @@ class _WikiStarPlayersScreenState extends ConsumerState<WikiStarPlayersScreen> {
                   const SizedBox(height: 10),
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.all(10),
+                    padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
                       color: AppColors.accent.withOpacity(0.08),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(10),
                       border:
                           Border.all(color: AppColors.accent.withOpacity(0.2)),
                     ),
@@ -559,16 +500,16 @@ class _WikiStarPlayersScreenState extends ConsumerState<WikiStarPlayersScreen> {
                             Icon(
                                 PhosphorIcons.lightning(
                                     PhosphorIconsStyle.fill),
-                                size: 13,
+                                size: 18,
                                 color: AppColors.accent),
-                            const SizedBox(width: 5),
+                            const SizedBox(width: 8),
                             Expanded(
                               child: Text(
                                 (ability['name'] as String? ?? '')
                                     .toUpperCase(),
                                 style: TextStyle(
-                                  fontFamily: AppTextStyles.displayFont,
-                                  fontSize: 13,
+                                  fontFamily: AppTypography.displayFontFamily,
+                                  fontSize: 18,
                                   fontWeight: FontWeight.bold,
                                   color: AppColors.accent,
                                   letterSpacing: 0.5,
@@ -577,7 +518,7 @@ class _WikiStarPlayersScreenState extends ConsumerState<WikiStarPlayersScreen> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 3),
+                        const SizedBox(height: 6),
                         Text(
                           ability['description'] as String? ?? '',
                           style: const TextStyle(

@@ -107,7 +107,7 @@ class RaceCard extends StatelessWidget {
                       race.name.toUpperCase(),
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        fontFamily: AppTextStyles.displayFont,
+                        fontFamily: AppTypography.displayFontFamily,
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                         color: isSelected

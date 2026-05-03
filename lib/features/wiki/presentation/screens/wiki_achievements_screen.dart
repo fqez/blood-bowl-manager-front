@@ -5,6 +5,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../core/l10n/locale_provider.dart';
 import '../../../../core/l10n/translations.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../widgets/wiki_page_layout.dart';
 
 // ignore_for_file: deprecated_member_use
 
@@ -41,123 +42,23 @@ class WikiAchievementsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final lang = ref.watch(localeProvider);
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: Column(
-        children: [
-          _buildTopBar(context, lang),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildHeader(lang),
-                  const SizedBox(height: 28),
-                  _buildSppTable(lang),
-                  const SizedBox(height: 32),
-                  _buildAdvancementTable(lang),
-                  const SizedBox(height: 32),
-                  _buildImprovementOptions(lang),
-                  const SizedBox(height: 32),
-                  _buildSpecialRules(lang),
-                  const SizedBox(height: 40),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── Top bar ─────────────────────────────────────────────────────────────────
-
-  Widget _buildTopBar(BuildContext context, String lang) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(bottom: BorderSide(color: AppColors.surfaceLight)),
-      ),
-      child: SafeArea(
-        bottom: false,
-        child: Row(
-          children: [
-            Icon(PhosphorIcons.book(PhosphorIconsStyle.fill),
-                color: AppColors.accent, size: 22),
-            const SizedBox(width: 12),
-            Text(
-              'WIKI',
-              style: TextStyle(
-                fontFamily: AppTextStyles.displayFont,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-                letterSpacing: 1,
-              ),
-            ),
-            const Text('  >  ',
-                style: TextStyle(fontSize: 11, color: Colors.white38)),
-            Text(
-              tr(lang, 'wikiAchievements.title'),
-              style: TextStyle(
-                fontFamily: AppTextStyles.displayFont,
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                color: AppColors.accent,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ── Header ──────────────────────────────────────────────────────────────────
-
-  Widget _buildHeader(String lang) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-          colors: [
-            const Color(0xFFD4AF37).withOpacity(0.3),
-            AppColors.surface,
-          ],
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.3)),
-      ),
+    return WikiPageLayout(
+      title: tr(lang, 'wikiAchievements.title'),
+      heroIcon: PhosphorIcons.trophy(PhosphorIconsStyle.fill),
+      subtitle: tr(lang, 'wikiAchievements.subtitle'),
+      accentColor: const Color(0xFFD4AF37),
+      gradientColor: const Color(0xFFD4AF37),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(PhosphorIcons.trophy(PhosphorIconsStyle.fill),
-                  color: const Color(0xFFD4AF37), size: 28),
-              const SizedBox(width: 12),
-              Text(
-                tr(lang, 'wikiAchievements.title'),
-                style: TextStyle(
-                  fontFamily: AppTextStyles.displayFont,
-                  fontSize: 36,
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.textPrimary,
-                  letterSpacing: 2,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            tr(lang, 'wikiAchievements.subtitle'),
-            style:
-                const TextStyle(fontSize: 13, color: AppColors.textSecondary),
-          ),
+          _buildSppTable(lang),
+          const SizedBox(height: 32),
+          _buildAdvancementTable(lang),
+          const SizedBox(height: 32),
+          _buildImprovementOptions(lang),
+          const SizedBox(height: 32),
+          _buildSpecialRules(lang),
+          const SizedBox(height: 40),
         ],
       ),
     );
@@ -247,7 +148,7 @@ class WikiAchievementsScreen extends ConsumerWidget {
               Text(
                 tr(lang, 'wikiAchievements.sppTable'),
                 style: TextStyle(
-                  fontFamily: AppTextStyles.displayFont,
+                  fontFamily: AppTypography.displayFontFamily,
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textPrimary,
@@ -296,7 +197,7 @@ class WikiAchievementsScreen extends ConsumerWidget {
                 Text(
                   a.spp,
                   style: TextStyle(
-                    fontFamily: AppTextStyles.displayFont,
+                    fontFamily: AppTypography.displayFontFamily,
                     fontSize: 22,
                     fontWeight: FontWeight.w900,
                     color: a.color,
@@ -305,7 +206,7 @@ class WikiAchievementsScreen extends ConsumerWidget {
                 Text(
                   'SPP',
                   style: TextStyle(
-                    fontFamily: AppTextStyles.displayFont,
+                    fontFamily: AppTypography.displayFontFamily,
                     fontSize: 9,
                     fontWeight: FontWeight.bold,
                     color: a.color.withOpacity(0.7),
@@ -326,7 +227,7 @@ class WikiAchievementsScreen extends ConsumerWidget {
                     Text(
                       a.nameEs,
                       style: TextStyle(
-                        fontFamily: AppTextStyles.displayFont,
+                        fontFamily: AppTypography.displayFontFamily,
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                         color: a.color,
@@ -435,7 +336,7 @@ class WikiAchievementsScreen extends ConsumerWidget {
               Text(
                 tr(lang, 'wikiAchievements.advancementTable'),
                 style: TextStyle(
-                  fontFamily: AppTextStyles.displayFont,
+                  fontFamily: AppTypography.displayFontFamily,
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textPrimary,
@@ -481,7 +382,7 @@ class WikiAchievementsScreen extends ConsumerWidget {
                 Text(
                   level.spp,
                   style: TextStyle(
-                    fontFamily: AppTextStyles.displayFont,
+                    fontFamily: AppTypography.displayFontFamily,
                     fontSize: 18,
                     fontWeight: FontWeight.w900,
                     color: level.color,
@@ -490,7 +391,7 @@ class WikiAchievementsScreen extends ConsumerWidget {
                 Text(
                   'SPP',
                   style: TextStyle(
-                    fontFamily: AppTextStyles.displayFont,
+                    fontFamily: AppTypography.displayFontFamily,
                     fontSize: 9,
                     fontWeight: FontWeight.bold,
                     color: level.color.withOpacity(0.7),
@@ -509,7 +410,7 @@ class WikiAchievementsScreen extends ConsumerWidget {
                     Text(
                       level.title,
                       style: TextStyle(
-                        fontFamily: AppTextStyles.displayFont,
+                        fontFamily: AppTypography.displayFontFamily,
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
                         color: level.color,
@@ -620,7 +521,7 @@ class WikiAchievementsScreen extends ConsumerWidget {
               Text(
                 tr(lang, 'wikiAchievements.improvements'),
                 style: TextStyle(
-                  fontFamily: AppTextStyles.displayFont,
+                  fontFamily: AppTypography.displayFontFamily,
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textPrimary,
@@ -685,7 +586,7 @@ class WikiAchievementsScreen extends ConsumerWidget {
                 Text(
                   o.name,
                   style: TextStyle(
-                    fontFamily: AppTextStyles.displayFont,
+                    fontFamily: AppTypography.displayFontFamily,
                     fontSize: 13,
                     fontWeight: FontWeight.bold,
                     color: o.color,
@@ -771,7 +672,7 @@ class WikiAchievementsScreen extends ConsumerWidget {
               Text(
                 tr(lang, 'wikiAchievements.specialRules'),
                 style: TextStyle(
-                  fontFamily: AppTextStyles.displayFont,
+                  fontFamily: AppTypography.displayFontFamily,
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textPrimary,
@@ -826,7 +727,7 @@ class WikiAchievementsScreen extends ConsumerWidget {
                     Text(
                       r.name,
                       style: TextStyle(
-                        fontFamily: AppTextStyles.displayFont,
+                        fontFamily: AppTypography.displayFontFamily,
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
                         color: r.color,

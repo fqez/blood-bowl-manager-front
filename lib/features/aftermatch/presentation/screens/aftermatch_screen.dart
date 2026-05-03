@@ -134,6 +134,8 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
   String get leagueId => widget.leagueId;
   String get matchId => widget.matchId;
   bool get _isQM => widget.isQuickMatch;
+  TextStyle get _displayLarge =>
+      Theme.of(context).textTheme.displayLarge ?? const TextStyle();
 
   // Teams loaded from API
   UserTeamDetail? _homeTeam;
@@ -487,8 +489,8 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
             Expanded(
               child: Text(
                 'POST-MATCH REPORT',
-                style: AppTextStyles.displayLarge
-                    .copyWith(fontSize: 20, color: AppColors.textPrimary),
+                style: _displayLarge.copyWith(
+                    fontSize: 20, color: AppColors.textPrimary),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -537,15 +539,15 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
                             color: AppColors.textMuted, fontSize: 12)),
                     const SizedBox(height: 4),
                     Text('$_scoreHome',
-                        style: AppTextStyles.displayLarge
-                            .copyWith(fontSize: 48, color: AppColors.info)),
+                        style: _displayLarge.copyWith(
+                            fontSize: 48, color: AppColors.info)),
                   ],
                 ),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Text('–',
-                      style: AppTextStyles.displayLarge
-                          .copyWith(fontSize: 36, color: AppColors.textMuted)),
+                      style: _displayLarge.copyWith(
+                          fontSize: 36, color: AppColors.textMuted)),
                 ),
                 Column(
                   children: [
@@ -554,8 +556,8 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
                             color: AppColors.textMuted, fontSize: 12)),
                     const SizedBox(height: 4),
                     Text('$_scoreAway',
-                        style: AppTextStyles.displayLarge
-                            .copyWith(fontSize: 48, color: AppColors.error)),
+                        style: _displayLarge.copyWith(
+                            fontSize: 48, color: AppColors.error)),
                   ],
                 ),
               ],
@@ -663,7 +665,7 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
                   color: color,
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  fontFamily: AppTextStyles.displayFont)),
+                  fontFamily: AppTypography.displayFontFamily)),
         ),
         _miniBtn(PhosphorIcons.plus(PhosphorIconsStyle.bold),
             () => onChanged(value + 1)),
@@ -793,7 +795,7 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
                   color: AppColors.accent,
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  fontFamily: AppTextStyles.displayFont),
+                  fontFamily: AppTypography.displayFontFamily),
             ),
           ),
         ],
@@ -1178,7 +1180,7 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
                     color: AppColors.accent,
                     fontSize: 13,
                     fontWeight: FontWeight.bold,
-                    fontFamily: AppTextStyles.displayFont)),
+                    fontFamily: AppTypography.displayFontFamily)),
           ),
         ],
       ),
@@ -1839,7 +1841,7 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
         label: Text(
           _submitting ? 'SUBMITTING...' : 'SUBMIT POST-MATCH REPORT',
           style: TextStyle(
-              fontFamily: AppTextStyles.displayFont,
+              fontFamily: AppTypography.displayFontFamily,
               fontSize: 16,
               fontWeight: FontWeight.bold,
               letterSpacing: 1),
@@ -1893,7 +1895,7 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(title,
-                        style: AppTextStyles.displayLarge.copyWith(
+                        style: _displayLarge.copyWith(
                             fontSize: 16, color: AppColors.textPrimary)),
                     if (subtitle != null)
                       Text(subtitle,

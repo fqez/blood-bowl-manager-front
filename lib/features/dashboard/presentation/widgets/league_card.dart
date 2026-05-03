@@ -70,7 +70,7 @@ class LeagueCard extends StatelessWidget {
               Text(
                 league.name,
                 style: TextStyle(
-                  fontFamily: AppTextStyles.displayFont,
+                  fontFamily: AppTypography.displayFontFamily,
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textPrimary,

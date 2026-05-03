@@ -5,6 +5,12 @@ part of '../screens/live_match_screen.dart';
 // ══════════════════════════════════════════════
 
 extension _LiveMatchDialogs on _LiveMatchScreenState {
+  TextStyle get _displayLarge =>
+      Theme.of(context).textTheme.displayLarge ?? const TextStyle();
+
+  TextStyle get _displaySmall =>
+      Theme.of(context).textTheme.displaySmall ?? const TextStyle();
+
   // ── Add Event Dialog ──
 
   void _showAddEventDialog(Match match, String lang, String eventType,
@@ -383,7 +389,7 @@ extension _LiveMatchDialogs on _LiveMatchScreenState {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(tr(lang, 'liveMatch.hirePlayer').toUpperCase(),
-                              style: AppTextStyles.displayLarge.copyWith(
+                              style: _displayLarge.copyWith(
                                   fontSize: 24, color: AppColors.textPrimary)),
                           Text(
                             baseRoster.name.toUpperCase(),
@@ -411,7 +417,7 @@ extension _LiveMatchDialogs on _LiveMatchScreenState {
                             color: AppColors.accent, size: 16),
                         const SizedBox(width: 6),
                         Text('${_fmtGold(team.treasury)} GP',
-                            style: AppTextStyles.displaySmall.copyWith(
+                            style: _displaySmall.copyWith(
                                 fontSize: 16, color: AppColors.accent)),
                       ]),
                     ),

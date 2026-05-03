@@ -174,7 +174,7 @@ void showSkillPopup(
                             nameEs.toUpperCase(),
                             textAlign: TextAlign.center,
                             style: TextStyle(
-                              fontFamily: AppTextStyles.displayFont,
+                              fontFamily: AppTypography.displayFontFamily,
                               fontSize: 28,
                               fontWeight: FontWeight.bold,
                               color: AppColors.textPrimary,

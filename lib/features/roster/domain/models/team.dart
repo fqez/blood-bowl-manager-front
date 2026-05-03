@@ -10,31 +10,27 @@ class Team with _$Team {
   const factory Team({
     required String id,
     required String name,
-    @JsonKey(name: 'base_team_id', readValue: _readBaseTeamId)
     required String baseTeamId,
-    @JsonKey(name: 'base_team_name', readValue: _readBaseTeamName)
-    @Default('')
-    String baseTeamName,
-    @JsonKey(name: 'owner_id', readValue: _readOwnerId) required String ownerId,
+    @Default('') String baseTeamName,
+    required String ownerId,
     @Default(1000000) int treasury,
-    @JsonKey(name: 'team_value') @Default(0) int teamValue,
-    @JsonKey(name: 'current_team_value') @Default(0) int currentTeamValue,
+    @Default(0) int teamValue,
+    @Default(0) int currentTeamValue,
     @Default(0) int rerolls,
-    @JsonKey(name: 'reroll_cost') @Default(0) int rerollCost,
-    @JsonKey(name: 'fan_factor') @Default(0) int fanFactor,
-    @JsonKey(name: 'assistant_coaches') @Default(0) int assistantCoaches,
+    @Default(0) int rerollCost,
+    @Default(0) int fanFactor,
+    @Default(0) int assistantCoaches,
     @Default(0) int cheerleaders,
     @Default(false) bool apothecary,
-    @JsonKey(readValue: _readCharacters)
-    @Default([])
-    List<Character> characters,
-    @JsonKey(name: 'primary_color') String? primaryColor,
-    @JsonKey(name: 'secondary_color') String? secondaryColor,
-    @JsonKey(name: 'created_at') DateTime? createdAt,
-    @JsonKey(name: 'league_id') String? leagueId,
+    @Default([]) List<Character> characters,
+    String? primaryColor,
+    String? secondaryColor,
+    DateTime? createdAt,
+    String? leagueId,
   }) = _Team;
 
-  factory Team.fromJson(Map<String, dynamic> json) => _$TeamFromJson(json);
+  factory Team.fromJson(Map<String, dynamic> json) =>
+      _$TeamFromJson(_normalizeTeamJson(json));
 
   int get activePlayersCount =>
       characters.where((c) => c.status == PlayerStatus.healthy).length;
@@ -50,28 +46,26 @@ class Character with _$Character {
   const factory Character({
     required String id,
     required String name,
-    @JsonKey(readValue: _readPosition) @Default('') String position,
-    @JsonKey(name: 'position_id', readValue: _readPositionId)
-    @Default('')
-    String positionId,
+    @Default('') String position,
+    @Default('') String positionId,
     @Default(0) int number,
     required Stats stats,
-    @JsonKey(readValue: _readSkills) @Default([]) List<Skill> skills,
+    @Default([]) List<Skill> skills,
     @Default(0) int spp,
     @Default(1) int level,
-    @JsonKey(readValue: _readCost) @Default(0) int cost,
-    @JsonKey(name: 'normal_skills') @Default([]) List<String> normalSkills,
-    @JsonKey(name: 'double_skills') @Default([]) List<String> doubleSkills,
+    @Default(0) int cost,
+    @Default([]) List<String> normalSkills,
+    @Default([]) List<String> doubleSkills,
     @Default(PlayerStatus.healthy) PlayerStatus status,
-    @JsonKey(name: 'injury_details') String? injuryDetails,
-    @JsonKey(name: 'miss_next_game') @Default(false) bool missNextGame,
+    String? injuryDetails,
+    @Default(false) bool missNextGame,
   }) = _Character;
 
   factory Character.fromJson(Map<String, dynamic> json) =>
-      _$CharacterFromJson(json);
+      _$CharacterFromJson(_normalizeCharacterJson(json));
 
   int get value =>
-      cost + (skills.fold<int>(0, (sum, s) => sum + (s.cost ?? 0)));
+      cost + (skills.fold<int>(0, (sum, skill) => sum + (skill.cost ?? 0)));
   bool get canLevelUp => spp >= sppForNextLevel;
 
   int get sppForNextLevel {
@@ -95,80 +89,15 @@ class Character with _$Character {
 @freezed
 class Stats with _$Stats {
   const factory Stats({
-    // Soporta tanto minúsculas (frontend) como mayúsculas (backend API)
-    @JsonKey(readValue: _readMaValue) @Default(6) int ma,
-    @JsonKey(readValue: _readStValue) @Default(3) int st,
-    @JsonKey(readValue: _readAgValue) @Default(3) int ag,
-    @JsonKey(readValue: _readPaValue) @Default(4) int pa,
-    @JsonKey(readValue: _readAvValue) @Default(9) int av,
+    @Default(6) int ma,
+    @Default(3) int st,
+    @Default(3) int ag,
+    @Default(4) int pa,
+    @Default(9) int av,
   }) = _Stats;
 
-  factory Stats.fromJson(Map<String, dynamic> json) => _$StatsFromJson(json);
-}
-
-// Helpers para Team (campos con nombres distintos entre endpoints)
-Object? _readBaseTeamId(Map<dynamic, dynamic> json, String key) =>
-    json['base_team_id'] ?? json['base_roster_id'] ?? '';
-Object? _readBaseTeamName(Map<dynamic, dynamic> json, String key) {
-  if (json['base_team_name'] != null) return json['base_team_name'];
-  // Derive from base_roster_id: "shambling_undead" → "Shambling Undead"
-  final rid = json['base_roster_id'] as String?;
-  if (rid != null && rid.isNotEmpty) {
-    return rid
-        .split('_')
-        .map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}')
-        .join(' ');
-  }
-  return '';
-}
-
-Object? _readOwnerId(Map<dynamic, dynamic> json, String key) =>
-    json['owner_id'] ?? json['user_id'] ?? '';
-Object? _readCharacters(Map<dynamic, dynamic> json, String key) =>
-    json['characters'] ?? json['players'] ?? [];
-
-// Helpers para Character (campos con nombres distintos entre endpoints)
-Object? _readPosition(Map<dynamic, dynamic> json, String key) {
-  // /user-teams devuelve "base_type", /characters devuelve "position"
-  final bt = json['base_type'];
-  if (bt is String && bt.isNotEmpty) {
-    return bt
-        .split('-')
-        .map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}')
-        .join(' ');
-  }
-  return json['position'] ?? '';
-}
-
-Object? _readPositionId(Map<dynamic, dynamic> json, String key) =>
-    json['position_id'] ?? json['base_type'] ?? '';
-Object? _readCost(Map<dynamic, dynamic> json, String key) =>
-    json['cost'] ?? json['current_value'] ?? 0;
-Object? _readSkills(Map<dynamic, dynamic> json, String key) =>
-    json['skills'] ?? json['perks'] ?? [];
-
-// Helpers para leer stats del backend (pueden venir como "4+" o como int)
-Object? _readMaValue(Map<dynamic, dynamic> json, String key) =>
-    json['ma'] ?? json['MA'];
-Object? _readStValue(Map<dynamic, dynamic> json, String key) =>
-    json['st'] ?? json['ST'];
-Object? _readAgValue(Map<dynamic, dynamic> json, String key) {
-  final val = json['ag'] ?? json['AG'];
-  if (val is String) return int.tryParse(val.replaceAll('+', '')) ?? 3;
-  return val;
-}
-
-Object? _readPaValue(Map<dynamic, dynamic> json, String key) {
-  final val = json['pa'] ?? json['PA'];
-  if (val == null || val == '-') return 0;
-  if (val is String) return int.tryParse(val.replaceAll('+', '')) ?? 4;
-  return val;
-}
-
-Object? _readAvValue(Map<dynamic, dynamic> json, String key) {
-  final val = json['av'] ?? json['AV'];
-  if (val is String) return int.tryParse(val.replaceAll('+', '')) ?? 9;
-  return val;
+  factory Stats.fromJson(Map<String, dynamic> json) =>
+      _$StatsFromJson(_normalizeStatsJson(json));
 }
 
 @freezed
@@ -176,18 +105,15 @@ class Skill with _$Skill {
   const factory Skill({
     required String id,
     required String name,
-    @JsonKey(readValue: _readFamily) @Default('') String family,
+    @Default('') String family,
     String? description,
     int? cost,
     @Default(false) bool isStarting,
   }) = _Skill;
 
-  factory Skill.fromJson(Map<String, dynamic> json) => _$SkillFromJson(json);
+  factory Skill.fromJson(Map<String, dynamic> json) =>
+      _$SkillFromJson(_normalizeSkillJson(json));
 }
-
-// Helper: el backend usa "category", el frontend "family"
-Object? _readFamily(Map<dynamic, dynamic> json, String key) =>
-    json['family'] ?? json['category'] ?? '';
 
 enum PlayerStatus {
   @JsonValue('healthy')
@@ -205,39 +131,37 @@ class BaseTeam with _$BaseTeam {
   const factory BaseTeam({
     required String id,
     required String name,
-    @JsonKey(name: 'reroll_cost') required int rerollCost,
-    @Default(true) @JsonKey(name: 'apothecary_allowed') bool apothecaryAllowed,
-    @JsonKey(name: 'special_rules') @Default([]) List<String> specialRules,
-    @JsonKey(name: 'players') @Default([]) List<BasePosition> positions,
+    required int rerollCost,
+    @Default(true) bool apothecaryAllowed,
+    @Default([]) List<String> specialRules,
+    @Default([]) List<BasePosition> positions,
     String? description,
-    @JsonKey(name: 'tier') int? tier,
+    int? tier,
     String? icon,
     String? wallpaper,
   }) = _BaseTeam;
 
   factory BaseTeam.fromJson(Map<String, dynamic> json) =>
-      _$BaseTeamFromJson(json);
+      _$BaseTeamFromJson(_normalizeBaseTeamJson(json));
 }
 
 @freezed
 class BasePosition with _$BasePosition {
   const factory BasePosition({
-    // Backend usa 'type' como id del jugador
-    @JsonKey(name: 'type') required String id,
+    required String id,
     required String name,
     required int cost,
-    @JsonKey(name: 'max') required int maxQuantity,
+    required int maxQuantity,
     required Stats stats,
-    // Backend envía 'perks' con objetos, pero mantenemos compatibilidad
-    @JsonKey(name: 'perks') @Default([]) List<BasePerk> startingPerks,
-    @JsonKey(name: 'primary_access') @Default([]) List<String> normalSkills,
-    @JsonKey(name: 'secondary_access') @Default([]) List<String> doubleSkills,
+    @Default([]) List<BasePerk> startingPerks,
+    @Default([]) List<String> normalSkills,
+    @Default([]) List<String> doubleSkills,
     String? position,
     String? image,
   }) = _BasePosition;
 
   factory BasePosition.fromJson(Map<String, dynamic> json) =>
-      _$BasePositionFromJson(json);
+      _$BasePositionFromJson(_normalizeBasePositionJson(json));
 }
 
 @freezed
@@ -250,4 +174,116 @@ class BasePerk with _$BasePerk {
 
   factory BasePerk.fromJson(Map<String, dynamic> json) =>
       _$BasePerkFromJson(json);
+}
+
+Map<String, dynamic> _normalizeTeamJson(Map<String, dynamic> json) => {
+      ...json,
+      'baseTeamId': json['baseTeamId'] ??
+          json['base_team_id'] ??
+          json['base_roster_id'] ??
+          '',
+      'baseTeamName': json['baseTeamName'] ??
+          json['base_team_name'] ??
+          _deriveBaseTeamName(json['base_roster_id']),
+      'ownerId': json['ownerId'] ?? json['owner_id'] ?? json['user_id'] ?? '',
+      'teamValue': json['teamValue'] ?? json['team_value'],
+      'currentTeamValue':
+          json['currentTeamValue'] ?? json['current_team_value'],
+      'rerollCost': json['rerollCost'] ?? json['reroll_cost'],
+      'fanFactor': json['fanFactor'] ?? json['fan_factor'],
+      'assistantCoaches': json['assistantCoaches'] ?? json['assistant_coaches'],
+      'characters': json['characters'] ?? json['players'],
+      'primaryColor': json['primaryColor'] ?? json['primary_color'],
+      'secondaryColor': json['secondaryColor'] ?? json['secondary_color'],
+      'createdAt': json['createdAt'] ?? json['created_at'],
+      'leagueId': json['leagueId'] ?? json['league_id'],
+    };
+
+Map<String, dynamic> _normalizeCharacterJson(Map<String, dynamic> json) => {
+      ...json,
+      'position': json['position'] ?? _readPositionLabel(json),
+      'positionId':
+          json['positionId'] ?? json['position_id'] ?? json['base_type'] ?? '',
+      'skills': json['skills'] ?? json['perks'],
+      'cost': json['cost'] ?? json['current_value'],
+      'normalSkills': json['normalSkills'] ?? json['normal_skills'],
+      'doubleSkills': json['doubleSkills'] ?? json['double_skills'],
+      'injuryDetails': json['injuryDetails'] ?? json['injury_details'],
+      'missNextGame': json['missNextGame'] ?? json['miss_next_game'],
+    };
+
+Map<String, dynamic> _normalizeStatsJson(Map<String, dynamic> json) => {
+      ...json,
+      'ma': _parseStatValue(json['ma'] ?? json['MA'], fallback: 6),
+      'st': _parseStatValue(json['st'] ?? json['ST'], fallback: 3),
+      'ag': _parseStatValue(json['ag'] ?? json['AG'], fallback: 3),
+      'pa': _parsePaValue(json['pa'] ?? json['PA']),
+      'av': _parseStatValue(json['av'] ?? json['AV'], fallback: 9),
+    };
+
+Map<String, dynamic> _normalizeSkillJson(Map<String, dynamic> json) => {
+      ...json,
+      'family': json['family'] ?? json['category'] ?? '',
+    };
+
+Map<String, dynamic> _normalizeBaseTeamJson(Map<String, dynamic> json) => {
+      ...json,
+      'rerollCost': json['rerollCost'] ?? json['reroll_cost'],
+      'apothecaryAllowed':
+          json['apothecaryAllowed'] ?? json['apothecary_allowed'],
+      'specialRules': json['specialRules'] ?? json['special_rules'],
+      'positions': json['positions'] ?? json['players'],
+    };
+
+Map<String, dynamic> _normalizeBasePositionJson(Map<String, dynamic> json) => {
+      ...json,
+      'id': json['id'] ?? json['type'] ?? '',
+      'maxQuantity': json['maxQuantity'] ?? json['max'],
+      'startingPerks': json['startingPerks'] ?? json['perks'],
+      'normalSkills': json['normalSkills'] ?? json['primary_access'],
+      'doubleSkills': json['doubleSkills'] ?? json['secondary_access'],
+    };
+
+String _deriveBaseTeamName(Object? rawRosterId) {
+  final rosterId = rawRosterId as String?;
+  if (rosterId == null || rosterId.isEmpty) return '';
+
+  return rosterId
+      .split('_')
+      .map(
+        (word) => word.isEmpty
+            ? word
+            : '${word[0].toUpperCase()}${word.substring(1)}',
+      )
+      .join(' ');
+}
+
+String _readPositionLabel(Map<String, dynamic> json) {
+  final baseType = json['base_type'];
+  if (baseType is String && baseType.isNotEmpty) {
+    return baseType
+        .split('-')
+        .map(
+          (word) => word.isEmpty
+              ? word
+              : '${word[0].toUpperCase()}${word.substring(1)}',
+        )
+        .join(' ');
+  }
+
+  final position = json['position'];
+  return position is String ? position : '';
+}
+
+int _parseStatValue(Object? value, {required int fallback}) {
+  if (value is int) return value;
+  if (value is String) {
+    return int.tryParse(value.replaceAll('+', '')) ?? fallback;
+  }
+  return fallback;
+}
+
+int _parsePaValue(Object? value) {
+  if (value == null || value == '-') return 0;
+  return _parseStatValue(value, fallback: 4);
 }

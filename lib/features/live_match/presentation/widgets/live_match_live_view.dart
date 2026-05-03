@@ -5,6 +5,12 @@ part of '../screens/live_match_screen.dart';
 // ══════════════════════════════════════════════
 
 extension _LiveMatchLiveView on _LiveMatchScreenState {
+  TextStyle get _displayLarge =>
+      Theme.of(context).textTheme.displayLarge ?? const TextStyle();
+
+  TextStyle get _displaySmall =>
+      Theme.of(context).textTheme.displaySmall ?? const TextStyle();
+
   Widget _buildLiveView(Match match, String lang) {
     return Column(
       children: [
@@ -152,8 +158,8 @@ extension _LiveMatchLiveView on _LiveMatchScreenState {
                   ),
                   const SizedBox(width: 10),
                   Text(elapsed,
-                      style: AppTextStyles.displaySmall
-                          .copyWith(color: AppColors.accent, fontSize: 22)),
+                      style: _displaySmall.copyWith(
+                          color: AppColors.accent, fontSize: 22)),
                   const Spacer(),
                   IconButton(
                     icon: Icon(PhosphorIcons.arrowsClockwise(
@@ -177,8 +183,7 @@ extension _LiveMatchLiveView on _LiveMatchScreenState {
                         _teamLogo(homeLogo, 130),
                         const SizedBox(height: 4),
                         Text(match.home.teamName,
-                            style: AppTextStyles.displaySmall
-                                .copyWith(fontSize: 26),
+                            style: _displaySmall.copyWith(fontSize: 26),
                             textAlign: TextAlign.center,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis),
@@ -201,8 +206,8 @@ extension _LiveMatchLiveView on _LiveMatchScreenState {
                         Column(
                           children: [
                             Text('${match.scoreHome}',
-                                style: AppTextStyles.displayLarge
-                                    .copyWith(fontSize: 60, letterSpacing: 2)),
+                                style: _displayLarge.copyWith(
+                                    fontSize: 60, letterSpacing: 2)),
                             const SizedBox(height: 6),
                             Row(
                               mainAxisSize: MainAxisSize.min,
@@ -228,15 +233,15 @@ extension _LiveMatchLiveView on _LiveMatchScreenState {
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 14),
                           child: Text('–',
-                              style: AppTextStyles.displayLarge.copyWith(
+                              style: _displayLarge.copyWith(
                                   fontSize: 40, color: AppColors.textMuted)),
                         ),
                         // Away score
                         Column(
                           children: [
                             Text('${match.scoreAway}',
-                                style: AppTextStyles.displayLarge
-                                    .copyWith(fontSize: 60, letterSpacing: 2)),
+                                style: _displayLarge.copyWith(
+                                    fontSize: 60, letterSpacing: 2)),
                             const SizedBox(height: 6),
                             Row(
                               mainAxisSize: MainAxisSize.min,
@@ -270,8 +275,7 @@ extension _LiveMatchLiveView on _LiveMatchScreenState {
                         _teamLogo(awayLogo, 130),
                         const SizedBox(height: 4),
                         Text(match.away.teamName,
-                            style: AppTextStyles.displaySmall
-                                .copyWith(fontSize: 26),
+                            style: _displaySmall.copyWith(fontSize: 26),
                             textAlign: TextAlign.center,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis),
@@ -495,8 +499,8 @@ extension _LiveMatchLiveView on _LiveMatchScreenState {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14),
             child: Text('$value',
-                style: AppTextStyles.displaySmall
-                    .copyWith(fontSize: 32, color: AppColors.textPrimary)),
+                style: _displaySmall.copyWith(
+                    fontSize: 32, color: AppColors.textPrimary)),
           ),
           _scoreTap(PhosphorIcons.plus(PhosphorIconsStyle.bold), onInc),
         ],
@@ -540,7 +544,7 @@ extension _LiveMatchLiveView on _LiveMatchScreenState {
             children: [
               Text(
                 '$used',
-                style: AppTextStyles.displayLarge.copyWith(
+                style: _displayLarge.copyWith(
                     fontSize: 28,
                     color: isFull ? AppColors.error : color,
                     height: 1),
@@ -962,21 +966,18 @@ extension _LiveMatchLiveView on _LiveMatchScreenState {
                         _teamLogo(homeLogo, 60),
                         const SizedBox(height: 8),
                         Text(match.home.teamName,
-                            style: AppTextStyles.displaySmall
-                                .copyWith(fontSize: 15),
+                            style: _displaySmall.copyWith(fontSize: 15),
                             textAlign: TextAlign.center),
                       ]),
                     ),
                     Text('${match.scoreHome} - ${match.scoreAway}',
-                        style:
-                            AppTextStyles.displayLarge.copyWith(fontSize: 48)),
+                        style: _displayLarge.copyWith(fontSize: 48)),
                     Expanded(
                       child: Column(children: [
                         _teamLogo(awayLogo, 60),
                         const SizedBox(height: 8),
                         Text(match.away.teamName,
-                            style: AppTextStyles.displaySmall
-                                .copyWith(fontSize: 15),
+                            style: _displaySmall.copyWith(fontSize: 15),
                             textAlign: TextAlign.center),
                       ]),
                     ),

@@ -4,6 +4,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../core/l10n/locale_provider.dart';
 import '../../../../core/l10n/translations.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/theme_context.dart';
 import '../../../roster/domain/models/team.dart';
 import '../../domain/models/aftermatch.dart';
 
@@ -30,6 +31,7 @@ class SppSummary extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final lang = ref.watch(localeProvider);
+    final textTheme = context.textTheme;
     // Calculate SPP by player
     final sppByPlayer = <String, _PlayerSpp>{};
 
@@ -67,6 +69,7 @@ class SppSummary extends ConsumerWidget {
             child: Column(
               children: sortedPlayers
                   .map((entry) => _buildPlayerSppRow(
+                        context,
                         entry.key,
                         entry.value,
                       ))
@@ -78,8 +81,7 @@ class SppSummary extends ConsumerWidget {
         // Add bonus SPP
         Text(
           tr(lang, 'aftermatch.sppBonus'),
-          style: TextStyle(
-            fontSize: 12,
+          style: textTheme.bodySmall?.copyWith(
             fontWeight: FontWeight.bold,
             color: AppColors.textMuted,
             letterSpacing: 1,
@@ -130,7 +132,9 @@ class SppSummary extends ConsumerWidget {
     );
   }
 
-  Widget _buildPlayerSppRow(String playerId, _PlayerSpp spp) {
+  Widget _buildPlayerSppRow(
+      BuildContext context, String playerId, _PlayerSpp spp) {
+    final textTheme = context.textTheme;
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -151,8 +155,7 @@ class SppSummary extends ConsumerWidget {
             child: Center(
               child: Text(
                 spp.name.substring(0, 1).toUpperCase(),
-                style: TextStyle(
-                  fontSize: 16,
+                style: textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: AppColors.textPrimary,
                 ),
@@ -166,8 +169,7 @@ class SppSummary extends ConsumerWidget {
               children: [
                 Text(
                   spp.name,
-                  style: TextStyle(
-                    fontSize: 15,
+                  style: textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.w600,
                     color: AppColors.textPrimary,
                   ),
@@ -200,8 +202,7 @@ class SppSummary extends ConsumerWidget {
                 const SizedBox(width: 4),
                 Text(
                   '${spp.total}',
-                  style: TextStyle(
-                    fontSize: 16,
+                  style: textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: AppColors.accent,
                   ),
@@ -240,6 +241,7 @@ class SppSummary extends ConsumerWidget {
     required String label,
     required int amount,
   }) {
+    final textTheme = context.textTheme;
     return OutlinedButton(
       onPressed: () => _showBonusSppDialog(context, lang, label, amount),
       style: OutlinedButton.styleFrom(
@@ -251,10 +253,10 @@ class SppSummary extends ConsumerWidget {
         children: [
           Icon(icon, size: 24),
           const SizedBox(height: 4),
-          Text(label, style: const TextStyle(fontSize: 12)),
+          Text(label, style: textTheme.bodySmall),
           Text(
             '+$amount SPP',
-            style: TextStyle(
+            style: textTheme.bodySmall?.copyWith(
               fontSize: 10,
               color: AppColors.textMuted,
             ),
@@ -310,6 +312,7 @@ class SppSummary extends ConsumerWidget {
 
   void _showBonusSppDialog(
       BuildContext context, String lang, String reason, int amount) {
+    final textTheme = context.textTheme;
     final allPlayers = [
       ...(homeTeam?.characters
               .where((c) => c.status == PlayerStatus.healthy)
@@ -335,16 +338,14 @@ class SppSummary extends ConsumerWidget {
           children: [
             Text(
               trf(lang, 'aftermatch.assign', {'reason': reason}),
-              style: TextStyle(
-                fontSize: 18,
+              style: textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary,
               ),
             ),
             Text(
               '+$amount SPP',
-              style: TextStyle(
-                fontSize: 14,
+              style: textTheme.bodyMedium?.copyWith(
                 color: AppColors.accent,
               ),
             ),
@@ -360,8 +361,7 @@ class SppSummary extends ConsumerWidget {
                       backgroundColor: AppColors.surfaceLight,
                       child: Text(
                         '#${player.number}',
-                        style: TextStyle(
-                          fontSize: 12,
+                        style: textTheme.bodySmall?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: AppColors.textPrimary,
                         ),

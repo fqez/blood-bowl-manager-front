@@ -5,6 +5,12 @@ part of '../screens/live_match_screen.dart';
 // ══════════════════════════════════════════════
 
 extension _LiveMatchPreMatch on _LiveMatchScreenState {
+  TextStyle get _displayLarge =>
+      Theme.of(context).textTheme.displayLarge ?? const TextStyle();
+
+  TextStyle get _displayMedium =>
+      Theme.of(context).textTheme.displayMedium ?? const TextStyle();
+
   Widget _buildPreMatchView(Match match, String lang) {
     final weatherSet = match.weather != null && match.weather!.isNotEmpty;
     final kickoffSet =
@@ -51,13 +57,13 @@ extension _LiveMatchPreMatch on _LiveMatchScreenState {
                         color: AppColors.primary, size: 56),
                     const SizedBox(height: 16),
                     Text(tr(lang, 'liveMatch.preMatchCeremony'),
-                        style: AppTextStyles.displayMedium
-                            .copyWith(color: AppColors.accent)),
+                        style:
+                            _displayMedium.copyWith(color: AppColors.accent)),
                     const SizedBox(height: 8),
                     Text(
                       '${match.home.teamName}  vs  ${match.away.teamName}',
-                      style: AppTextStyles.displayLarge
-                          .copyWith(fontSize: 28, color: AppColors.textPrimary),
+                      style: _displayLarge.copyWith(
+                          fontSize: 28, color: AppColors.textPrimary),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 6),

@@ -80,7 +80,7 @@ class MyTacticsScreen extends ConsumerWidget {
                           Text(
                             '${tactics.length} TÁCTICAS GUARDADAS',
                             style: TextStyle(
-                              fontFamily: AppTextStyles.displayFont,
+                              fontFamily: AppTypography.displayFontFamily,
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
                               color: AppColors.textMuted,
@@ -120,7 +120,7 @@ class MyTacticsScreen extends ConsumerWidget {
             Text(
               'TÁCTICAS',
               style: TextStyle(
-                fontFamily: AppTextStyles.displayFont,
+                fontFamily: AppTypography.displayFontFamily,
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary,
@@ -132,7 +132,7 @@ class MyTacticsScreen extends ConsumerWidget {
             Text(
               tr(lang, 'myTactics.title'),
               style: TextStyle(
-                fontFamily: AppTextStyles.displayFont,
+                fontFamily: AppTypography.displayFontFamily,
                 fontSize: 13,
                 fontWeight: FontWeight.bold,
                 color: AppColors.accent,
@@ -174,7 +174,7 @@ class MyTacticsScreen extends ConsumerWidget {
                     Text(
                       tr(lang, 'myTactics.title'),
                       style: TextStyle(
-                        fontFamily: AppTextStyles.displayFont,
+                        fontFamily: AppTypography.displayFontFamily,
                         fontSize: 30,
                         fontWeight: FontWeight.w900,
                         color: AppColors.textPrimary,
@@ -199,7 +199,7 @@ class MyTacticsScreen extends ConsumerWidget {
             label: Text(
               'NUEVA',
               style: TextStyle(
-                fontFamily: AppTextStyles.displayFont,
+                fontFamily: AppTypography.displayFontFamily,
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 0.5,
@@ -246,7 +246,7 @@ class MyTacticsScreen extends ConsumerWidget {
               label: Text(
                 'CREAR TÁCTICA',
                 style: TextStyle(
-                  fontFamily: AppTextStyles.displayFont,
+                  fontFamily: AppTypography.displayFontFamily,
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
                 ),
@@ -388,7 +388,7 @@ class MyTacticsScreen extends ConsumerWidget {
                       Text(
                         isAttack ? 'ATAQUE' : 'DEFENSA',
                         style: TextStyle(
-                          fontFamily: AppTextStyles.displayFont,
+                          fontFamily: AppTypography.displayFontFamily,
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
                           color: isAttack

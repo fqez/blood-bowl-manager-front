@@ -107,7 +107,7 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
           Text(
             leagueAsync.valueOrNull?.name ?? 'Liga',
             style: TextStyle(
-              fontFamily: AppTextStyles.displayFont,
+              fontFamily: AppTypography.displayFontFamily,
               fontSize: 20,
               fontWeight: FontWeight.bold,
             ),
@@ -256,7 +256,7 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
                 Text(
                   tr(lang, 'league.draftTitle'),
                   style: TextStyle(
-                    fontFamily: AppTextStyles.displayFont,
+                    fontFamily: AppTypography.displayFontFamily,
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
                     color: AppColors.textPrimary,
@@ -725,7 +725,7 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
               trf(lang, 'leagueOverview.round',
                   {'n': '${league.currentRound}'}),
               style: TextStyle(
-                fontFamily: AppTextStyles.displayFont,
+                fontFamily: AppTypography.displayFontFamily,
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary,
@@ -795,7 +795,7 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
             Text(
               tr(lang, 'leagueOverview.standingsTitle'),
               style: TextStyle(
-                fontFamily: AppTextStyles.displayFont,
+                fontFamily: AppTypography.displayFontFamily,
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary,
@@ -833,7 +833,7 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
             Text(
               tr(lang, 'leagueOverview.actions'),
               style: TextStyle(
-                fontFamily: AppTextStyles.displayFont,
+                fontFamily: AppTypography.displayFontFamily,
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary,
@@ -868,7 +868,7 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
             Text(
               tr(lang, 'leagueOverview.recentActivity'),
               style: TextStyle(
-                fontFamily: AppTextStyles.displayFont,
+                fontFamily: AppTypography.displayFontFamily,
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary,
@@ -1126,7 +1126,7 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
                 trf(lang, 'leagueOverview.round',
                     {'n': '${league.currentRound}'}),
                 style: TextStyle(
-                  fontFamily: AppTextStyles.displayFont,
+                  fontFamily: AppTypography.displayFontFamily,
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textPrimary,
@@ -1177,7 +1177,7 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
           Text(
             tr(lang, 'leagueOverview.stats'),
             style: TextStyle(
-              fontFamily: AppTextStyles.displayFont,
+              fontFamily: AppTypography.displayFontFamily,
               fontSize: 24,
               fontWeight: FontWeight.bold,
               color: AppColors.textPrimary,

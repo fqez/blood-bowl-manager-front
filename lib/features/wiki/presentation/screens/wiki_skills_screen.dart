@@ -7,6 +7,7 @@ import '../../../../core/l10n/translations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../shared/data/repositories.dart';
 import '../../../shared/presentation/widgets/skill_popup.dart';
+import '../widgets/wiki_page_layout.dart';
 
 // ignore_for_file: deprecated_member_use
 
@@ -23,115 +24,19 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
     final lang = ref.watch(localeProvider);
     final perksAsync = ref.watch(allPerksProvider);
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: Column(
-        children: [
-          _buildTopBar(context, lang),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildHeader(lang),
-                  const SizedBox(height: 28),
-                  _buildAdvancementTable(lang),
-                  const SizedBox(height: 32),
-                  _buildSkillsSection(perksAsync, lang),
-                  const SizedBox(height: 40),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTopBar(BuildContext context, String lang) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(bottom: BorderSide(color: AppColors.surfaceLight)),
-      ),
-      child: SafeArea(
-        bottom: false,
-        child: Row(
-          children: [
-            Icon(PhosphorIcons.book(PhosphorIconsStyle.fill),
-                color: AppColors.accent, size: 22),
-            const SizedBox(width: 12),
-            Text(
-              'WIKI',
-              style: TextStyle(
-                fontFamily: AppTextStyles.displayFont,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-                letterSpacing: 1,
-              ),
-            ),
-            const Text('  >  ',
-                style: TextStyle(fontSize: 11, color: Colors.white38)),
-            Text(
-              tr(lang, 'wikiSkills.title'),
-              style: TextStyle(
-                fontFamily: AppTextStyles.displayFont,
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                color: AppColors.accent,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeader(String lang) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-          colors: [
-            AppColors.primary.withOpacity(0.3),
-            AppColors.surface,
-          ],
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.primary.withOpacity(0.3)),
-      ),
+    return WikiPageLayout(
+      title: tr(lang, 'wikiSkills.title'),
+      heroIcon: PhosphorIcons.lightning(PhosphorIconsStyle.fill),
+      subtitle: tr(lang, 'wikiSkills.subtitle'),
+      accentColor: AppColors.accent,
+      gradientColor: AppColors.primary,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(PhosphorIcons.lightning(PhosphorIconsStyle.fill),
-                  color: AppColors.accent, size: 28),
-              const SizedBox(width: 12),
-              Text(
-                tr(lang, 'wikiSkills.title'),
-                style: TextStyle(
-                  fontFamily: AppTextStyles.displayFont,
-                  fontSize: 36,
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.textPrimary,
-                  letterSpacing: 2,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            tr(lang, 'wikiSkills.subtitle'),
-            style:
-                const TextStyle(fontSize: 13, color: AppColors.textSecondary),
-          ),
+          _buildAdvancementTable(lang),
+          const SizedBox(height: 32),
+          _buildSkillsSection(perksAsync, lang),
+          const SizedBox(height: 40),
         ],
       ),
     );
@@ -159,7 +64,7 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
               Text(
                 tr(lang, 'wikiSkills.advancement'),
                 style: TextStyle(
-                  fontFamily: AppTextStyles.displayFont,
+                  fontFamily: AppTypography.displayFontFamily,
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textPrimary,
@@ -298,7 +203,7 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
           label: Text(
             headers[i],
             style: TextStyle(
-              fontFamily: AppTextStyles.displayFont,
+              fontFamily: AppTypography.displayFontFamily,
               fontSize: 18,
               fontWeight: FontWeight.bold,
               color: headerColors[i],
@@ -456,7 +361,7 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
                 Text(
                   family.toUpperCase(),
                   style: TextStyle(
-                    fontFamily: AppTextStyles.displayFont,
+                    fontFamily: AppTypography.displayFontFamily,
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
                     color: color,
@@ -566,7 +471,7 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
                     Text(
                       nameEs.toUpperCase(),
                       style: TextStyle(
-                        fontFamily: AppTextStyles.displayFont,
+                        fontFamily: AppTypography.displayFontFamily,
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                         color: AppColors.textPrimary,

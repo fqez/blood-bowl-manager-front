@@ -5,6 +5,12 @@ part of '../screens/live_match_screen.dart';
 // ══════════════════════════════════════════════
 
 extension _LiveMatchTeamPrep on _LiveMatchScreenState {
+  TextStyle get _displayLarge =>
+      Theme.of(context).textTheme.displayLarge ?? const TextStyle();
+
+  TextStyle get _displaySmall =>
+      Theme.of(context).textTheme.displaySmall ?? const TextStyle();
+
   Widget _buildTeamPrepCard({
     required UserTeamDetail team,
     required BaseTeam? baseRoster,
@@ -95,11 +101,14 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
                                   fontWeight: FontWeight.bold)),
                         ),
                       ]),
-                      Text(team.name,
-                          style: AppTextStyles.displayLarge.copyWith(
-                              fontSize: 36,
-                              color: AppColors.textPrimary,
-                              height: 1.1)),
+                      Text(
+                        team.name,
+                        style: _displayLarge.copyWith(
+                          fontSize: 36,
+                          color: AppColors.textPrimary,
+                          height: 1.1,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -114,8 +123,7 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
                             fontWeight: FontWeight.bold,
                             letterSpacing: 1)),
                     Text(_fmtGold(team.teamValue),
-                        style:
-                            AppTextStyles.displaySmall.copyWith(fontSize: 28)),
+                        style: _displaySmall.copyWith(fontSize: 28)),
                     const SizedBox(height: 6),
                     const Text('TREASURY',
                         style: TextStyle(
@@ -124,8 +132,8 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
                             fontWeight: FontWeight.bold,
                             letterSpacing: 1)),
                     Text(_fmtGold(team.treasury),
-                        style: AppTextStyles.displaySmall
-                            .copyWith(fontSize: 28, color: AppColors.accent)),
+                        style: _displaySmall.copyWith(
+                            fontSize: 28, color: AppColors.accent)),
                   ],
                 ),
               ],
@@ -488,7 +496,7 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
                           child: Text(
                             name.toUpperCase(),
                             style: TextStyle(
-                              fontFamily: AppTextStyles.displayFont,
+                              fontFamily: AppTypography.displayFontFamily,
                               fontSize: 22,
                               fontWeight: FontWeight.bold,
                               color: AppColors.textPrimary,
@@ -507,7 +515,7 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
                               Text(
                                 '${(cost ~/ 1000)}K GP',
                                 style: TextStyle(
-                                  fontFamily: AppTextStyles.displayFont,
+                                  fontFamily: AppTypography.displayFontFamily,
                                   fontSize: 20,
                                   fontWeight: FontWeight.bold,
                                   color: AppColors.accent,
@@ -630,7 +638,8 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
                                       (ability['name'] as String? ?? '')
                                           .toUpperCase(),
                                       style: TextStyle(
-                                        fontFamily: AppTextStyles.displayFont,
+                                        fontFamily:
+                                            AppTypography.displayFontFamily,
                                         fontSize: 13,
                                         fontWeight: FontWeight.bold,
                                         color: AppColors.accent,
@@ -742,8 +751,8 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
                     color: Color.fromARGB(255, 255, 238, 0), fontSize: 13)),
           const SizedBox(height: 4),
           Text(count.toString().padLeft(2, '0'),
-              style: AppTextStyles.displaySmall
-                  .copyWith(fontSize: 24, color: AppColors.textPrimary)),
+              style: _displaySmall.copyWith(
+                  fontSize: 24, color: AppColors.textPrimary)),
           if (canEdit) ...[
             const SizedBox(height: 4),
             Row(

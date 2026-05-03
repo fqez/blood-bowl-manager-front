@@ -53,7 +53,7 @@ class DashboardScreen extends ConsumerWidget {
           Text(
             'DASHBOARD',
             style: TextStyle(
-              fontFamily: AppTextStyles.displayFont,
+              fontFamily: AppTypography.displayFontFamily,
               fontSize: 20,
               fontWeight: FontWeight.bold,
             ),
@@ -146,7 +146,8 @@ class DashboardScreen extends ConsumerWidget {
           for (final standing in league.standings) {
             totalMatches += standing.gamesPlayed;
             totalWins += standing.wins;
-            totalSpp += standing.touchdownsFor * 3; // Simplified SPP calculation
+            totalSpp +=
+                standing.touchdownsFor * 3; // Simplified SPP calculation
             totalCasualties += standing.casualtiesFor;
           }
         }
@@ -211,16 +212,18 @@ class DashboardScreen extends ConsumerWidget {
 
   Widget _buildStatsRowSkeleton() {
     return Row(
-      children: List.generate(4, (index) => Expanded(
-        child: Container(
-          margin: EdgeInsets.only(right: index < 3 ? 16 : 0),
-          height: 100,
-          decoration: BoxDecoration(
-            color: AppColors.card,
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      )),
+      children: List.generate(
+          4,
+          (index) => Expanded(
+                child: Container(
+                  margin: EdgeInsets.only(right: index < 3 ? 16 : 0),
+                  height: 100,
+                  decoration: BoxDecoration(
+                    color: AppColors.card,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              )),
     );
   }
 
@@ -233,12 +236,12 @@ class DashboardScreen extends ConsumerWidget {
         Row(
           children: [
             Icon(PhosphorIcons.trophy(PhosphorIconsStyle.fill),
-                 color: AppColors.primary, size: 20),
+                color: AppColors.primary, size: 20),
             const SizedBox(width: 8),
             Text(
               'LIGAS ACTIVAS',
               style: TextStyle(
-                fontFamily: AppTextStyles.displayFont,
+                fontFamily: AppTypography.displayFontFamily,
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary,
@@ -248,7 +251,8 @@ class DashboardScreen extends ConsumerWidget {
             Row(
               children: [
                 IconButton(
-                  icon: Icon(PhosphorIcons.squaresFour(PhosphorIconsStyle.fill)),
+                  icon:
+                      Icon(PhosphorIcons.squaresFour(PhosphorIconsStyle.fill)),
                   onPressed: () {},
                   iconSize: 20,
                   color: AppColors.textPrimary,
@@ -277,16 +281,18 @@ class DashboardScreen extends ConsumerWidget {
 
   Widget _buildLeaguesLoading() {
     return Row(
-      children: List.generate(2, (index) => Expanded(
-        child: Container(
-          margin: EdgeInsets.only(right: index == 0 ? 16 : 0),
-          height: 180,
-          decoration: BoxDecoration(
-            color: AppColors.card,
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      )),
+      children: List.generate(
+          2,
+          (index) => Expanded(
+                child: Container(
+                  margin: EdgeInsets.only(right: index == 0 ? 16 : 0),
+                  height: 180,
+                  decoration: BoxDecoration(
+                    color: AppColors.card,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              )),
     );
   }
 
@@ -375,12 +381,12 @@ class DashboardScreen extends ConsumerWidget {
         Row(
           children: [
             Icon(PhosphorIcons.bell(PhosphorIconsStyle.fill),
-                 color: AppColors.primary, size: 20),
+                color: AppColors.primary, size: 20),
             const SizedBox(width: 8),
             Text(
               'AVISOS',
               style: TextStyle(
-                fontFamily: AppTextStyles.displayFont,
+                fontFamily: AppTypography.displayFontFamily,
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary,
@@ -417,7 +423,8 @@ class DashboardScreen extends ConsumerWidget {
         const SizedBox(height: 8),
         NotificationCard(
           type: NotificationType.matchResult,
-          title: 'El rival ha validado el resultado: Orkboyz 2 - 1 Elfos Oscuros.',
+          title:
+              'El rival ha validado el resultado: Orkboyz 2 - 1 Elfos Oscuros.',
           actionText: 'Ver acta',
           onTap: () {},
           time: 'Ayer',
@@ -425,13 +432,15 @@ class DashboardScreen extends ConsumerWidget {
         const SizedBox(height: 8),
         NotificationCard(
           type: NotificationType.injury,
-          title: 'El jugador \'Grom\' (Orkboyz) sufre lesión persistente (-1 Movimiento).',
+          title:
+              'El jugador \'Grom\' (Orkboyz) sufre lesión persistente (-1 Movimiento).',
           time: 'Ayer',
         ),
         const SizedBox(height: 8),
         NotificationCard(
           type: NotificationType.levelUp,
-          title: 'Snikch (Skaven Blight) alcanza el Nivel 3. Habilidad elegida: Esquivar.',
+          title:
+              'Snikch (Skaven Blight) alcanza el Nivel 3. Habilidad elegida: Esquivar.',
           time: 'Ayer',
         ),
 
@@ -440,18 +449,20 @@ class DashboardScreen extends ConsumerWidget {
           loading: () => const SizedBox.shrink(),
           error: (_, __) => const SizedBox.shrink(),
           data: (invitations) => Column(
-            children: invitations.map((inv) => Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: NotificationCard(
-                type: NotificationType.invitation,
-                title: 'Has sido invitado a \'${inv.leagueName}\'.',
-                actionText: 'Aceptar',
-                secondaryActionText: 'Rechazar',
-                onTap: () => _acceptInvitation(ref, inv.id),
-                onSecondaryTap: () => _declineInvitation(ref, inv.id),
-                time: 'Hace 3 días',
-              ),
-            )).toList(),
+            children: invitations
+                .map((inv) => Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: NotificationCard(
+                        type: NotificationType.invitation,
+                        title: 'Has sido invitado a \'${inv.leagueName}\'.',
+                        actionText: 'Aceptar',
+                        secondaryActionText: 'Rechazar',
+                        onTap: () => _acceptInvitation(ref, inv.id),
+                        onSecondaryTap: () => _declineInvitation(ref, inv.id),
+                        time: 'Hace 3 días',
+                      ),
+                    ))
+                .toList(),
           ),
         ),
       ],

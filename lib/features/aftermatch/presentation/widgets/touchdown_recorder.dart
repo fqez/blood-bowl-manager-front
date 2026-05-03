@@ -4,6 +4,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../core/l10n/locale_provider.dart';
 import '../../../../core/l10n/translations.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/theme_context.dart';
 import '../../../roster/domain/models/team.dart';
 import '../../domain/models/aftermatch.dart';
 
@@ -34,8 +35,8 @@ class TouchdownRecorder extends ConsumerWidget {
       children: [
         // Recorded touchdowns
         if (touchdowns.isNotEmpty) ...[
-          ...touchdowns.asMap().entries.map(
-              (entry) => _buildTouchdownItem(lang, entry.key, entry.value)),
+          ...touchdowns.asMap().entries.map((entry) =>
+              _buildTouchdownItem(context, lang, entry.key, entry.value)),
           const SizedBox(height: 16),
         ],
         // Add touchdown buttons
@@ -68,7 +69,9 @@ class TouchdownRecorder extends ConsumerWidget {
     );
   }
 
-  Widget _buildTouchdownItem(String lang, int index, TouchdownRecord td) {
+  Widget _buildTouchdownItem(
+      BuildContext context, String lang, int index, TouchdownRecord td) {
+    final textTheme = context.textTheme;
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
@@ -104,16 +107,14 @@ class TouchdownRecorder extends ConsumerWidget {
               children: [
                 Text(
                   td.playerName,
-                  style: TextStyle(
-                    fontSize: 15,
+                  style: textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.w600,
                     color: AppColors.textPrimary,
                   ),
                 ),
                 Text(
                   '${td.isHomeTeam ? tr(lang, 'aftermatch.home') : tr(lang, 'aftermatch.away')} • TD #${index + 1}',
-                  style: TextStyle(
-                    fontSize: 12,
+                  style: textTheme.bodySmall?.copyWith(
                     color: AppColors.textMuted,
                   ),
                 ),
@@ -139,6 +140,7 @@ class TouchdownRecorder extends ConsumerWidget {
     required int remaining,
   }) {
     final enabled = remaining > 0;
+    final textTheme = context.textTheme;
 
     return OutlinedButton(
       onPressed: enabled
@@ -165,8 +167,7 @@ class TouchdownRecorder extends ConsumerWidget {
                   : tr(lang, 'aftermatch.away'))),
           Text(
             trf(lang, 'aftermatch.remaining', {'n': '$remaining'}),
-            style: TextStyle(
-              fontSize: 11,
+            style: textTheme.bodySmall?.copyWith(
               color: AppColors.textMuted,
             ),
           ),
@@ -178,6 +179,8 @@ class TouchdownRecorder extends ConsumerWidget {
   void _showPlayerSelector(
       BuildContext context, String lang, Team? team, bool isHome) {
     if (team == null) return;
+
+    final textTheme = context.textTheme;
 
     final players =
         team.characters.where((c) => c.status == PlayerStatus.healthy).toList();
@@ -196,8 +199,7 @@ class TouchdownRecorder extends ConsumerWidget {
           children: [
             Text(
               tr(lang, 'aftermatch.selectScorer'),
-              style: TextStyle(
-                fontSize: 18,
+              style: textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary,
               ),
@@ -214,8 +216,7 @@ class TouchdownRecorder extends ConsumerWidget {
                       backgroundColor: AppColors.surfaceLight,
                       child: Text(
                         '#${player.number}',
-                        style: TextStyle(
-                          fontSize: 12,
+                        style: textTheme.bodySmall?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: AppColors.textPrimary,
                         ),

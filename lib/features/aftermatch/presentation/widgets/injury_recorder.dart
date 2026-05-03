@@ -4,6 +4,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../core/l10n/locale_provider.dart';
 import '../../../../core/l10n/translations.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/theme_context.dart';
 import '../../../roster/domain/models/team.dart';
 import '../../domain/models/aftermatch.dart';
 
@@ -26,14 +27,13 @@ class InjuryRecorder extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final lang = ref.watch(localeProvider);
+    final textTheme = context.textTheme;
     return Column(
       children: [
         // Recorded injuries
         if (injuries.isNotEmpty) ...[
-          ...injuries
-              .asMap()
-              .entries
-              .map((entry) => _buildInjuryItem(lang, entry.key, entry.value)),
+          ...injuries.asMap().entries.map((entry) =>
+              _buildInjuryItem(context, lang, entry.key, entry.value)),
           const SizedBox(height: 16),
         ],
         // Add injury buttons
@@ -75,8 +75,7 @@ class InjuryRecorder extends ConsumerWidget {
               Expanded(
                 child: Text(
                   tr(lang, 'aftermatch.injuryInfo'),
-                  style: TextStyle(
-                    fontSize: 12,
+                  style: textTheme.bodySmall?.copyWith(
                     color: AppColors.info,
                   ),
                 ),
@@ -88,7 +87,9 @@ class InjuryRecorder extends ConsumerWidget {
     );
   }
 
-  Widget _buildInjuryItem(String lang, int index, InjuryRecord injury) {
+  Widget _buildInjuryItem(
+      BuildContext context, String lang, int index, InjuryRecord injury) {
+    final textTheme = context.textTheme;
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
@@ -126,8 +127,7 @@ class InjuryRecorder extends ConsumerWidget {
                   children: [
                     Text(
                       injury.playerName,
-                      style: TextStyle(
-                        fontSize: 15,
+                      style: textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.w600,
                         color: AppColors.textPrimary,
                       ),
@@ -154,8 +154,7 @@ class InjuryRecorder extends ConsumerWidget {
                 if (injury.details != null)
                   Text(
                     injury.details!,
-                    style: TextStyle(
-                      fontSize: 12,
+                    style: textTheme.bodySmall?.copyWith(
                       color: AppColors.textMuted,
                     ),
                   ),
@@ -205,6 +204,8 @@ class InjuryRecorder extends ConsumerWidget {
       BuildContext context, String lang, Team? team, bool isHome) {
     if (team == null) return;
 
+    final textTheme = context.textTheme;
+
     final players =
         team.characters.where((c) => c.status == PlayerStatus.healthy).toList();
     Character? selectedPlayer;
@@ -232,8 +233,7 @@ class InjuryRecorder extends ConsumerWidget {
             children: [
               Text(
                 tr(lang, 'aftermatch.registerInjury'),
-                style: TextStyle(
-                  fontSize: 18,
+                style: textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: AppColors.textPrimary,
                 ),
@@ -260,8 +260,7 @@ class InjuryRecorder extends ConsumerWidget {
               // Injury type
               Text(
                 tr(lang, 'aftermatch.injuryType'),
-                style: TextStyle(
-                  fontSize: 14,
+                style: textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.w500,
                   color: AppColors.textSecondary,
                 ),
@@ -277,11 +276,10 @@ class InjuryRecorder extends ConsumerWidget {
                               setState(() => selectedType = type),
                           selectedColor: _getInjuryColor(type).withOpacity(0.3),
                           backgroundColor: AppColors.surfaceLight,
-                          labelStyle: TextStyle(
+                          labelStyle: textTheme.bodySmall?.copyWith(
                             color: selectedType == type
                                 ? _getInjuryColor(type)
                                 : AppColors.textMuted,
-                            fontSize: 12,
                           ),
                         ))
                     .toList(),

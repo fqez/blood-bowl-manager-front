@@ -45,7 +45,7 @@ class MyTeamsScreen extends ConsumerWidget {
           Text(
             tr(lang, 'nav.myTeams').toUpperCase(),
             style: TextStyle(
-              fontFamily: AppTextStyles.displayFont,
+              fontFamily: AppTypography.displayFontFamily,
               fontSize: 20,
               fontWeight: FontWeight.bold,
             ),
@@ -253,7 +253,7 @@ class _TeamCard extends StatelessWidget {
                         Text(
                           team.name,
                           style: TextStyle(
-                            fontFamily: AppTextStyles.displayFont,
+                            fontFamily: AppTypography.displayFontFamily,
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                             color: AppColors.textPrimary,
@@ -305,7 +305,6 @@ class _TeamCard extends StatelessWidget {
     return Container(
       width: 150,
       height: 150,
-
       child: ClipRRect(
         borderRadius: BorderRadius.circular(6),
         child: Image.asset(

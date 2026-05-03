@@ -46,7 +46,7 @@ class StatCard extends StatelessWidget {
                 Text(
                   value,
                   style: TextStyle(
-                    fontFamily: AppTextStyles.displayFont,
+                    fontFamily: AppTypography.displayFontFamily,
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
                     color: AppColors.textPrimary,

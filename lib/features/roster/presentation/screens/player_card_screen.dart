@@ -147,6 +147,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
         ],
       ),
     );
+    if (!mounted) return;
 
     if (confirmed != true) return;
 
@@ -165,6 +166,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
             name: nameChanged ? newName : null,
             number: numberChanged ? newNumber : null,
           );
+      if (!mounted) return;
       _refresh();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -258,7 +260,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                           const SizedBox(width: 12),
                           Text(tr(lang, 'player.addSkill'),
                               style: TextStyle(
-                                fontFamily: AppTextStyles.displayFont,
+                                fontFamily: AppTypography.displayFontFamily,
                                 fontSize: 22,
                                 fontWeight: FontWeight.bold,
                                 color: AppColors.textPrimary,
@@ -425,8 +427,8 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                                                                 .toUpperCase(),
                                                             style: TextStyle(
                                                               fontFamily:
-                                                                  AppTextStyles
-                                                                      .displayFont,
+                                                                  AppTypography
+                                                                      .displayFontFamily,
                                                               fontSize: 16,
                                                               fontWeight:
                                                                   FontWeight
@@ -500,6 +502,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
         );
       },
     );
+    if (!mounted) return;
 
     if (selectedPerk == null) return;
 
@@ -516,6 +519,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
             perkName: perkName,
             category: family,
           );
+      if (!mounted) return;
       _refresh();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -666,7 +670,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                     TextSpan(
                       text: '${player.name.toUpperCase()} - PLAYER DETAILS',
                       style: TextStyle(
-                        fontFamily: AppTextStyles.displayFont,
+                        fontFamily: AppTypography.displayFontFamily,
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
                         color: AppColors.accent,
@@ -703,7 +707,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
               ),
               child: Text('SAVE',
                   style: TextStyle(
-                      fontFamily: AppTextStyles.displayFont,
+                      fontFamily: AppTypography.displayFontFamily,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 1)),
             ),
@@ -772,7 +776,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                     child: Text(
                       '${player.number}',
                       style: TextStyle(
-                        fontFamily: AppTextStyles.displayFont,
+                        fontFamily: AppTypography.displayFontFamily,
                         fontSize: 140,
                         fontWeight: FontWeight.w900,
                         color: Colors.white.withOpacity(0.08),
@@ -786,7 +790,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                     children: [
                       Text('#',
                           style: TextStyle(
-                            fontFamily: AppTextStyles.displayFont,
+                            fontFamily: AppTypography.displayFontFamily,
                             fontSize: 22,
                             fontWeight: FontWeight.bold,
                             color: AppColors.accent,
@@ -794,7 +798,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                           )),
                       Text('${player.number}',
                           style: TextStyle(
-                            fontFamily: AppTextStyles.displayFont,
+                            fontFamily: AppTypography.displayFontFamily,
                             fontSize: 80,
                             fontWeight: FontWeight.w900,
                             color: Colors.white,
@@ -882,7 +886,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                       child: Text(
                         player.name.toUpperCase(),
                         style: TextStyle(
-                          fontFamily: AppTextStyles.displayFont,
+                          fontFamily: AppTypography.displayFontFamily,
                           fontSize: 56,
                           fontWeight: FontWeight.w900,
                           color: AppColors.textPrimary,
@@ -956,7 +960,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                     letterSpacing: 1)),
             Text(value,
                 style: TextStyle(
-                  fontFamily: AppTextStyles.displayFont,
+                  fontFamily: AppTypography.displayFontFamily,
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                   color: color,
@@ -1106,7 +1110,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
               Text(
                 value,
                 style: TextStyle(
-                  fontFamily: AppTextStyles.displayFont,
+                  fontFamily: AppTypography.displayFontFamily,
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textPrimary,
@@ -1143,7 +1147,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
           child: Text(
             label,
             style: TextStyle(
-              fontFamily: AppTextStyles.displayFont,
+              fontFamily: AppTypography.displayFontFamily,
               fontSize: 18,
               fontWeight: FontWeight.bold,
               color: AppColors.textSecondary,
@@ -1173,7 +1177,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                       size: 14),
                   label: Text('ADD SKILL',
                       style: TextStyle(
-                        fontFamily: AppTextStyles.displayFont,
+                        fontFamily: AppTypography.displayFontFamily,
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 0.5,
@@ -1209,7 +1213,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                   const SizedBox(height: 8),
                   Text(tr(lang, 'player.noSkills'),
                       style: TextStyle(
-                        fontFamily: AppTextStyles.displayFont,
+                        fontFamily: AppTypography.displayFontFamily,
                         fontSize: 16,
                         color: AppColors.textMuted.withOpacity(0.5),
                       )),
@@ -1323,7 +1327,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                       Text(
                         '${player.spp.toString().padLeft(2, '0')}',
                         style: TextStyle(
-                          fontFamily: AppTextStyles.displayFont,
+                          fontFamily: AppTypography.displayFontFamily,
                           fontSize: 52,
                           fontWeight: FontWeight.bold,
                           color: canLevel
@@ -1335,7 +1339,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                       Text(
                         ' / ${next.toString().padLeft(2, '0')}',
                         style: TextStyle(
-                          fontFamily: AppTextStyles.displayFont,
+                          fontFamily: AppTypography.displayFontFamily,
                           fontSize: 20,
                           color: AppColors.textMuted,
                         ),
@@ -1363,7 +1367,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                         ? 'MAX'
                         : '${remaining.toString().padLeft(2, '0')} SPP',
                     style: TextStyle(
-                      fontFamily: AppTextStyles.displayFont,
+                      fontFamily: AppTypography.displayFontFamily,
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
                       color: AppColors.accent,
@@ -1440,7 +1444,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
           Text(
             value,
             style: TextStyle(
-              fontFamily: AppTextStyles.displayFont,
+              fontFamily: AppTypography.displayFontFamily,
               fontSize: 18,
               fontWeight: FontWeight.bold,
               color: valueColor ?? AppColors.textPrimary,
@@ -1474,7 +1478,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                       Text(
                         tr(lang, 'player.noMatches'),
                         style: TextStyle(
-                          fontFamily: AppTextStyles.displayFont,
+                          fontFamily: AppTypography.displayFontFamily,
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
                           color: AppColors.textPrimary,
@@ -1502,7 +1506,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                       Text(
                         tr(lang, 'player.noAchievements'),
                         style: TextStyle(
-                          fontFamily: AppTextStyles.displayFont,
+                          fontFamily: AppTypography.displayFontFamily,
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
                           color: AppColors.textPrimary,
@@ -1595,7 +1599,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
             child: Text(
               tr(lang, 'player.saveChanges'),
               style: TextStyle(
-                fontFamily: AppTextStyles.displayFont,
+                fontFamily: AppTypography.displayFontFamily,
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1,
@@ -1617,7 +1621,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
             child: Text(
               tr(lang, 'player.dismiss'),
               style: TextStyle(
-                fontFamily: AppTextStyles.displayFont,
+                fontFamily: AppTypography.displayFontFamily,
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1,
@@ -1648,7 +1652,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
     return Text(
       text,
       style: TextStyle(
-        fontFamily: AppTextStyles.displayFont,
+        fontFamily: AppTypography.displayFontFamily,
         fontSize: 18,
         fontWeight: FontWeight.bold,
         color: AppColors.textPrimary,
