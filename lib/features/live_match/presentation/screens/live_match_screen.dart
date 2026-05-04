@@ -145,6 +145,11 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
     }
   }
 
+  void _updateLocalState(VoidCallback updater) {
+    if (!mounted) return;
+    setState(updater);
+  }
+
   Future<void> _loadRosters(Match match) async {
     if (_rosterLoading || (_homePlayers != null && _awayPlayers != null))
       return;

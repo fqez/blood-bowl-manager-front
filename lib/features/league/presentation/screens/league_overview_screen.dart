@@ -97,22 +97,26 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
 
   PreferredSizeWidget _buildAppBar(AsyncValue<League> leagueAsync) {
     final lang = ref.watch(localeProvider);
+    final isCompact = MediaQuery.of(context).size.width < 700;
     return AppBar(
       leading: IconButton(
         icon: Icon(PhosphorIcons.arrowLeft(PhosphorIconsStyle.regular)),
         onPressed: () => context.go('/dashboard'),
       ),
-      title: Row(
+      title: Wrap(
+        spacing: 8,
+        runSpacing: 6,
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           Text(
             leagueAsync.valueOrNull?.name ?? 'Liga',
             style: TextStyle(
               fontFamily: AppTypography.displayFontFamily,
-              fontSize: 20,
+              fontSize: isCompact ? 18 : 20,
               fontWeight: FontWeight.bold,
             ),
+            overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(width: 16),
           if (leagueAsync.valueOrNull != null) ...[
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -128,7 +132,6 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
                 ),
               ),
             ),
-            const SizedBox(width: 8),
             DropdownButton<int>(
               value: leagueAsync.value!.currentRound ?? 1,
               underline: const SizedBox(),
@@ -161,6 +164,7 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
 
   Widget _buildTabBar() {
     final lang = ref.watch(localeProvider);
+    final isCompact = MediaQuery.of(context).size.width < 700;
     return Container(
       color: AppColors.surface,
       child: TabBar(
@@ -168,6 +172,8 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
         indicatorColor: AppColors.primary,
         labelColor: AppColors.primary,
         unselectedLabelColor: AppColors.textMuted,
+        isScrollable: isCompact,
+        tabAlignment: isCompact ? TabAlignment.start : TabAlignment.fill,
         tabs: [
           Tab(
             child: Row(
@@ -958,6 +964,7 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
     final lang = ref.watch(localeProvider);
     final isCurrent = round == currentRound;
     final isPast = round < currentRound;
+    final isCompact = MediaQuery.of(context).size.width < 700;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -981,12 +988,15 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
               borderRadius:
                   const BorderRadius.vertical(top: Radius.circular(11)),
             ),
-            child: Row(
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 Text(
                   trf(lang, 'leagueOverview.round', {'n': '$round'}),
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: isCompact ? 14 : 16,
                     fontWeight: FontWeight.bold,
                     color:
                         isCurrent ? AppColors.primary : AppColors.textPrimary,
@@ -1047,6 +1057,7 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
 
   Widget _buildMatchRow(Match match) {
     final lang = ref.watch(localeProvider);
+    final isCompact = MediaQuery.of(context).size.width < 700;
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -1054,22 +1065,23 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
           top: BorderSide(color: AppColors.surfaceLight),
         ),
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              match.home.teamName,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: AppColors.textPrimary,
-              ),
-              textAlign: TextAlign.right,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final stackTeams = isCompact || constraints.maxWidth < 520;
+
+          final score = Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: stackTeams ? 12 : 0,
+              vertical: stackTeams ? 6 : 0,
             ),
-          ),
-          Container(
-            width: 80,
             alignment: Alignment.center,
+            decoration: stackTeams
+                ? BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.surfaceLight),
+                  )
+                : null,
             child: Text(
               match.scoreDisplay,
               style: TextStyle(
@@ -1080,27 +1092,80 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
                     : AppColors.textMuted,
               ),
             ),
-          ),
-          Expanded(
-            child: Text(
-              match.away.teamName,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: AppColors.textPrimary,
+          );
+
+          final liveAction = (match.isPending || match.isInProgress)
+              ? TextButton(
+                  onPressed: () => context.go(
+                    '/league/${widget.leagueId}/match/${match.id}/live',
+                  ),
+                  child: Text(match.isInProgress
+                      ? tr(lang, 'match.continueMatch')
+                      : tr(lang, 'match.startMatch')),
+                )
+              : null;
+
+          if (stackTeams) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  match.home.teamName,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textPrimary,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Center(child: score),
+                const SizedBox(height: 8),
+                Text(
+                  match.away.teamName,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textPrimary,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                if (liveAction != null) ...[
+                  const SizedBox(height: 8),
+                  Align(alignment: Alignment.center, child: liveAction),
+                ],
+              ],
+            );
+          }
+
+          return Row(
+            children: [
+              Expanded(
+                child: Text(
+                  match.home.teamName,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textPrimary,
+                  ),
+                  textAlign: TextAlign.right,
+                ),
               ),
-            ),
-          ),
-          if (match.isPending || match.isInProgress)
-            TextButton(
-              onPressed: () => context.go(
-                '/league/${widget.leagueId}/match/${match.id}/live',
+              SizedBox(width: 80, child: score),
+              Expanded(
+                child: Text(
+                  match.away.teamName,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
               ),
-              child: Text(match.isInProgress
-                  ? tr(lang, 'match.continueMatch')
-                  : tr(lang, 'match.startMatch')),
-            ),
-        ],
+              if (liveAction != null) liveAction,
+            ],
+          );
+        },
       ),
     );
   }

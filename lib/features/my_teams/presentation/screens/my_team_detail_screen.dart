@@ -718,8 +718,10 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
                     'Muertos', _showDead, (v) => setState(() => _showDead = v)),
               ],
             ),
-            Row(
-              mainAxisSize: MainAxisSize.min,
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              alignment: WrapAlignment.end,
               children: [
                 Container(
                   padding:
@@ -733,7 +735,6 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
                           fontWeight: FontWeight.w500,
                           color: AppColors.textSecondary)),
                 ),
-                const SizedBox(width: 8),
                 OutlinedButton.icon(
                   onPressed: () {},
                   icon: Icon(
@@ -753,25 +754,56 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
           ],
         ),
         const SizedBox(height: 12),
-        // Table header
-        _buildTableHeader(isWide),
-        const Divider(height: 1),
-        // Rows
-        if (filtered.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 32),
-            child: Center(
-              child: Column(children: [
-                Icon(PhosphorIcons.usersThree(PhosphorIconsStyle.light),
-                    size: 40, color: AppColors.textMuted),
-                const SizedBox(height: 8),
-                Text('Sin jugadores que mostrar',
-                    style: TextStyle(color: AppColors.textMuted)),
-              ]),
+        if (isWide) ...[
+          _buildTableHeader(isWide),
+          const Divider(height: 1),
+          if (filtered.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 32),
+              child: Center(
+                child: Column(children: [
+                  Icon(PhosphorIcons.usersThree(PhosphorIconsStyle.light),
+                      size: 40, color: AppColors.textMuted),
+                  const SizedBox(height: 8),
+                  Text('Sin jugadores que mostrar',
+                      style: TextStyle(color: AppColors.textMuted)),
+                ]),
+              ),
+            )
+          else
+            ...filtered.map((p) => _buildPlayerRow(p, team, isWide, isOwner)),
+        ] else
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: SizedBox(
+              width: 680,
+              child: Column(
+                children: [
+                  _buildTableHeader(isWide),
+                  const Divider(height: 1),
+                  if (filtered.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 32),
+                      child: Center(
+                        child: Column(children: [
+                          Icon(
+                              PhosphorIcons.usersThree(
+                                  PhosphorIconsStyle.light),
+                              size: 40,
+                              color: AppColors.textMuted),
+                          const SizedBox(height: 8),
+                          Text('Sin jugadores que mostrar',
+                              style: TextStyle(color: AppColors.textMuted)),
+                        ]),
+                      ),
+                    )
+                  else
+                    ...filtered
+                        .map((p) => _buildPlayerRow(p, team, isWide, isOwner)),
+                ],
+              ),
             ),
-          )
-        else
-          ...filtered.map((p) => _buildPlayerRow(p, team, isWide, isOwner)),
+          ),
         if (team.players.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 8),

@@ -39,6 +39,8 @@ class WikiPageLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isCompact = MediaQuery.of(context).size.width < 700;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Column(
@@ -46,7 +48,7 @@ class WikiPageLayout extends StatelessWidget {
           WikiPageTopBar(title: title),
           Expanded(
             child: SingleChildScrollView(
-              padding: contentPadding,
+              padding: isCompact ? const EdgeInsets.all(16) : contentPadding,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -57,9 +59,9 @@ class WikiPageLayout extends StatelessWidget {
                     accentColor: accentColor,
                     gradientColor: gradientColor,
                   ),
-                  SizedBox(height: headerSpacing),
+                  SizedBox(height: isCompact ? 20 : headerSpacing),
                   WikiContentScale(
-                    scale: contentScale,
+                    scale: isCompact ? 1.0 : contentScale,
                     child: child,
                   ),
                 ],

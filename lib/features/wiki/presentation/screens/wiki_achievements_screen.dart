@@ -180,10 +180,11 @@ class WikiAchievementsScreen extends ConsumerWidget {
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: a.color.withOpacity(0.25)),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isCompact = constraints.maxWidth < 520;
+
+          final badge = Container(
             width: 50,
             height: 50,
             decoration: BoxDecoration(
@@ -214,43 +215,62 @@ class WikiAchievementsScreen extends ConsumerWidget {
                 ),
               ],
             ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
+          );
+
+          final content = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Icon(a.icon, color: a.color, size: 18),
+                  Text(
+                    a.nameEs,
+                    style: TextStyle(
+                      fontFamily: AppTypography.displayFontFamily,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: a.color,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                  Text(
+                    a.name,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.textMuted,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              _buildRichDescription(a.description),
+            ],
+          );
+
+          if (isCompact) {
+            return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Icon(a.icon, color: a.color, size: 18),
-                    const SizedBox(width: 8),
-                    Text(
-                      a.nameEs,
-                      style: TextStyle(
-                        fontFamily: AppTypography.displayFontFamily,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: a.color,
-                        letterSpacing: 1,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      a.name,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: AppColors.textMuted,
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                _buildRichDescription(a.description),
+                badge,
+                const SizedBox(height: 12),
+                content,
               ],
-            ),
-          ),
-        ],
+            );
+          }
+
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              badge,
+              const SizedBox(width: 14),
+              Expanded(child: content),
+            ],
+          );
+        },
       ),
     );
   }
@@ -366,10 +386,11 @@ class WikiAchievementsScreen extends ConsumerWidget {
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: level.color.withOpacity(0.15)),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isCompact = constraints.maxWidth < 520;
+
+          final badge = Container(
             width: 50,
             padding: const EdgeInsets.symmetric(vertical: 6),
             decoration: BoxDecoration(
@@ -399,41 +420,56 @@ class WikiAchievementsScreen extends ConsumerWidget {
                 ),
               ],
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
+          );
+
+          final content = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  Text(
+                    level.title,
+                    style: TextStyle(
+                      fontFamily: AppTypography.displayFontFamily,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: level.color,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  Text(
+                    level.titleEn,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.textMuted,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 3),
+              _buildRichDescription(level.description, fontSize: 11),
+            ],
+          );
+
+          if (isCompact) {
+            return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      level.title,
-                      style: TextStyle(
-                        fontFamily: AppTypography.displayFontFamily,
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: level.color,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      level.titleEn,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: AppColors.textMuted,
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 3),
-                _buildRichDescription(level.description, fontSize: 11),
-              ],
-            ),
-          ),
-        ],
+              children: [badge, const SizedBox(height: 12), content],
+            );
+          }
+
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              badge,
+              const SizedBox(width: 12),
+              Expanded(child: content)
+            ],
+          );
+        },
       ),
     );
   }
@@ -551,10 +587,11 @@ class WikiAchievementsScreen extends ConsumerWidget {
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: o.color.withOpacity(0.15)),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isCompact = constraints.maxWidth < 520;
+
+          final badge = Container(
             width: 44,
             height: 44,
             decoration: BoxDecoration(
@@ -577,36 +614,50 @@ class WikiAchievementsScreen extends ConsumerWidget {
                 ),
               ],
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
+          );
+
+          final content = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                o.name,
+                style: TextStyle(
+                  fontFamily: AppTypography.displayFontFamily,
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: o.color,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              Text(
+                o.nameEn,
+                style: const TextStyle(
+                  fontSize: 10,
+                  color: AppColors.textMuted,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+              const SizedBox(height: 3),
+              _buildRichDescription(o.description, fontSize: 11),
+            ],
+          );
+
+          if (isCompact) {
+            return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  o.name,
-                  style: TextStyle(
-                    fontFamily: AppTypography.displayFontFamily,
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    color: o.color,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                Text(
-                  o.nameEn,
-                  style: const TextStyle(
-                    fontSize: 10,
-                    color: AppColors.textMuted,
-                    fontStyle: FontStyle.italic,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                _buildRichDescription(o.description, fontSize: 11),
-              ],
-            ),
-          ),
-        ],
+              children: [badge, const SizedBox(height: 12), content],
+            );
+          }
+
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              badge,
+              const SizedBox(width: 12),
+              Expanded(child: content)
+            ],
+          );
+        },
       ),
     );
   }
@@ -702,10 +753,11 @@ class WikiAchievementsScreen extends ConsumerWidget {
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: r.color.withOpacity(0.15)),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isCompact = constraints.maxWidth < 520;
+
+          final badge = Container(
             width: 36,
             height: 36,
             decoration: BoxDecoration(
@@ -716,41 +768,56 @@ class WikiAchievementsScreen extends ConsumerWidget {
             child: Center(
               child: Icon(r.icon, color: r.color, size: 18),
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
+          );
+
+          final content = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  Text(
+                    r.name,
+                    style: TextStyle(
+                      fontFamily: AppTypography.displayFontFamily,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: r.color,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  Text(
+                    r.nameEn,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.textMuted,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 3),
+              _buildRichDescription(r.description, fontSize: 11),
+            ],
+          );
+
+          if (isCompact) {
+            return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      r.name,
-                      style: TextStyle(
-                        fontFamily: AppTypography.displayFontFamily,
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: r.color,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      r.nameEn,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: AppColors.textMuted,
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 3),
-                _buildRichDescription(r.description, fontSize: 11),
-              ],
-            ),
-          ),
-        ],
+              children: [badge, const SizedBox(height: 12), content],
+            );
+          }
+
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              badge,
+              const SizedBox(width: 12),
+              Expanded(child: content)
+            ],
+          );
+        },
       ),
     );
   }

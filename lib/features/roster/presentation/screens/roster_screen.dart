@@ -91,8 +91,9 @@ class _RosterScreenState extends ConsumerState<RosterScreen> {
 
   Widget _buildHeader(Team team, bool isWide, bool isOwner) {
     final lang = ref.watch(localeProvider);
+    final isCompact = MediaQuery.of(context).size.width < 700;
     return SliverAppBar(
-      expandedHeight: isWide ? 180 : 140,
+      expandedHeight: isWide ? 180 : 170,
       pinned: true,
       leading: IconButton(
         icon: Icon(PhosphorIcons.arrowLeft(PhosphorIconsStyle.bold)),
@@ -173,19 +174,21 @@ class _RosterScreenState extends ConsumerState<RosterScreen> {
                         Text(
                           team.name,
                           style: TextStyle(
-                            fontSize: 22,
+                            fontSize: isCompact ? 20 : 22,
                             fontWeight: FontWeight.bold,
                             color: AppColors.textPrimary,
                           ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 4),
-                        Row(
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
                           children: [
                             _buildStatChip('TV', '${team.teamValue ~/ 1000}k'),
-                            const SizedBox(width: 8),
                             _buildStatChip(tr(lang, 'roster.title'),
                                 '${team.characters.where((c) => c.status == PlayerStatus.healthy).length}'),
-                            const SizedBox(width: 8),
                             _buildStatChip(tr(lang, 'teamCreator.rerolls'),
                                 '${team.rerolls}'),
                           ],
@@ -230,6 +233,8 @@ class _RosterScreenState extends ConsumerState<RosterScreen> {
   }
 
   Widget _buildTreasuryBar(Team team, bool isOwner) {
+    final isCompact = MediaQuery.of(context).size.width < 700;
+
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(16),
@@ -238,41 +243,59 @@ class _RosterScreenState extends ConsumerState<RosterScreen> {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.accent.withOpacity(0.3)),
       ),
-      child: Row(
+      child: Wrap(
+        spacing: 12,
+        runSpacing: 12,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        alignment: WrapAlignment.spaceBetween,
         children: [
-          Icon(PhosphorIcons.coins(PhosphorIconsStyle.fill),
-              color: AppColors.accent, size: 28),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                'TESORERÍA',
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textMuted,
-                  letterSpacing: 1,
-                ),
-              ),
-              Text(
-                '${team.treasury ~/ 1000}k',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.accent,
-                ),
+              Icon(PhosphorIcons.coins(PhosphorIconsStyle.fill),
+                  color: AppColors.accent, size: 28),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'TESORERÍA',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textMuted,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                  Text(
+                    '${team.treasury ~/ 1000}k',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.accent,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-          const Spacer(),
-          if (isOwner) ...[
-            _buildQuickBuyButton(
-                'Re-roll', team.rerollCost, () => _buyReroll(team)),
-            const SizedBox(width: 8),
-            _buildQuickBuyButton('Apotecario', team.apothecary ? null : 50000,
-                team.apothecary ? null : () => _buyApothecary(team)),
-          ],
+          if (isOwner)
+            SizedBox(
+              width: isCompact ? double.infinity : null,
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                alignment: isCompact ? WrapAlignment.start : WrapAlignment.end,
+                children: [
+                  _buildQuickBuyButton(
+                      'Re-roll', team.rerollCost, () => _buyReroll(team)),
+                  _buildQuickBuyButton(
+                      'Apotecario',
+                      team.apothecary ? null : 50000,
+                      team.apothecary ? null : () => _buyApothecary(team)),
+                ],
+              ),
+            ),
         ],
       ),
     );
@@ -320,24 +343,27 @@ class _RosterScreenState extends ConsumerState<RosterScreen> {
   Widget _buildFilters() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
-          Text(
-            'PLANTILLA',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textMuted,
-              letterSpacing: 1,
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: Text(
+              'PLANTILLA',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textMuted,
+                letterSpacing: 1,
+              ),
             ),
           ),
-          const Spacer(),
           _buildFilterChip(
               'Activos', _showActives, (v) => setState(() => _showActives = v)),
-          const SizedBox(width: 8),
           _buildFilterChip('Lesionados', _showInjured,
               (v) => setState(() => _showInjured = v)),
-          const SizedBox(width: 8),
           _buildFilterChip(
               'Muertos', _showDead, (v) => setState(() => _showDead = v)),
         ],

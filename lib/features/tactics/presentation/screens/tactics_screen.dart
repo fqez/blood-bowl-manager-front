@@ -383,6 +383,8 @@ class _TacticsScreenState extends ConsumerState<TacticsScreen> {
   }
 
   Widget _buildTopBar(String lang) {
+    final isCompact = MediaQuery.of(context).size.width < 700;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: const BoxDecoration(
@@ -391,62 +393,124 @@ class _TacticsScreenState extends ConsumerState<TacticsScreen> {
       ),
       child: SafeArea(
         bottom: false,
-        child: Row(
-          children: [
-            Icon(PhosphorIcons.crosshair(PhosphorIconsStyle.fill),
-                color: AppColors.accent, size: 22),
-            const SizedBox(width: 12),
-            Text(
-              'TÁCTICAS',
-              style: TextStyle(
-                fontFamily: AppTypography.displayFontFamily,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-                letterSpacing: 1,
+        child: isCompact
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 4,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Icon(PhosphorIcons.crosshair(PhosphorIconsStyle.fill),
+                          color: AppColors.accent, size: 22),
+                      Text(
+                        'TÁCTICAS',
+                        style: TextStyle(
+                          fontFamily: AppTypography.displayFontFamily,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                      Text(
+                        'FORMACIÓN DE KICKOFF',
+                        style: TextStyle(
+                          fontFamily: AppTypography.displayFontFamily,
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.accent,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () => context.go('/my-tactics'),
+                      icon: Icon(PhosphorIcons.folder(PhosphorIconsStyle.fill),
+                          size: 18),
+                      label: Text(
+                        tr(lang, 'myTactics.title'),
+                        style: TextStyle(
+                          fontFamily: AppTypography.displayFontFamily,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary.withOpacity(0.8),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 18, vertical: 10),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            : Row(
+                children: [
+                  Icon(PhosphorIcons.crosshair(PhosphorIconsStyle.fill),
+                      color: AppColors.accent, size: 22),
+                  const SizedBox(width: 12),
+                  Text(
+                    'TÁCTICAS',
+                    style: TextStyle(
+                      fontFamily: AppTypography.displayFontFamily,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                  const Text('  >  ',
+                      style: TextStyle(fontSize: 11, color: Colors.white38)),
+                  Text(
+                    'FORMACIÓN DE KICKOFF',
+                    style: TextStyle(
+                      fontFamily: AppTypography.displayFontFamily,
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.accent,
+                    ),
+                  ),
+                  const Spacer(),
+                  ElevatedButton.icon(
+                    onPressed: () => context.go('/my-tactics'),
+                    icon: Icon(PhosphorIcons.folder(PhosphorIconsStyle.fill),
+                        size: 18),
+                    label: Text(
+                      tr(lang, 'myTactics.title'),
+                      style: TextStyle(
+                        fontFamily: AppTypography.displayFontFamily,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary.withOpacity(0.8),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 18, vertical: 10),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
+                ],
               ),
-            ),
-            const Text('  >  ',
-                style: TextStyle(fontSize: 11, color: Colors.white38)),
-            Text(
-              'FORMACIÓN DE KICKOFF',
-              style: TextStyle(
-                fontFamily: AppTypography.displayFontFamily,
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                color: AppColors.accent,
-              ),
-            ),
-            const Spacer(),
-            ElevatedButton.icon(
-              onPressed: () => context.go('/my-tactics'),
-              icon:
-                  Icon(PhosphorIcons.folder(PhosphorIconsStyle.fill), size: 18),
-              label: Text(
-                tr(lang, 'myTactics.title'),
-                style: TextStyle(
-                  fontFamily: AppTypography.displayFontFamily,
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 0.5,
-                ),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary.withOpacity(0.8),
-                foregroundColor: Colors.white,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8)),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
 
   Widget _buildHeader(String lang) {
+    final isCompact = MediaQuery.of(context).size.width < 700;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -468,16 +532,18 @@ class _TacticsScreenState extends ConsumerState<TacticsScreen> {
           Row(
             children: [
               Icon(PhosphorIcons.crosshair(PhosphorIconsStyle.fill),
-                  color: AppColors.accent, size: 26),
+                  color: AppColors.accent, size: isCompact ? 22 : 26),
               const SizedBox(width: 12),
-              Text(
-                tr(lang, 'tactics.title'),
-                style: TextStyle(
-                  fontFamily: AppTypography.displayFontFamily,
-                  fontSize: 30,
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.textPrimary,
-                  letterSpacing: 2,
+              Expanded(
+                child: Text(
+                  tr(lang, 'tactics.title'),
+                  style: TextStyle(
+                    fontFamily: AppTypography.displayFontFamily,
+                    fontSize: isCompact ? 24 : 30,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.textPrimary,
+                    letterSpacing: isCompact ? 1.2 : 2,
+                  ),
                 ),
               ),
             ],
@@ -623,17 +689,10 @@ class _TacticsScreenState extends ConsumerState<TacticsScreen> {
           ),
           const SizedBox(height: 12),
           // Mode selector + save button
-          Row(
-            children: [
-              _modeChip('attack', tr(lang, 'tactics.attack'),
-                  PhosphorIcons.sword(PhosphorIconsStyle.fill),
-                  color: AppColors.error),
-              const SizedBox(width: 8),
-              _modeChip('defense', tr(lang, 'tactics.defense'),
-                  PhosphorIcons.shieldStar(PhosphorIconsStyle.fill),
-                  color: const Color(0xFF2196F3)),
-              const Spacer(),
-              ElevatedButton.icon(
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isCompact = constraints.maxWidth < 520;
+              final saveButton = ElevatedButton.icon(
                 onPressed: _saving ? null : _saveTactic,
                 icon: _saving
                     ? const SizedBox(
@@ -644,9 +703,7 @@ class _TacticsScreenState extends ConsumerState<TacticsScreen> {
                     : Icon(PhosphorIcons.floppyDisk(PhosphorIconsStyle.fill),
                         size: 20),
                 label: Text(
-                  _existingTacticId != null
-                      ? tr(lang, 'tactics.save')
-                      : tr(lang, 'tactics.save'),
+                  tr(lang, 'tactics.save'),
                   style: TextStyle(
                     fontFamily: AppTypography.displayFontFamily,
                     fontSize: 15,
@@ -663,8 +720,43 @@ class _TacticsScreenState extends ConsumerState<TacticsScreen> {
                       borderRadius: BorderRadius.circular(10)),
                   elevation: 4,
                 ),
-              ),
-            ],
+              );
+
+              final modeSelector = Row(
+                children: [
+                  Expanded(
+                    child: _modeChip('attack', tr(lang, 'tactics.attack'),
+                        PhosphorIcons.sword(PhosphorIconsStyle.fill),
+                        color: AppColors.error),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _modeChip('defense', tr(lang, 'tactics.defense'),
+                        PhosphorIcons.shieldStar(PhosphorIconsStyle.fill),
+                        color: const Color(0xFF2196F3)),
+                  ),
+                ],
+              );
+
+              if (isCompact) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    modeSelector,
+                    const SizedBox(height: 10),
+                    saveButton,
+                  ],
+                );
+              }
+
+              return Row(
+                children: [
+                  SizedBox(width: 330, child: modeSelector),
+                  const Spacer(),
+                  saveButton,
+                ],
+              );
+            },
           ),
         ],
       ),
@@ -696,18 +788,21 @@ class _TacticsScreenState extends ConsumerState<TacticsScreen> {
               : [],
         ),
         child: Row(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(icon, size: 22, color: selected ? color : AppColors.textMuted),
             const SizedBox(width: 8),
-            Text(
-              label,
-              style: TextStyle(
-                fontFamily: AppTypography.displayFontFamily,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: selected ? color : AppColors.textMuted,
-                letterSpacing: 0.5,
+            Flexible(
+              child: Text(
+                label,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontFamily: AppTypography.displayFontFamily,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: selected ? color : AppColors.textMuted,
+                  letterSpacing: 0.5,
+                ),
               ),
             ),
           ],
@@ -726,19 +821,10 @@ class _TacticsScreenState extends ConsumerState<TacticsScreen> {
       ),
       child: Column(
         children: [
-          Row(
-            children: [
-              _pitchStat(
-                  trf(lang, 'tactics.ownPlayers', {'n': '$_totalPlaced'}), ''),
-              const SizedBox(width: 12),
-              _pitchStat(
-                  trf(lang, 'tactics.losCount', {'n': '$_losCount'}), ''),
-              const SizedBox(width: 12),
-              _pitchStat('Banda izq.', '$_leftWideCount/2'),
-              const SizedBox(width: 12),
-              _pitchStat('Banda der.', '$_rightWideCount/2'),
-              const Spacer(),
-              TextButton.icon(
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isCompact = constraints.maxWidth < 560;
+              final clearButton = TextButton.icon(
                 onPressed: () => setState(() => _grid.clear()),
                 icon: Icon(PhosphorIcons.trash(PhosphorIconsStyle.regular),
                     size: 14),
@@ -746,8 +832,40 @@ class _TacticsScreenState extends ConsumerState<TacticsScreen> {
                     style: const TextStyle(fontSize: 12)),
                 style: TextButton.styleFrom(
                     foregroundColor: AppColors.error.withOpacity(0.7)),
-              ),
-            ],
+              );
+              final stats = [
+                _pitchStat(
+                    trf(lang, 'tactics.ownPlayers', {'n': '$_totalPlaced'}),
+                    ''),
+                _pitchStat(
+                    trf(lang, 'tactics.losCount', {'n': '$_losCount'}), ''),
+                _pitchStat('Banda izq.', '$_leftWideCount/2'),
+                _pitchStat('Banda der.', '$_rightWideCount/2'),
+              ];
+
+              if (isCompact) {
+                return Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    ...stats,
+                    clearButton,
+                  ],
+                );
+              }
+
+              return Row(
+                children: [
+                  for (var index = 0; index < stats.length; index++) ...[
+                    stats[index],
+                    if (index != stats.length - 1) const SizedBox(width: 12),
+                  ],
+                  const Spacer(),
+                  clearButton,
+                ],
+              );
+            },
           ),
           if (_validationErrors.isNotEmpty)
             Padding(
@@ -969,12 +1087,14 @@ class _TacticsScreenState extends ConsumerState<TacticsScreen> {
         children: [
           Text(label,
               style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
-          const SizedBox(width: 6),
-          Text(value,
-              style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary)),
+          if (value.isNotEmpty) ...[
+            const SizedBox(width: 6),
+            Text(value,
+                style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary)),
+          ],
         ],
       ),
     );

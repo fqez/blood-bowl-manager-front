@@ -50,13 +50,13 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
                 AppColors.card,
               ], begin: Alignment.topLeft, end: Alignment.bottomRight),
             ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Logo
-                Container(
-                  width: 100,
-                  height: 100,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isCompact = constraints.maxWidth < 640;
+
+                final logo = Container(
+                  width: isCompact ? 76 : 100,
+                  height: isCompact ? 76 : 100,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: teamColor.withValues(alpha: 0.3)),
@@ -69,14 +69,16 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
                           PhosphorIcons.shield(PhosphorIconsStyle.fill),
                           size: 48,
                           color: AppColors.textMuted)),
-                ),
-                const SizedBox(width: 16),
-                // Name + race
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(children: [
+                );
+
+                final identity = Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 6,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
                         Text(
                           (baseRoster?.name ?? 'TEAM').toUpperCase(),
                           style: TextStyle(
@@ -86,7 +88,6 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
                             letterSpacing: 1.5,
                           ),
                         ),
-                        const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 6, vertical: 2),
@@ -100,43 +101,71 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
                                   fontSize: 9,
                                   fontWeight: FontWeight.bold)),
                         ),
-                      ]),
-                      Text(
-                        team.name,
-                        style: _displayLarge.copyWith(
-                          fontSize: 36,
-                          color: AppColors.textPrimary,
-                          height: 1.1,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                // Team value / Treasury
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    const Text('TEAM VALUE',
-                        style: TextStyle(
-                            color: AppColors.textMuted,
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1)),
-                    Text(_fmtGold(team.teamValue),
-                        style: _displaySmall.copyWith(fontSize: 28)),
+                      ],
+                    ),
                     const SizedBox(height: 6),
-                    const Text('TREASURY',
-                        style: TextStyle(
-                            color: AppColors.textMuted,
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1)),
-                    Text(_fmtGold(team.treasury),
-                        style: _displaySmall.copyWith(
-                            fontSize: 28, color: AppColors.accent)),
+                    Text(
+                      team.name,
+                      style: _displayLarge.copyWith(
+                        fontSize: isCompact ? 28 : 36,
+                        color: AppColors.textPrimary,
+                        height: 1.1,
+                      ),
+                    ),
                   ],
-                ),
-              ],
+                );
+
+                final metrics = isCompact
+                    ? Wrap(
+                        spacing: 16,
+                        runSpacing: 8,
+                        children: [
+                          _buildMetricBlock(
+                              'TEAM VALUE', _fmtGold(team.teamValue)),
+                          _buildMetricBlock('TREASURY', _fmtGold(team.treasury),
+                              valueColor: AppColors.accent),
+                        ],
+                      )
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          _buildMetricBlock(
+                              'TEAM VALUE', _fmtGold(team.teamValue),
+                              alignEnd: true),
+                          const SizedBox(height: 6),
+                          _buildMetricBlock('TREASURY', _fmtGold(team.treasury),
+                              alignEnd: true, valueColor: AppColors.accent),
+                        ],
+                      );
+
+                if (isCompact) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          logo,
+                          const SizedBox(width: 12),
+                          Expanded(child: identity),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      metrics,
+                    ],
+                  );
+                }
+
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    logo,
+                    const SizedBox(width: 16),
+                    Expanded(child: identity),
+                    metrics,
+                  ],
+                );
+              },
             ),
           ),
 
@@ -272,8 +301,6 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
           Builder(builder: (_) {
             final selectedIds =
                 isHome ? _selectedHomePlayers : _selectedAwayPlayers;
-            final tempIds =
-                isHome ? _tempHiredHomePlayers : _tempHiredAwayPlayers;
             final selectedCount = selectedIds.length;
             final maxSquad = 11;
             return Column(
@@ -662,14 +689,15 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
                         ],
                         // Plays for
                         if (playsFor.isNotEmpty)
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                          Wrap(
+                            spacing: 5,
+                            runSpacing: 4,
+                            crossAxisAlignment: WrapCrossAlignment.center,
                             children: [
                               Icon(
                                   PhosphorIcons.shield(PhosphorIconsStyle.fill),
                                   size: 12,
                                   color: AppColors.textMuted),
-                              const SizedBox(width: 5),
                               Text(
                                 'Plays for: ',
                                 style: const TextStyle(
@@ -677,7 +705,9 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
                                     color: AppColors.textMuted,
                                     fontWeight: FontWeight.w600),
                               ),
-                              Expanded(
+                              ConstrainedBox(
+                                constraints:
+                                    const BoxConstraints(maxWidth: 260),
                                 child: Text(
                                   playsFor
                                       .map((t) => t.replaceAll('_', ' '))
@@ -769,6 +799,25 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
     );
   }
 
+  Widget _buildMetricBlock(String label, String value,
+      {bool alignEnd = false, Color? valueColor}) {
+    return Column(
+      crossAxisAlignment:
+          alignEnd ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+      children: [
+        Text(label,
+            style: const TextStyle(
+                color: AppColors.textMuted,
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1)),
+        Text(value,
+            style: _displaySmall.copyWith(
+                fontSize: 28, color: valueColor ?? AppColors.textPrimary)),
+      ],
+    );
+  }
+
   Widget _buildRosterTable(UserTeamDetail team, String lang,
       {required bool isHome, required bool canEdit}) {
     final selectedIds = isHome ? _selectedHomePlayers : _selectedAwayPlayers;
@@ -829,7 +878,7 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
                             value: isSelected,
                             onChanged: isHealthy
                                 ? (val) {
-                                    setState(() {
+                                    _updateLocalState(() {
                                       if (val == true &&
                                           selectedIds.length < 11) {
                                         selectedIds.add(p.id);

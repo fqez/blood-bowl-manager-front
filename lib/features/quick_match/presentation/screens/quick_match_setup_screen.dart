@@ -75,6 +75,8 @@ class _QuickMatchSetupScreenState extends ConsumerState<QuickMatchSetupScreen> {
   }
 
   Widget _buildAppBar(String lang) {
+    final isCompact = MediaQuery.of(context).size.width < 700;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: const BoxDecoration(
@@ -83,16 +85,18 @@ class _QuickMatchSetupScreenState extends ConsumerState<QuickMatchSetupScreen> {
       ),
       child: SafeArea(
         bottom: false,
-        child: Row(
+        child: Wrap(
+          spacing: 12,
+          runSpacing: 6,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             Icon(PhosphorIcons.sword(PhosphorIconsStyle.fill),
                 color: AppColors.primary, size: 24),
-            const SizedBox(width: 12),
             Text(
               tr(lang, 'quickMatch.title'),
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppColors.textPrimary,
-                fontSize: 20,
+                fontSize: isCompact ? 18 : 20,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -104,6 +108,7 @@ class _QuickMatchSetupScreenState extends ConsumerState<QuickMatchSetupScreen> {
 
   Widget _buildBody(List<UserTeamSummary> teams, String lang) {
     final wide = MediaQuery.of(context).size.width >= 900;
+    final isCompact = MediaQuery.of(context).size.width < 700;
 
     if (teams.isEmpty) {
       return Center(
@@ -162,7 +167,7 @@ class _QuickMatchSetupScreenState extends ConsumerState<QuickMatchSetupScreen> {
           // ── Start button ──
           Center(
             child: SizedBox(
-              width: 280,
+              width: isCompact ? double.infinity : 280,
               height: 48,
               child: ElevatedButton.icon(
                 onPressed:
@@ -210,6 +215,7 @@ class _QuickMatchSetupScreenState extends ConsumerState<QuickMatchSetupScreen> {
     final label = isHome
         ? tr(lang, 'quickMatch.homeTeam')
         : tr(lang, 'quickMatch.awayTeam');
+    final isCompact = MediaQuery.of(context).size.width < 700;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -265,42 +271,92 @@ class _QuickMatchSetupScreenState extends ConsumerState<QuickMatchSetupScreen> {
                           : AppColors.surfaceLight,
                     ),
                   ),
-                  child: Row(
-                    children: [
-                      if (t.icon != null && t.icon!.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(right: 10),
-                          child: Image.network(t.icon!,
-                              width: 28,
-                              height: 28,
-                              errorBuilder: (_, __, ___) =>
-                                  const SizedBox(width: 28)),
-                        ),
-                      Expanded(
-                        child: Column(
+                  child: isCompact
+                      ? Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(t.name,
+                            Row(
+                              children: [
+                                if (t.icon != null && t.icon!.isNotEmpty)
+                                  Padding(
+                                    padding: const EdgeInsets.only(right: 10),
+                                    child: Image.network(t.icon!,
+                                        width: 28,
+                                        height: 28,
+                                        errorBuilder: (_, __, ___) =>
+                                            const SizedBox(width: 28)),
+                                  ),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(t.name,
+                                          style: const TextStyle(
+                                              color: AppColors.textPrimary,
+                                              fontWeight: FontWeight.w600)),
+                                      Text(t.raceLabel,
+                                          style: const TextStyle(
+                                              color: AppColors.textMuted,
+                                              fontSize: 12)),
+                                    ],
+                                  ),
+                                ),
+                                if (isSelected)
+                                  const Padding(
+                                    padding: EdgeInsets.only(left: 8),
+                                    child: Icon(Icons.check_circle,
+                                        color: AppColors.primary, size: 20),
+                                  ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'TV ${(t.teamValue / 1000).toStringAsFixed(0)}k',
+                              style: const TextStyle(
+                                  color: AppColors.textSecondary, fontSize: 12),
+                            ),
+                          ],
+                        )
+                      : Row(
+                          children: [
+                            if (t.icon != null && t.icon!.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(right: 10),
+                                child: Image.network(t.icon!,
+                                    width: 28,
+                                    height: 28,
+                                    errorBuilder: (_, __, ___) =>
+                                        const SizedBox(width: 28)),
+                              ),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(t.name,
+                                      style: const TextStyle(
+                                          color: AppColors.textPrimary,
+                                          fontWeight: FontWeight.w600)),
+                                  Text(t.raceLabel,
+                                      style: const TextStyle(
+                                          color: AppColors.textMuted,
+                                          fontSize: 12)),
+                                ],
+                              ),
+                            ),
+                            Text(
+                                'TV ${(t.teamValue / 1000).toStringAsFixed(0)}k',
                                 style: const TextStyle(
-                                    color: AppColors.textPrimary,
-                                    fontWeight: FontWeight.w600)),
-                            Text(t.raceLabel,
-                                style: const TextStyle(
-                                    color: AppColors.textMuted, fontSize: 12)),
+                                    color: AppColors.textSecondary,
+                                    fontSize: 12)),
+                            if (isSelected)
+                              const Padding(
+                                padding: EdgeInsets.only(left: 8),
+                                child: Icon(Icons.check_circle,
+                                    color: AppColors.primary, size: 20),
+                              ),
                           ],
                         ),
-                      ),
-                      Text('TV ${(t.teamValue / 1000).toStringAsFixed(0)}k',
-                          style: const TextStyle(
-                              color: AppColors.textSecondary, fontSize: 12)),
-                      if (isSelected)
-                        const Padding(
-                          padding: EdgeInsets.only(left: 8),
-                          child: Icon(Icons.check_circle,
-                              color: AppColors.primary, size: 20),
-                        ),
-                    ],
-                  ),
                 ),
               ),
             );
@@ -343,6 +399,7 @@ class _QuickMatchSetupScreenState extends ConsumerState<QuickMatchSetupScreen> {
         : m.isInProgress
             ? AppColors.warning
             : AppColors.textMuted;
+    final isCompact = MediaQuery.of(context).size.width < 700;
 
     return GestureDetector(
       onTap: () {
@@ -360,50 +417,99 @@ class _QuickMatchSetupScreenState extends ConsumerState<QuickMatchSetupScreen> {
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: AppColors.surfaceLight),
         ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(m.home.teamName,
-                  textAlign: TextAlign.end,
-                  style: const TextStyle(
-                      color: AppColors.textPrimary,
-                      fontWeight: FontWeight.w600)),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
-                m.scoreDisplay,
-                style: TextStyle(
-                  color: statusColor,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
+        child: isCompact
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(m.home.teamName,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 8),
+                  Center(
+                    child: Text(
+                      m.scoreDisplay,
+                      style: TextStyle(
+                        color: statusColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(m.away.teamName,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 10),
+                  Align(
+                    alignment: Alignment.center,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: statusColor.withAlpha(30),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        m.isPlayed
+                            ? tr(lang, 'quickMatch.finished')
+                            : m.isInProgress
+                                ? tr(lang, 'quickMatch.inProgress')
+                                : tr(lang, 'quickMatch.pending'),
+                        style: TextStyle(color: statusColor, fontSize: 11),
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            : Row(
+                children: [
+                  Expanded(
+                    child: Text(m.home.teamName,
+                        textAlign: TextAlign.end,
+                        style: const TextStyle(
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.w600)),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Text(
+                      m.scoreDisplay,
+                      style: TextStyle(
+                        color: statusColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Text(m.away.teamName,
+                        style: const TextStyle(
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.w600)),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: statusColor.withAlpha(30),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      m.isPlayed
+                          ? tr(lang, 'quickMatch.finished')
+                          : m.isInProgress
+                              ? tr(lang, 'quickMatch.inProgress')
+                              : tr(lang, 'quickMatch.pending'),
+                      style: TextStyle(color: statusColor, fontSize: 11),
+                    ),
+                  ),
+                ],
               ),
-            ),
-            Expanded(
-              child: Text(m.away.teamName,
-                  style: const TextStyle(
-                      color: AppColors.textPrimary,
-                      fontWeight: FontWeight.w600)),
-            ),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(
-                color: statusColor.withAlpha(30),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Text(
-                m.isPlayed
-                    ? tr(lang, 'quickMatch.finished')
-                    : m.isInProgress
-                        ? tr(lang, 'quickMatch.inProgress')
-                        : tr(lang, 'quickMatch.pending'),
-                style: TextStyle(color: statusColor, fontSize: 11),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

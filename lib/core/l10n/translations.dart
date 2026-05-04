@@ -1117,6 +1117,7 @@ const _t = <String, Map<String, String>>{
   'common.delete': {'es': 'Eliminar', 'en': 'Delete'},
   'common.edit': {'es': 'Editar', 'en': 'Edit'},
   'common.close': {'es': 'Cerrar', 'en': 'Close'},
+  'common.menu': {'es': 'Menú', 'en': 'Menu'},
   'common.loading': {'es': 'Cargando...', 'en': 'Loading...'},
   'common.perkAdded': {
     'es': '¡{name} añadida!',

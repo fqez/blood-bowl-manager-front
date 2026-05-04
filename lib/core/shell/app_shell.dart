@@ -18,6 +18,7 @@ class AppShell extends ConsumerStatefulWidget {
 
 class _AppShellState extends ConsumerState<AppShell> {
   bool _sidebarExpanded = true;
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
 
   List<AppShellNavItem> _buildNavItems(String location, String lang) {
     final leagueMatch = RegExp(r'/league/([^/]+)').firstMatch(location);
@@ -196,6 +197,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     final selectedIndex = _resolveSelectedIndex(location);
 
     return Scaffold(
+      key: _scaffoldKey,
       body: Row(
         children: [
           if (isWideScreen)
@@ -224,6 +226,7 @@ class _AppShellState extends ConsumerState<AppShell> {
               navItems: navItems,
               selectedIndex: selectedIndex,
               onNavigate: context.go,
+              onOpenMenu: () => _scaffoldKey.currentState?.openDrawer(),
             ),
       drawer: isWideScreen
           ? null

@@ -467,6 +467,8 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
   // ─── App Bar ──────────────────────────────────────────────
 
   Widget _buildAppBar(Match match) {
+    final isCompact = MediaQuery.of(context).size.width < 700;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: const BoxDecoration(
@@ -475,35 +477,72 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
       ),
       child: SafeArea(
         bottom: false,
-        child: Row(
-          children: [
-            IconButton(
-              icon: Icon(PhosphorIcons.arrowLeft(PhosphorIconsStyle.bold),
-                  color: AppColors.textPrimary),
-              onPressed: _showExitDialog,
-            ),
-            const SizedBox(width: 8),
-            Icon(PhosphorIcons.scroll(PhosphorIconsStyle.fill),
-                color: AppColors.accent, size: 22),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                'POST-MATCH REPORT',
-                style: _displayLarge.copyWith(
-                    fontSize: 20, color: AppColors.textPrimary),
-                overflow: TextOverflow.ellipsis,
+        child: isCompact
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: Icon(
+                            PhosphorIcons.arrowLeft(PhosphorIconsStyle.bold),
+                            color: AppColors.textPrimary),
+                        onPressed: _showExitDialog,
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(PhosphorIcons.scroll(PhosphorIconsStyle.fill),
+                          color: AppColors.accent, size: 22),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'POST-MATCH REPORT',
+                          style: _displayLarge.copyWith(
+                              fontSize: 18, color: AppColors.textPrimary),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 52, top: 4),
+                    child: Text(
+                      '${match.home.teamName}  vs  ${match.away.teamName}',
+                      style: const TextStyle(
+                          color: AppColors.textMuted, fontSize: 12),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              )
+            : Row(
+                children: [
+                  IconButton(
+                    icon: Icon(PhosphorIcons.arrowLeft(PhosphorIconsStyle.bold),
+                        color: AppColors.textPrimary),
+                    onPressed: _showExitDialog,
+                  ),
+                  const SizedBox(width: 8),
+                  Icon(PhosphorIcons.scroll(PhosphorIconsStyle.fill),
+                      color: AppColors.accent, size: 22),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'POST-MATCH REPORT',
+                      style: _displayLarge.copyWith(
+                          fontSize: 20, color: AppColors.textPrimary),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Flexible(
+                    child: Text(
+                      '${match.home.teamName}  vs  ${match.away.teamName}',
+                      style: const TextStyle(
+                          color: AppColors.textMuted, fontSize: 12),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
               ),
-            ),
-            Flexible(
-              child: Text(
-                '${match.home.teamName}  vs  ${match.away.teamName}',
-                style:
-                    const TextStyle(color: AppColors.textMuted, fontSize: 12),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -529,38 +568,65 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
               ]),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Column(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isCompact = constraints.maxWidth < 520;
+
+                final homeScore = Column(
                   children: [
                     Text(match.home.teamName,
                         style: const TextStyle(
-                            color: AppColors.textMuted, fontSize: 12)),
+                            color: AppColors.textMuted, fontSize: 12),
+                        textAlign: TextAlign.center),
                     const SizedBox(height: 4),
                     Text('$_scoreHome',
                         style: _displayLarge.copyWith(
                             fontSize: 48, color: AppColors.info)),
                   ],
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Text('–',
-                      style: _displayLarge.copyWith(
-                          fontSize: 36, color: AppColors.textMuted)),
-                ),
-                Column(
+                );
+
+                final awayScore = Column(
                   children: [
                     Text(match.away.teamName,
                         style: const TextStyle(
-                            color: AppColors.textMuted, fontSize: 12)),
+                            color: AppColors.textMuted, fontSize: 12),
+                        textAlign: TextAlign.center),
                     const SizedBox(height: 4),
                     Text('$_scoreAway',
                         style: _displayLarge.copyWith(
                             fontSize: 48, color: AppColors.error)),
                   ],
-                ),
-              ],
+                );
+
+                if (isCompact) {
+                  return Column(
+                    children: [
+                      homeScore,
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: Text('–',
+                            style: _displayLarge.copyWith(
+                                fontSize: 32, color: AppColors.textMuted)),
+                      ),
+                      awayScore,
+                    ],
+                  );
+                }
+
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    homeScore,
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Text('–',
+                          style: _displayLarge.copyWith(
+                              fontSize: 36, color: AppColors.textMuted)),
+                    ),
+                    awayScore,
+                  ],
+                );
+              },
             ),
           ),
           const SizedBox(height: 16),
@@ -597,17 +663,18 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
 
           const SizedBox(height: 12),
           // Gate
-          Row(
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               Icon(PhosphorIcons.ticket(PhosphorIconsStyle.fill),
                   size: 16, color: AppColors.accent),
-              const SizedBox(width: 8),
               const Text('Gate',
                   style: TextStyle(
                       color: AppColors.textPrimary,
                       fontSize: 13,
                       fontWeight: FontWeight.w500)),
-              const Spacer(),
               SizedBox(
                 width: 110,
                 child: _numField(_gate, (v) => setState(() => _gate = v)),
@@ -708,10 +775,11 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
       title: 'WINNINGS',
       color: AppColors.accent,
       subtitle: '(Fan Factor Home + Away) ÷ 2 + TDs + 1 (no stalling) × 10,000',
-      child: Row(
-        children: [
-          Expanded(
-              child: _winningsTeamCol(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isCompact = constraints.maxWidth < 640;
+
+          final home = _winningsTeamCol(
             teamName: _homeTeam?.name ?? 'Home',
             fanFactor: _homeFanFactor,
             onFanChanged: (v) => setState(() => _homeFanFactor = v),
@@ -719,10 +787,9 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
             onStallingChanged: (v) => setState(() => _homeStalling = v),
             winnings: _homeWinnings!,
             color: AppColors.info,
-          )),
-          Container(width: 1, height: 120, color: AppColors.surfaceLight),
-          Expanded(
-              child: _winningsTeamCol(
+          );
+
+          final away = _winningsTeamCol(
             teamName: _awayTeam?.name ?? 'Away',
             fanFactor: _awayFanFactor,
             onFanChanged: (v) => setState(() => _awayFanFactor = v),
@@ -730,8 +797,28 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
             onStallingChanged: (v) => setState(() => _awayStalling = v),
             winnings: _awayWinnings!,
             color: AppColors.error,
-          )),
-        ],
+          );
+
+          if (isCompact) {
+            return Column(
+              children: [
+                home,
+                const SizedBox(height: 16),
+                const Divider(color: AppColors.surfaceLight, height: 1),
+                const SizedBox(height: 16),
+                away,
+              ],
+            );
+          }
+
+          return Row(
+            children: [
+              Expanded(child: home),
+              Container(width: 1, height: 120, color: AppColors.surfaceLight),
+              Expanded(child: away),
+            ],
+          );
+        },
       ),
     );
   }
@@ -814,10 +901,11 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
       color: AppColors.info,
       subtitle:
           'Won: +1 if D6 ≥ Current. Lost: −1 if D6 < Current. Draw: no change.',
-      child: Row(
-        children: [
-          Expanded(
-              child: _fanRollCol(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isCompact = constraints.maxWidth < 640;
+
+          final home = _fanRollCol(
             teamName: _homeTeam?.name ?? 'Home',
             currentFans: _homeDedicatedFans,
             roll: _homeFanRoll,
@@ -825,10 +913,9 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
             won: _scoreHome > _scoreAway,
             lost: _scoreHome < _scoreAway,
             color: AppColors.info,
-          )),
-          Container(width: 1, height: 100, color: AppColors.surfaceLight),
-          Expanded(
-              child: _fanRollCol(
+          );
+
+          final away = _fanRollCol(
             teamName: _awayTeam?.name ?? 'Away',
             currentFans: _awayDedicatedFans,
             roll: _awayFanRoll,
@@ -836,8 +923,28 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
             won: _scoreAway > _scoreHome,
             lost: _scoreAway < _scoreHome,
             color: AppColors.error,
-          )),
-        ],
+          );
+
+          if (isCompact) {
+            return Column(
+              children: [
+                home,
+                const SizedBox(height: 16),
+                const Divider(color: AppColors.surfaceLight, height: 1),
+                const SizedBox(height: 16),
+                away,
+              ],
+            );
+          }
+
+          return Row(
+            children: [
+              Expanded(child: home),
+              Container(width: 1, height: 100, color: AppColors.surfaceLight),
+              Expanded(child: away),
+            ],
+          );
+        },
       ),
     );
   }
@@ -926,27 +1033,46 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
       color: AppColors.accent,
       subtitle:
           'Select MVP for each team (4 SPP). Nominate 6 players, randomise 1.',
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-              child: _mvpPicker(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isCompact = constraints.maxWidth < 640;
+
+          final home = _mvpPicker(
             teamName: _homeTeam?.name ?? 'Home',
             players: _homeTeam?.players ?? [],
             selectedId: _mvpHomeId,
             onChanged: (v) => setState(() => _mvpHomeId = v),
             color: AppColors.info,
-          )),
-          const SizedBox(width: 12),
-          Expanded(
-              child: _mvpPicker(
+          );
+
+          final away = _mvpPicker(
             teamName: _awayTeam?.name ?? 'Away',
             players: _awayTeam?.players ?? [],
             selectedId: _mvpAwayId,
             onChanged: (v) => setState(() => _mvpAwayId = v),
             color: AppColors.error,
-          )),
-        ],
+          );
+
+          if (isCompact) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                home,
+                const SizedBox(height: 16),
+                away,
+              ],
+            );
+          }
+
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: home),
+              const SizedBox(width: 12),
+              Expanded(child: away),
+            ],
+          );
+        },
       ),
     );
   }
@@ -1102,28 +1228,39 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
               child: Text('No SPP awarded yet',
                   style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
             )
-          else ...[
-            // Header
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                children: [
-                  const SizedBox(
-                      width: 80,
-                      child: Text('Player',
-                          style: TextStyle(
-                              color: AppColors.textMuted,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold))),
-                  const Spacer(),
-                  ..._sppHeaders(),
-                ],
+          else
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: SizedBox(
+                width: 420,
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Row(
+                        children: [
+                          const SizedBox(
+                              width: 80,
+                              child: Text('Player',
+                                  style: TextStyle(
+                                      color: AppColors.textMuted,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold))),
+                          const Spacer(),
+                          ..._sppHeaders(),
+                        ],
+                      ),
+                    ),
+                    ...entries.map((e) => _sppRow(e)),
+                  ],
+                ),
               ),
             ),
-            ...entries.map((e) => _sppRow(e)),
-          ],
           const SizedBox(height: 12),
-          _addBonusSppRow(),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: _addBonusSppRow(),
+          ),
         ],
       ),
     );
@@ -1510,10 +1647,11 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
       title: 'EXPENSIVE MISTAKES',
       color: AppColors.warning,
       subtitle: 'If Treasury ≥ 100,000 gp after winnings, roll D6',
-      child: Row(
-        children: [
-          Expanded(
-              child: _expensiveCol(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isCompact = constraints.maxWidth < 640;
+
+          final home = _expensiveCol(
             teamName: _homeTeam?.name ?? 'Home',
             treasury: homeTreasury,
             roll: _homeExpensiveRoll,
@@ -1526,10 +1664,9 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
               });
             },
             color: AppColors.info,
-          )),
-          Container(width: 1, height: 80, color: AppColors.surfaceLight),
-          Expanded(
-              child: _expensiveCol(
+          );
+
+          final away = _expensiveCol(
             teamName: _awayTeam?.name ?? 'Away',
             treasury: awayTreasury,
             roll: _awayExpensiveRoll,
@@ -1542,8 +1679,28 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
               });
             },
             color: AppColors.error,
-          )),
-        ],
+          );
+
+          if (isCompact) {
+            return Column(
+              children: [
+                home,
+                const SizedBox(height: 16),
+                const Divider(color: AppColors.surfaceLight, height: 1),
+                const SizedBox(height: 16),
+                away,
+              ],
+            );
+          }
+
+          return Row(
+            children: [
+              Expanded(child: home),
+              Container(width: 1, height: 80, color: AppColors.surfaceLight),
+              Expanded(child: away),
+            ],
+          );
+        },
       ),
     );
   }

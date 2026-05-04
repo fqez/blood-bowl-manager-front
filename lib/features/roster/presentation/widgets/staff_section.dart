@@ -49,50 +49,65 @@ class StaffSection extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 12),
-        Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          children: [
-            _buildStaffCard(
-              icon: PhosphorIcons.arrowsClockwise(PhosphorIconsStyle.fill),
-              label: tr(lang, 'teamCreator.rerolls'),
-              count: rerolls,
-              cost: rerollCost,
-              canBuy: !readOnly && treasury >= rerollCost,
-              onBuy: readOnly ? null : onBuyReroll,
-            ),
-            _buildStaffCard(
-              icon: PhosphorIcons.firstAidKit(PhosphorIconsStyle.fill),
-              label: tr(lang, 'team.apothecary'),
-              count: hasApothecary ? 1 : 0,
-              cost: 50000,
-              canBuy: !readOnly && !hasApothecary && treasury >= 50000,
-              maxCount: 1,
-              onBuy: (readOnly || hasApothecary) ? null : onBuyApothecary,
-            ),
-            _buildStaffCard(
-              icon: PhosphorIcons.chalkboardTeacher(PhosphorIconsStyle.fill),
-              label: tr(lang, 'team.assistantCoaches'),
-              count: assistantCoaches,
-              cost: 10000,
-              canBuy: !readOnly && treasury >= 10000,
-              onBuy: readOnly ? null : onBuyAssistant,
-            ),
-            _buildStaffCard(
-              icon: PhosphorIcons.megaphone(PhosphorIconsStyle.fill),
-              label: tr(lang, 'team.cheerleaders'),
-              count: cheerleaders,
-              cost: 10000,
-              canBuy: !readOnly && treasury >= 10000,
-              onBuy: readOnly ? null : onBuyCheerleader,
-            ),
-          ],
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final useSingleColumn = constraints.maxWidth < 300;
+            final cardWidth = useSingleColumn
+                ? constraints.maxWidth
+                : ((constraints.maxWidth - 12) / 2).clamp(140.0, 180.0);
+
+            return Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                _buildStaffCard(
+                  width: cardWidth,
+                  icon: PhosphorIcons.arrowsClockwise(PhosphorIconsStyle.fill),
+                  label: tr(lang, 'teamCreator.rerolls'),
+                  count: rerolls,
+                  cost: rerollCost,
+                  canBuy: !readOnly && treasury >= rerollCost,
+                  onBuy: readOnly ? null : onBuyReroll,
+                ),
+                _buildStaffCard(
+                  width: cardWidth,
+                  icon: PhosphorIcons.firstAidKit(PhosphorIconsStyle.fill),
+                  label: tr(lang, 'team.apothecary'),
+                  count: hasApothecary ? 1 : 0,
+                  cost: 50000,
+                  canBuy: !readOnly && !hasApothecary && treasury >= 50000,
+                  maxCount: 1,
+                  onBuy: (readOnly || hasApothecary) ? null : onBuyApothecary,
+                ),
+                _buildStaffCard(
+                  width: cardWidth,
+                  icon:
+                      PhosphorIcons.chalkboardTeacher(PhosphorIconsStyle.fill),
+                  label: tr(lang, 'team.assistantCoaches'),
+                  count: assistantCoaches,
+                  cost: 10000,
+                  canBuy: !readOnly && treasury >= 10000,
+                  onBuy: readOnly ? null : onBuyAssistant,
+                ),
+                _buildStaffCard(
+                  width: cardWidth,
+                  icon: PhosphorIcons.megaphone(PhosphorIconsStyle.fill),
+                  label: tr(lang, 'team.cheerleaders'),
+                  count: cheerleaders,
+                  cost: 10000,
+                  canBuy: !readOnly && treasury >= 10000,
+                  onBuy: readOnly ? null : onBuyCheerleader,
+                ),
+              ],
+            );
+          },
         ),
       ],
     );
   }
 
   Widget _buildStaffCard({
+    required double width,
     required IconData icon,
     required String label,
     required int count,
@@ -104,7 +119,7 @@ class StaffSection extends ConsumerWidget {
     final isMaxed = maxCount != null && count >= maxCount;
 
     return Container(
-      width: 140,
+      width: width,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: AppColors.card,
@@ -125,6 +140,9 @@ class StaffSection extends ConsumerWidget {
           const SizedBox(height: 8),
           Text(
             label,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w500,

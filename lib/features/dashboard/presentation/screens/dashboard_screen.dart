@@ -47,46 +47,63 @@ class DashboardScreen extends ConsumerWidget {
   }
 
   PreferredSizeWidget _buildAppBar(BuildContext context) {
+    final isCompact = MediaQuery.of(context).size.width < 700;
+
     return AppBar(
-      title: Row(
+      title: Wrap(
+        spacing: 12,
+        runSpacing: 6,
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           Text(
             'DASHBOARD',
             style: TextStyle(
               fontFamily: AppTypography.displayFontFamily,
-              fontSize: 20,
+              fontSize: isCompact ? 18 : 20,
               fontWeight: FontWeight.bold,
             ),
           ),
-          const SizedBox(width: 12),
-          Text(
-            'Resumen de actividad y ligas activas',
-            style: TextStyle(
-              fontSize: 14,
-              color: AppColors.textMuted,
-              fontFamily: 'OpenSans',
-              fontWeight: FontWeight.normal,
+          if (!isCompact)
+            Text(
+              'Resumen de actividad y ligas activas',
+              style: TextStyle(
+                fontSize: 14,
+                color: AppColors.textMuted,
+                fontFamily: 'OpenSans',
+                fontWeight: FontWeight.normal,
+              ),
             ),
-          ),
         ],
       ),
       actions: [
-        OutlinedButton.icon(
-          onPressed: () => context.go('/create-team'),
-          icon: Icon(PhosphorIcons.plus(PhosphorIconsStyle.bold), size: 18),
-          label: const Text('Crear Equipo'),
-        ),
-        const SizedBox(width: 8),
-        ElevatedButton.icon(
-          onPressed: () => _showJoinLeagueDialog(context),
-          icon: Icon(PhosphorIcons.trophy(PhosphorIconsStyle.bold), size: 18),
-          label: const Text('Unirse a Liga'),
-        ),
-        const SizedBox(width: 16),
+        if (!isCompact) ...[
+          OutlinedButton.icon(
+            onPressed: () => context.go('/create-team'),
+            icon: Icon(PhosphorIcons.plus(PhosphorIconsStyle.bold), size: 18),
+            label: const Text('Crear Equipo'),
+          ),
+          const SizedBox(width: 8),
+          ElevatedButton.icon(
+            onPressed: () => _showJoinLeagueDialog(context),
+            icon: Icon(PhosphorIcons.trophy(PhosphorIconsStyle.bold), size: 18),
+            label: const Text('Unirse a Liga'),
+          ),
+          const SizedBox(width: 16),
+        ],
         IconButton(
           icon: Icon(PhosphorIcons.bell(PhosphorIconsStyle.regular)),
           onPressed: () {},
         ),
+        if (isCompact)
+          IconButton(
+            icon: Icon(PhosphorIcons.plus(PhosphorIconsStyle.bold)),
+            onPressed: () => context.go('/create-team'),
+          ),
+        if (isCompact)
+          IconButton(
+            icon: Icon(PhosphorIcons.trophy(PhosphorIconsStyle.bold)),
+            onPressed: () => _showJoinLeagueDialog(context),
+          ),
         const SizedBox(width: 8),
       ],
     );
@@ -211,44 +228,63 @@ class DashboardScreen extends ConsumerWidget {
   }
 
   Widget _buildStatsRowSkeleton() {
-    return Row(
-      children: List.generate(
-          4,
-          (index) => Expanded(
-                child: Container(
-                  margin: EdgeInsets.only(right: index < 3 ? 16 : 0),
-                  height: 100,
-                  decoration: BoxDecoration(
-                    color: AppColors.card,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < 600;
+        final itemWidth = isNarrow ? (constraints.maxWidth - 16) / 2 : 180.0;
+
+        return Wrap(
+          spacing: 16,
+          runSpacing: 16,
+          children: List.generate(
+            4,
+            (_) => SizedBox(
+              width: itemWidth,
+              child: Container(
+                height: 100,
+                decoration: BoxDecoration(
+                  color: AppColors.card,
+                  borderRadius: BorderRadius.circular(12),
                 ),
-              )),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
   Widget _buildLeaguesSection(BuildContext context, WidgetRef ref) {
     final leaguesAsync = ref.watch(myLeaguesProvider);
+    final isCompact = MediaQuery.of(context).size.width < 700;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            Icon(PhosphorIcons.trophy(PhosphorIconsStyle.fill),
-                color: AppColors.primary, size: 20),
-            const SizedBox(width: 8),
-            Text(
-              'LIGAS ACTIVAS',
-              style: TextStyle(
-                fontFamily: AppTypography.displayFontFamily,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const Spacer(),
             Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(PhosphorIcons.trophy(PhosphorIconsStyle.fill),
+                    color: AppColors.primary, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  'LIGAS ACTIVAS',
+                  style: TextStyle(
+                    fontFamily: AppTypography.displayFontFamily,
+                    fontSize: isCompact ? 16 : 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 IconButton(
                   icon:
@@ -374,25 +410,27 @@ class DashboardScreen extends ConsumerWidget {
 
   Widget _buildNotificationsSection(WidgetRef ref) {
     final invitationsAsync = ref.watch(invitationsProvider);
+    final isCompact = MediaQuery.of(ref.context).size.width < 700;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             Icon(PhosphorIcons.bell(PhosphorIconsStyle.fill),
                 color: AppColors.primary, size: 20),
-            const SizedBox(width: 8),
             Text(
               'AVISOS',
               style: TextStyle(
                 fontFamily: AppTypography.displayFontFamily,
-                fontSize: 18,
+                fontSize: isCompact ? 16 : 18,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary,
               ),
             ),
-            const Spacer(),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(

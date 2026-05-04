@@ -41,25 +41,37 @@ class BracketWidget extends ConsumerWidget {
     final rounds = matchesByRound.keys.toList()..sort();
     final roundNames = _buildRoundNames(rounds, matchesByRound, lang);
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.all(24),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          for (int ri = 0; ri < rounds.length; ri++) ...[
-            if (ri > 0) const SizedBox(width: 8),
-            _buildRoundColumn(
-              context,
-              roundName: roundNames[rounds[ri]] ??
-                  trf(lang, 'leagueOverview.round', {'n': '${rounds[ri]}'}),
-              roundMatches: matchesByRound[rounds[ri]]!,
-              totalRounds: rounds.length,
-              roundIndex: ri,
-            ),
-          ],
-        ],
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isCompact = constraints.maxWidth < 520;
+        final horizontalPadding = isCompact ? 16.0 : 24.0;
+        final columnWidth = isCompact
+            ? (constraints.maxWidth - (horizontalPadding * 2))
+                .clamp(220.0, 280.0)
+            : 220.0;
+
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: EdgeInsets.all(horizontalPadding),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (int ri = 0; ri < rounds.length; ri++) ...[
+                if (ri > 0) const SizedBox(width: 8),
+                _buildRoundColumn(
+                  context,
+                  roundName: roundNames[rounds[ri]] ??
+                      trf(lang, 'leagueOverview.round', {'n': '${rounds[ri]}'}),
+                  roundMatches: matchesByRound[rounds[ri]]!,
+                  totalRounds: rounds.length,
+                  roundIndex: ri,
+                  columnWidth: columnWidth,
+                ),
+              ],
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -91,6 +103,7 @@ class BracketWidget extends ConsumerWidget {
     required List<Match> roundMatches,
     required int totalRounds,
     required int roundIndex,
+    required double columnWidth,
   }) {
     // Each subsequent round has fewer matches — space them out more
     final spacingFactor = 1 << roundIndex; // 1, 2, 4, 8 ...
@@ -100,7 +113,7 @@ class BracketWidget extends ConsumerWidget {
         (spacingFactor - 1) * (matchCardHeight + matchSpacing) / 2;
 
     return SizedBox(
-      width: 220,
+      width: columnWidth,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -129,7 +142,7 @@ class BracketWidget extends ConsumerWidget {
             Padding(
               padding: EdgeInsets.symmetric(
                   vertical: verticalPad > 0 ? verticalPad : 0),
-              child: _buildMatchCard(context, roundMatches[i]),
+              child: _buildMatchCard(context, roundMatches[i], columnWidth),
             ),
           ],
         ],
@@ -137,7 +150,7 @@ class BracketWidget extends ConsumerWidget {
     );
   }
 
-  Widget _buildMatchCard(BuildContext context, Match match) {
+  Widget _buildMatchCard(BuildContext context, Match match, double width) {
     final isPlayed = match.isPlayed;
     final homeName = match.home.teamName;
     final awayName = match.away.teamName;
@@ -154,7 +167,7 @@ class BracketWidget extends ConsumerWidget {
     }
 
     return Container(
-      width: 220,
+      width: width,
       decoration: BoxDecoration(
         color: AppColors.card,
         borderRadius: BorderRadius.circular(10),

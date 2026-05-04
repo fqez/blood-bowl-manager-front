@@ -39,35 +39,43 @@ class MyTeamsScreen extends ConsumerWidget {
   }
 
   PreferredSizeWidget _buildAppBar(BuildContext context, String lang) {
+    final isCompact = MediaQuery.of(context).size.width < 520;
+
     return AppBar(
       title: Row(
         children: [
-          Text(
-            tr(lang, 'nav.myTeams').toUpperCase(),
-            style: TextStyle(
-              fontFamily: AppTypography.displayFontFamily,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
+          Expanded(
+            child: Text(
+              tr(lang, 'nav.myTeams').toUpperCase(),
+              style: TextStyle(
+                fontFamily: AppTypography.displayFontFamily,
+                fontSize: isCompact ? 18 : 20,
+                fontWeight: FontWeight.bold,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
-          const SizedBox(width: 12),
-          Text(
-            tr(lang, 'team.rosterManagement'),
-            style: TextStyle(
-              fontSize: 14,
-              color: AppColors.textMuted,
-              fontWeight: FontWeight.normal,
+          if (!isCompact) ...[
+            const SizedBox(width: 12),
+            Text(
+              tr(lang, 'team.rosterManagement'),
+              style: TextStyle(
+                fontSize: 14,
+                color: AppColors.textMuted,
+                fontWeight: FontWeight.normal,
+              ),
             ),
-          ),
+          ],
         ],
       ),
       actions: [
         ElevatedButton.icon(
           onPressed: () => context.go('/create-team'),
           icon: Icon(PhosphorIcons.plus(PhosphorIconsStyle.bold), size: 16),
-          label: Text(tr(lang, 'leagues.createTeam')),
+          label: Text(isCompact ? 'Crear' : tr(lang, 'leagues.createTeam')),
         ),
-        const SizedBox(width: 16),
+        SizedBox(width: isCompact ? 8 : 16),
       ],
     );
   }
@@ -150,7 +158,12 @@ class MyTeamsScreen extends ConsumerWidget {
       BuildContext context, List<UserTeamSummary> teams, bool isWide) {
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: EdgeInsets.all(isWide ? 24 : 16),
+      padding: EdgeInsets.fromLTRB(
+        isWide ? 24 : 16,
+        isWide ? 24 : 16,
+        isWide ? 24 : 16,
+        isWide ? 24 : 96,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -165,7 +178,7 @@ class MyTeamsScreen extends ConsumerWidget {
               crossAxisCount: isWide ? 3 : 1,
               mainAxisSpacing: 16,
               crossAxisSpacing: 16,
-              childAspectRatio: isWide ? 1.6 : 2.4,
+              childAspectRatio: isWide ? 1.6 : 1.25,
             ),
             itemCount: teams.length,
             itemBuilder: (context, i) => _TeamCard(
@@ -181,13 +194,13 @@ class MyTeamsScreen extends ConsumerWidget {
   Widget _buildSummaryRow(List<UserTeamSummary> teams) {
     final totalTV = teams.fold<int>(0, (sum, t) => sum + t.teamValue);
 
-    return Row(
+    return Wrap(
+      spacing: 16,
+      runSpacing: 12,
       children: [
         _buildStat('${teams.length}', 'Equipos'),
-        const SizedBox(width: 16),
         _buildStat('${teams.fold<int>(0, (s, t) => s + t.playerCount)}',
             'Jugadores en total'),
-        const SizedBox(width: 16),
         _buildStat('${totalTV ~/ 1000}k', 'TV total'),
       ],
     );

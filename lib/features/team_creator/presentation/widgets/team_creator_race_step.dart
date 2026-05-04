@@ -240,7 +240,7 @@ class _TeamCreatorRaceStepContent extends StatelessWidget {
           physics: const NeverScrollableScrollPhysics(),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: isWide ? 4 : 2,
-            childAspectRatio: 1.1,
+            childAspectRatio: isWide ? 1.1 : 0.82,
             crossAxisSpacing: 12,
             mainAxisSpacing: 12,
           ),

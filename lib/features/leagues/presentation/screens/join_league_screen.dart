@@ -184,6 +184,8 @@ class _JoinLeagueScreenState extends ConsumerState<JoinLeagueScreen> {
   }
 
   Widget _buildCodeStep(String lang) {
+    final isCompact = MediaQuery.of(context).size.width < 480;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -201,66 +203,25 @@ class _JoinLeagueScreenState extends ConsumerState<JoinLeagueScreen> {
           style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
         ),
         const SizedBox(height: 14),
-        Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: _codeController,
-                style: TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 5,
-                    fontFamily: 'monospace'),
-                textCapitalization: TextCapitalization.characters,
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9]')),
-                  LengthLimitingTextInputFormatter(8),
-                  _UpperCaseFormatter(),
-                ],
-                decoration: InputDecoration(
-                  hintText: 'XXXXXXXX',
-                  hintStyle: TextStyle(
-                      color: AppColors.textMuted,
-                      letterSpacing: 5,
-                      fontFamily: 'monospace'),
-                  filled: true,
-                  fillColor: AppColors.card,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: AppColors.surfaceLight),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: AppColors.surfaceLight),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: AppColors.accent, width: 2),
-                  ),
-                ),
-                onSubmitted: (_) => _searchLeague(),
+        if (isCompact)
+          Column(
+            children: [
+              _buildCodeField(),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: _buildSearchButton(lang),
               ),
-            ),
-            const SizedBox(width: 12),
-            FilledButton.icon(
-              onPressed: _searching ? null : _searchLeague,
-              icon: _searching
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2))
-                  : Icon(
-                      PhosphorIcons.magnifyingGlass(PhosphorIconsStyle.bold)),
-              label: Text(tr(lang, 'joinLeague.search')),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.accent,
-                foregroundColor: AppColors.background,
-                minimumSize: const Size(0, 52),
-              ),
-            ),
-          ],
-        ),
+            ],
+          )
+        else
+          Row(
+            children: [
+              Expanded(child: _buildCodeField()),
+              const SizedBox(width: 12),
+              _buildSearchButton(lang),
+            ],
+          ),
         if (_searchError != null) ...[
           const SizedBox(height: 12),
           Row(
@@ -276,6 +237,64 @@ class _JoinLeagueScreenState extends ConsumerState<JoinLeagueScreen> {
           ),
         ],
       ],
+    );
+  }
+
+  Widget _buildCodeField() {
+    return TextField(
+      controller: _codeController,
+      style: TextStyle(
+          color: AppColors.textPrimary,
+          fontSize: 22,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 5,
+          fontFamily: 'monospace'),
+      textCapitalization: TextCapitalization.characters,
+      inputFormatters: [
+        FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9]')),
+        LengthLimitingTextInputFormatter(8),
+        _UpperCaseFormatter(),
+      ],
+      decoration: InputDecoration(
+        hintText: 'XXXXXXXX',
+        hintStyle: TextStyle(
+            color: AppColors.textMuted,
+            letterSpacing: 5,
+            fontFamily: 'monospace'),
+        filled: true,
+        fillColor: AppColors.card,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: AppColors.surfaceLight),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: AppColors.surfaceLight),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: AppColors.accent, width: 2),
+        ),
+      ),
+      onSubmitted: (_) => _searchLeague(),
+    );
+  }
+
+  Widget _buildSearchButton(String lang) {
+    return FilledButton.icon(
+      onPressed: _searching ? null : _searchLeague,
+      icon: _searching
+          ? const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2))
+          : Icon(PhosphorIcons.magnifyingGlass(PhosphorIconsStyle.bold)),
+      label: Text(tr(lang, 'joinLeague.search')),
+      style: FilledButton.styleFrom(
+        backgroundColor: AppColors.accent,
+        foregroundColor: AppColors.background,
+        minimumSize: const Size(0, 52),
+      ),
     );
   }
 

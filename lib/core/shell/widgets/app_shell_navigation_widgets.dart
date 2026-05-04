@@ -145,25 +145,25 @@ class AppShellBottomNav extends ConsumerWidget {
     required this.navItems,
     required this.selectedIndex,
     required this.onNavigate,
+    required this.onOpenMenu,
   });
 
   final List<AppShellNavItem> navItems;
   final int selectedIndex;
   final ValueChanged<String> onNavigate;
+  final VoidCallback onOpenMenu;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final bottomItems = [
       navItems[AppShellNavIndexes.myLeagues],
       navItems[AppShellNavIndexes.myTeams],
-      navItems[AppShellNavIndexes.leagueView],
-      navItems[AppShellNavIndexes.liveMatch],
+      navItems[AppShellNavIndexes.createTeam],
     ];
     final bottomIndices = [
       AppShellNavIndexes.myLeagues,
       AppShellNavIndexes.myTeams,
-      AppShellNavIndexes.leagueView,
-      AppShellNavIndexes.liveMatch,
+      AppShellNavIndexes.createTeam,
     ];
     final clampedIndex = bottomIndices.contains(selectedIndex)
         ? bottomIndices.indexOf(selectedIndex)
@@ -173,6 +173,11 @@ class AppShellBottomNav extends ConsumerWidget {
     return BottomNavigationBar(
       currentIndex: clampedIndex,
       onTap: (index) {
+        if (index == 3) {
+          onOpenMenu();
+          return;
+        }
+
         final route = bottomItems[index].route;
         if (route != null) onNavigate(route);
       },
@@ -183,11 +188,6 @@ class AppShellBottomNav extends ConsumerWidget {
           label: tr(lang, 'nav.home'),
         ),
         BottomNavigationBarItem(
-          icon: Icon(PhosphorIcons.trophy(PhosphorIconsStyle.regular)),
-          activeIcon: Icon(PhosphorIcons.trophy(PhosphorIconsStyle.fill)),
-          label: tr(lang, 'nav.league'),
-        ),
-        BottomNavigationBarItem(
           icon: Icon(PhosphorIcons.shield(PhosphorIconsStyle.regular)),
           activeIcon: Icon(PhosphorIcons.shield(PhosphorIconsStyle.fill)),
           label: tr(lang, 'nav.myTeams'),
@@ -196,6 +196,11 @@ class AppShellBottomNav extends ConsumerWidget {
           icon: Icon(PhosphorIcons.plusCircle(PhosphorIconsStyle.regular)),
           activeIcon: Icon(PhosphorIcons.plusCircle(PhosphorIconsStyle.fill)),
           label: tr(lang, 'nav.create'),
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(PhosphorIcons.list(PhosphorIconsStyle.regular)),
+          activeIcon: Icon(PhosphorIcons.list(PhosphorIconsStyle.fill)),
+          label: tr(lang, 'common.menu'),
         ),
       ],
     );
@@ -244,6 +249,27 @@ class AppShellDrawer extends ConsumerWidget {
                 _AppShellNavTile(
                   index: AppShellNavIndexes.createTeam,
                   item: navItems[AppShellNavIndexes.createTeam],
+                  selectedIndex: selectedIndex,
+                  expanded: true,
+                  onNavigate: onNavigate,
+                ),
+                _AppShellNavTile(
+                  index: AppShellNavIndexes.tactics,
+                  item: navItems[AppShellNavIndexes.tactics],
+                  selectedIndex: selectedIndex,
+                  expanded: true,
+                  onNavigate: onNavigate,
+                ),
+                _AppShellNavTile(
+                  index: AppShellNavIndexes.myTactics,
+                  item: navItems[AppShellNavIndexes.myTactics],
+                  selectedIndex: selectedIndex,
+                  expanded: true,
+                  onNavigate: onNavigate,
+                ),
+                _AppShellNavTile(
+                  index: AppShellNavIndexes.quickMatch,
+                  item: navItems[AppShellNavIndexes.quickMatch],
                   selectedIndex: selectedIndex,
                   expanded: true,
                   onNavigate: onNavigate,

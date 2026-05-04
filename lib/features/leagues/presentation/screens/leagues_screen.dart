@@ -28,20 +28,22 @@ class _LeaguesScreenState extends ConsumerState<LeaguesScreen> {
   @override
   Widget build(BuildContext context) {
     final leaguesAsync = ref.watch(myLeaguesSummaryProvider);
-    final isWide = MediaQuery.of(context).size.width >= 1000;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isWide = screenWidth >= 1000;
+    final isCompact = screenWidth < 700;
     final lang = ref.watch(localeProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Column(
         children: [
-          _buildTopBar(context, isWide, lang),
+          _buildTopBar(context, isWide, isCompact, lang),
           Expanded(
             child: leaguesAsync.when(
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (err, _) => _buildError(err, lang),
               data: (leagues) =>
-                  _buildDashboard(context, leagues, isWide, lang),
+                  _buildDashboard(context, leagues, isWide, isCompact, lang),
             ),
           ),
         ],
@@ -53,101 +55,195 @@ class _LeaguesScreenState extends ConsumerState<LeaguesScreen> {
   // TOP BAR
   // ══════════════════════════════════════════════════════════════════════════
 
-  Widget _buildTopBar(BuildContext context, bool isWide, String lang) {
+  Widget _buildTopBar(
+      BuildContext context, bool isWide, bool isCompact, String lang) {
     return Container(
       color: AppColors.surface,
       child: SafeArea(
         bottom: false,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          child: Row(
-            children: [
-              // Title section
-              Row(
-                children: [
-                  Text(
-                    tr(lang, 'dashboard.title'),
-                    style: TextStyle(
-                      fontFamily: AppTypography.displayFontFamily,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
-                      letterSpacing: 1,
+          child: isCompact
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                tr(lang, 'dashboard.title'),
+                                style: TextStyle(
+                                  fontFamily: AppTypography.displayFontFamily,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textPrimary,
+                                  letterSpacing: 1,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                tr(lang, 'dashboard.subtitle'),
+                                style: TextStyle(
+                                    fontSize: 12, color: AppColors.textMuted),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceLight,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                              PhosphorIcons.user(PhosphorIconsStyle.fill),
+                              size: 16,
+                              color: AppColors.textMuted),
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  Text(
-                    tr(lang, 'dashboard.subtitle'),
-                    style: TextStyle(fontSize: 12, color: AppColors.textMuted),
-                  ),
-                ],
-              ),
-              const Spacer(),
-              // Action buttons
-              OutlinedButton.icon(
-                onPressed: () => context.go('/teams/create'),
-                icon:
-                    Icon(PhosphorIcons.plus(PhosphorIconsStyle.bold), size: 14),
-                label: Text(
-                    isWide
-                        ? tr(lang, 'leagues.createTeam')
-                        : tr(lang, 'leagues.team'),
-                    style: const TextStyle(fontSize: 12)),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.textSecondary,
-                  side: const BorderSide(color: AppColors.surfaceLight),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: [
+                        OutlinedButton.icon(
+                          onPressed: () => context.go('/create-team'),
+                          icon: Icon(
+                              PhosphorIcons.plus(PhosphorIconsStyle.bold),
+                              size: 14),
+                          label: Text(tr(lang, 'leagues.team'),
+                              style: const TextStyle(fontSize: 12)),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.textSecondary,
+                            side:
+                                const BorderSide(color: AppColors.surfaceLight),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 8),
+                          ),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: () => context.go('/leagues/create'),
+                          icon: Icon(
+                              PhosphorIcons.trophy(PhosphorIconsStyle.bold),
+                              size: 14),
+                          label: Text(tr(lang, 'leagues.league'),
+                              style: const TextStyle(fontSize: 12)),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.accent,
+                            side: const BorderSide(color: AppColors.accent),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 8),
+                          ),
+                        ),
+                        FilledButton.icon(
+                          onPressed: () => context.go('/leagues/join'),
+                          icon: Icon(
+                              PhosphorIcons.signIn(PhosphorIconsStyle.bold),
+                              size: 14),
+                          label: Text(tr(lang, 'leagues.join'),
+                              style: const TextStyle(fontSize: 12)),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: AppColors.accent,
+                            foregroundColor: AppColors.background,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 8),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                )
+              : Row(
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          tr(lang, 'dashboard.title'),
+                          style: TextStyle(
+                            fontFamily: AppTypography.displayFontFamily,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Text(
+                          tr(lang, 'dashboard.subtitle'),
+                          style: TextStyle(
+                              fontSize: 12, color: AppColors.textMuted),
+                        ),
+                      ],
+                    ),
+                    const Spacer(),
+                    OutlinedButton.icon(
+                      onPressed: () => context.go('/create-team'),
+                      icon: Icon(PhosphorIcons.plus(PhosphorIconsStyle.bold),
+                          size: 14),
+                      label: Text(
+                          isWide
+                              ? tr(lang, 'leagues.createTeam')
+                              : tr(lang, 'leagues.team'),
+                          style: const TextStyle(fontSize: 12)),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.textSecondary,
+                        side: const BorderSide(color: AppColors.surfaceLight),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 8),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    OutlinedButton.icon(
+                      onPressed: () => context.go('/leagues/create'),
+                      icon: Icon(PhosphorIcons.trophy(PhosphorIconsStyle.bold),
+                          size: 14),
+                      label: Text(
+                          isWide
+                              ? tr(lang, 'leagues.createLeague')
+                              : tr(lang, 'leagues.league'),
+                          style: const TextStyle(fontSize: 12)),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.accent,
+                        side: const BorderSide(color: AppColors.accent),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 8),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    FilledButton.icon(
+                      onPressed: () => context.go('/leagues/join'),
+                      icon: Icon(PhosphorIcons.signIn(PhosphorIconsStyle.bold),
+                          size: 14),
+                      label: Text(
+                          isWide
+                              ? tr(lang, 'leagues.joinLeague')
+                              : tr(lang, 'leagues.join'),
+                          style: const TextStyle(fontSize: 12)),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.accent,
+                        foregroundColor: AppColors.background,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 8),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceLight,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(PhosphorIcons.user(PhosphorIconsStyle.fill),
+                          size: 16, color: AppColors.textMuted),
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(width: 10),
-              OutlinedButton.icon(
-                onPressed: () => context.go('/leagues/create'),
-                icon: Icon(PhosphorIcons.trophy(PhosphorIconsStyle.bold),
-                    size: 14),
-                label: Text(
-                    isWide
-                        ? tr(lang, 'leagues.createLeague')
-                        : tr(lang, 'leagues.league'),
-                    style: const TextStyle(fontSize: 12)),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.accent,
-                  side: const BorderSide(color: AppColors.accent),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                ),
-              ),
-              const SizedBox(width: 10),
-              FilledButton.icon(
-                onPressed: () => context.go('/leagues/join'),
-                icon: Icon(PhosphorIcons.signIn(PhosphorIconsStyle.bold),
-                    size: 14),
-                label: Text(
-                    isWide
-                        ? tr(lang, 'leagues.joinLeague')
-                        : tr(lang, 'leagues.join'),
-                    style: const TextStyle(fontSize: 12)),
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.accent,
-                  foregroundColor: AppColors.background,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                ),
-              ),
-              const SizedBox(width: 12),
-              // Avatar placeholder
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceLight,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(PhosphorIcons.user(PhosphorIconsStyle.fill),
-                    size: 16, color: AppColors.textMuted),
-              ),
-            ],
-          ),
         ),
       ),
     );
@@ -158,7 +254,7 @@ class _LeaguesScreenState extends ConsumerState<LeaguesScreen> {
   // ══════════════════════════════════════════════════════════════════════════
 
   Widget _buildDashboard(BuildContext context, List<LeagueSummaryModel> leagues,
-      bool isWide, String lang) {
+      bool isWide, bool isCompact, String lang) {
     if (leagues.isEmpty) {
       return _buildEmpty(context, lang);
     }
@@ -172,7 +268,7 @@ class _LeaguesScreenState extends ConsumerState<LeaguesScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Stats row
-            _buildStatsRow(leagues, lang),
+            _buildStatsSection(leagues, isCompact, lang),
             const SizedBox(height: 24),
             // Main content
             if (isWide)
@@ -189,48 +285,61 @@ class _LeaguesScreenState extends ConsumerState<LeaguesScreen> {
   // STATS ROW
   // ══════════════════════════════════════════════════════════════════════════
 
-  Widget _buildStatsRow(List<LeagueSummaryModel> leagues, String lang) {
-    return Row(
-      children: [
-        Expanded(
-          child: _StatCard(
-            icon: PhosphorIcons.usersThree(PhosphorIconsStyle.fill),
-            label: tr(lang, 'dashboard.matchesPlayed'),
-            value: '0',
-            subtext: trf(lang, 'dashboard.matchesThisSeason', {'n': '0'}),
-            subtextColor: AppColors.success,
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _StatCard(
-            icon: PhosphorIcons.trophy(PhosphorIconsStyle.fill),
-            label: tr(lang, 'dashboard.winRate'),
-            value: '0%',
-            subtext: trf(lang, 'dashboard.totalWinsCount', {'n': '0'}),
-            subtextColor: AppColors.error,
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _StatCard(
-            icon: PhosphorIcons.star(PhosphorIconsStyle.fill),
-            label: tr(lang, 'dashboard.totalSpp'),
-            value: '0',
-            subtext: tr(lang, 'dashboard.allActiveTeams'),
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _StatCard(
-            icon: PhosphorIcons.firstAid(PhosphorIconsStyle.fill),
-            label: tr(lang, 'dashboard.casualties'),
-            value: '0',
-            subtext: tr(lang, 'dashboard.bloodForNuffle'),
-            iconColor: AppColors.error,
-          ),
-        ),
-      ],
+  Widget _buildStatsSection(
+      List<LeagueSummaryModel> leagues, bool isCompact, String lang) {
+    final cards = [
+      _StatCard(
+        icon: PhosphorIcons.usersThree(PhosphorIconsStyle.fill),
+        label: tr(lang, 'dashboard.matchesPlayed'),
+        value: '0',
+        subtext: trf(lang, 'dashboard.matchesThisSeason', {'n': '0'}),
+        subtextColor: AppColors.success,
+      ),
+      _StatCard(
+        icon: PhosphorIcons.trophy(PhosphorIconsStyle.fill),
+        label: tr(lang, 'dashboard.winRate'),
+        value: '0%',
+        subtext: trf(lang, 'dashboard.totalWinsCount', {'n': '0'}),
+        subtextColor: AppColors.error,
+      ),
+      _StatCard(
+        icon: PhosphorIcons.star(PhosphorIconsStyle.fill),
+        label: tr(lang, 'dashboard.totalSpp'),
+        value: '0',
+        subtext: tr(lang, 'dashboard.allActiveTeams'),
+      ),
+      _StatCard(
+        icon: PhosphorIcons.firstAid(PhosphorIconsStyle.fill),
+        label: tr(lang, 'dashboard.casualties'),
+        value: '0',
+        subtext: tr(lang, 'dashboard.bloodForNuffle'),
+        iconColor: AppColors.error,
+      ),
+    ];
+
+    if (!isCompact) {
+      return Row(
+        children: [
+          for (var index = 0; index < cards.length; index++) ...[
+            Expanded(child: cards[index]),
+            if (index != cards.length - 1) const SizedBox(width: 16),
+          ],
+        ],
+      );
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cardWidth = (constraints.maxWidth - 12) / 2;
+
+        return Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: cards
+              .map((card) => SizedBox(width: cardWidth, child: card))
+              .toList(),
+        );
+      },
     );
   }
 
@@ -275,27 +384,36 @@ class _LeaguesScreenState extends ConsumerState<LeaguesScreen> {
 
   Widget _buildLeaguesSection(
       BuildContext context, List<LeagueSummaryModel> leagues, String lang) {
+    final isCompact = MediaQuery.of(context).size.width < 700;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Header with toggle
-        Row(
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          alignment: WrapAlignment.spaceBetween,
           children: [
-            Icon(PhosphorIcons.trophy(PhosphorIconsStyle.fill),
-                size: 18, color: AppColors.primary),
-            const SizedBox(width: 8),
-            Text(
-              tr(lang, 'dashboard.activeLeagues'),
-              style: TextStyle(
-                fontFamily: AppTypography.displayFontFamily,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-                letterSpacing: 1,
-              ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(PhosphorIcons.trophy(PhosphorIconsStyle.fill),
+                    size: 18, color: AppColors.primary),
+                const SizedBox(width: 8),
+                Text(
+                  tr(lang, 'dashboard.activeLeagues'),
+                  style: TextStyle(
+                    fontFamily: AppTypography.displayFontFamily,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                    letterSpacing: 1,
+                  ),
+                ),
+              ],
             ),
-            const Spacer(),
-            // View toggle
             Container(
               decoration: BoxDecoration(
                 color: AppColors.surface,
@@ -303,6 +421,7 @@ class _LeaguesScreenState extends ConsumerState<LeaguesScreen> {
                 border: Border.all(color: AppColors.surfaceLight),
               ),
               child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   _viewToggleButton(
                     icon: PhosphorIcons.squaresFour(PhosphorIconsStyle.fill),
@@ -321,7 +440,7 @@ class _LeaguesScreenState extends ConsumerState<LeaguesScreen> {
         ),
         const SizedBox(height: 16),
         // Leagues grid/list
-        if (_isGridView)
+        if (_isGridView && !isCompact)
           _buildLeaguesGrid(context, leagues, lang)
         else
           _buildLeaguesList(context, leagues, lang),
@@ -351,20 +470,29 @@ class _LeaguesScreenState extends ConsumerState<LeaguesScreen> {
 
   Widget _buildLeaguesGrid(
       BuildContext context, List<LeagueSummaryModel> leagues, String lang) {
-    return Wrap(
-      spacing: 20,
-      runSpacing: 20,
-      children: leagues
-          .map((l) => SizedBox(
-                width: 420,
-                child: _DashboardLeagueCard(
-                  league: l,
-                  lang: lang,
-                  onManage:
-                      l.isOwner ? () => _showManageDialog(context, l) : null,
-                ),
-              ))
-          .toList(),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cardWidth = constraints.maxWidth >= 900
+            ? (constraints.maxWidth - 20) / 2
+            : constraints.maxWidth;
+
+        return Wrap(
+          spacing: 20,
+          runSpacing: 20,
+          children: leagues
+              .map((l) => SizedBox(
+                    width: cardWidth.clamp(280.0, 420.0),
+                    child: _DashboardLeagueCard(
+                      league: l,
+                      lang: lang,
+                      onManage: l.isOwner
+                          ? () => _showManageDialog(context, l)
+                          : null,
+                    ),
+                  ))
+              .toList(),
+        );
+      },
     );
   }
 
@@ -439,6 +567,8 @@ class _LeaguesScreenState extends ConsumerState<LeaguesScreen> {
   // ══════════════════════════════════════════════════════════════════════════
 
   Widget _buildNotificationsSection(String lang) {
+    final isCompact = MediaQuery.of(context).size.width < 700;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -450,22 +580,23 @@ class _LeaguesScreenState extends ConsumerState<LeaguesScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header
-          Row(
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               Icon(PhosphorIcons.bell(PhosphorIconsStyle.fill),
                   size: 18, color: AppColors.accent),
-              const SizedBox(width: 8),
               Text(
                 tr(lang, 'dashboard.notifications'),
                 style: TextStyle(
                   fontFamily: AppTypography.displayFontFamily,
-                  fontSize: 22,
+                  fontSize: isCompact ? 18 : 22,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textPrimary,
                   letterSpacing: 1,
                 ),
               ),
-              const Spacer(),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
@@ -542,33 +673,37 @@ class _LeaguesScreenState extends ConsumerState<LeaguesScreen> {
               style: TextStyle(fontSize: 14, color: AppColors.textMuted),
             ),
             const SizedBox(height: 32),
-            Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-              OutlinedButton.icon(
-                onPressed: () => context.go('/leagues/join'),
-                icon:
-                    Icon(PhosphorIcons.key(PhosphorIconsStyle.bold), size: 16),
-                label: Text(tr(lang, 'dashboard.joinWithCode')),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.textSecondary,
-                  side: const BorderSide(color: AppColors.surfaceLight),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 16,
+              runSpacing: 12,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: () => context.go('/leagues/join'),
+                  icon: Icon(PhosphorIcons.key(PhosphorIconsStyle.bold),
+                      size: 16),
+                  label: Text(tr(lang, 'dashboard.joinWithCode')),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.textSecondary,
+                    side: const BorderSide(color: AppColors.surfaceLight),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 12),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 16),
-              FilledButton.icon(
-                onPressed: () => context.go('/leagues/create'),
-                icon:
-                    Icon(PhosphorIcons.plus(PhosphorIconsStyle.bold), size: 16),
-                label: Text(tr(lang, 'dashboard.createLeague')),
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: AppColors.textPrimary,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                FilledButton.icon(
+                  onPressed: () => context.go('/leagues/create'),
+                  icon: Icon(PhosphorIcons.plus(PhosphorIconsStyle.bold),
+                      size: 16),
+                  label: Text(tr(lang, 'dashboard.createLeague')),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: AppColors.textPrimary,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 12),
+                  ),
                 ),
-              ),
-            ]),
+              ],
+            ),
           ],
         ),
       ),

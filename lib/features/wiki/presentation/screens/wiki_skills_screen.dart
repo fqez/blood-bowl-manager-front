@@ -33,7 +33,7 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildAdvancementTable(lang),
+          _buildAdvancementTable(lang, perksAsync),
           const SizedBox(height: 32),
           _buildSkillsSection(perksAsync, lang),
           const SizedBox(height: 40),
@@ -44,7 +44,10 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
 
   // -- Advancement Table (dice roll → skill category) -------------------------
 
-  Widget _buildAdvancementTable(String lang) {
+  Widget _buildAdvancementTable(
+      String lang, AsyncValue<List<Map<String, dynamic>>> perksAsync) {
+    final perks = perksAsync.valueOrNull ?? const <Map<String, dynamic>>[];
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -79,114 +82,319 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
             style: TextStyle(fontSize: 12, color: AppColors.textMuted),
           ),
           const SizedBox(height: 16),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: _buildTable(),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              if (constraints.maxWidth < 420) {
+                return _buildCompactAdvancementList(lang, perks);
+              }
+
+              return Center(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: _buildTable(lang, perks),
+                ),
+              );
+            },
           ),
         ],
       ),
     );
   }
 
-  Widget _buildTable() {
-    final headers = [
-      '1er D6',
-      '2do D6',
-      'AGILITY',
-      'GENERAL',
-      'MUTATION',
-      'PASSING',
-      'STRENGTH',
-    ];
-    final headerColors = [
-      AppColors.textMuted,
-      AppColors.textMuted,
-      AppColors.skillAgility,
-      AppColors.skillGeneral,
-      AppColors.skillMutation,
-      AppColors.skillPassing,
-      AppColors.skillStrength,
+  List<String> _advancementHeaders(String lang) => [
+        '1er D6',
+        '2do D6',
+        lang == 'es' ? 'AGILIDAD' : 'AGILITY',
+        'GENERAL',
+        lang == 'es' ? 'MUTACION' : 'MUTATION',
+        lang == 'es' ? 'PASE' : 'PASSING',
+        lang == 'es' ? 'FUERZA' : 'STRENGTH',
+      ];
+
+  List<Color> get _advancementHeaderColors => [
+        AppColors.textMuted,
+        AppColors.textMuted,
+        AppColors.skillAgility,
+        AppColors.skillGeneral,
+        AppColors.skillMutation,
+        AppColors.skillPassing,
+        AppColors.skillStrength,
+      ];
+
+  List<List<String>> get _advancementRows => [
+        ['1-3', '1', 'Catch', 'Dauntless', 'Big Hand', 'Accurate', 'Arm Bar'],
+        [
+          '1-3',
+          '2',
+          'Diving Catch',
+          'Dirty Player',
+          'Disturbing Presence',
+          'Cannoneer',
+          'Brawler'
+        ],
+        [
+          '1-3',
+          '3',
+          'Diving Tackle',
+          'Fend',
+          'Foul Appearance',
+          'Cloud Burster',
+          'Break Tackle'
+        ],
+        ['1-3', '4', 'Dodge', 'Frenzy', 'Horns', 'Dump-Off', 'Grab'],
+        [
+          '1-3',
+          '5',
+          'Defensive',
+          'Kick',
+          'Iron Hard Skin',
+          'Fumblerooskie',
+          'Guard'
+        ],
+        [
+          '1-3',
+          '6',
+          'Jump Up',
+          'Pro',
+          'Tentacles',
+          'Hail Mary Pass',
+          'Juggernaut'
+        ],
+        ['4-6', '1', 'Leap', 'Shadowing', 'Two Heads', 'Leader', 'Mighty Blow'],
+        [
+          '4-6',
+          '2',
+          'Safe Pair of Hands',
+          'Strip Ball',
+          'Very Long Legs',
+          'Nerves of Steel',
+          'Multiple Block'
+        ],
+        [
+          '4-6',
+          '3',
+          'Sidestep',
+          'Sure Hands',
+          'Monstrous Mouth',
+          'On the Ball',
+          'Pile Driver'
+        ],
+        [
+          '4-6',
+          '4',
+          'Sneaky Git',
+          'Tackle',
+          'Prehensile Tail',
+          'Pass',
+          'Stand Firm'
+        ],
+        [
+          '4-6',
+          '5',
+          'Sprint',
+          'Wrestle',
+          'Extra Arms',
+          'Running Pass',
+          'Strong Arm'
+        ],
+        ['4-6', '6', 'Sure Feet', 'Block', 'Claws', 'Safe Pass', 'Thick Skull'],
+      ];
+
+  String _localizedSkillName(
+      String englishName, List<Map<String, dynamic>> perks, String lang) {
+    if (lang == 'en') return englishName;
+
+    final normalized = englishName.toLowerCase().trim();
+    for (final perk in perks) {
+      final nameMap = perk['name'] as Map? ?? {};
+      final english = (nameMap['en'] as String? ?? '').toLowerCase().trim();
+      if (english == normalized) {
+        return nameMap[lang] as String? ?? englishName;
+      }
+    }
+
+    return _spanishAdvancementSkillFallbacks[englishName] ?? englishName;
+  }
+
+  static const Map<String, String> _spanishAdvancementSkillFallbacks = {
+    'Catch': 'Atrapar',
+    'Dauntless': 'Agallas',
+    'Big Hand': 'Mano Grande',
+    'Accurate': 'Precisión',
+    'Arm Bar': 'Llave de Brazo',
+    'Diving Catch': 'Recepción Heroica',
+    'Dirty Player': 'Jugar Sucio',
+    'Disturbing Presence': 'Presencia Perturbadora',
+    'Cannoneer': 'Bombardero',
+    'Brawler': 'Luchador',
+    'Diving Tackle': 'Placaje Heroico',
+    'Fend': 'Zafarse',
+    'Foul Appearance': 'Apariencia Asquerosa',
+    'Cloud Burster': 'Parte Nubes',
+    'Break Tackle': 'Abrirse Paso',
+    'Dodge': 'Esquivar',
+    'Frenzy': 'Furia',
+    'Horns': 'Cuernos',
+    'Dump-Off': 'Liberar Rápido',
+    'Grab': 'Apartar',
+    'Defensive': 'Rompe defensas',
+    'Kick': 'Patada',
+    'Iron Hard Skin': 'Piel Ferrea',
+    'Fumblerooskie': 'Fumblerooskie',
+    'Guard': 'Defensa',
+    'Jump Up': 'En Pie de un Salto',
+    'Pro': 'Profesional',
+    'Tentacles': 'Tentáculos',
+    'Hail Mary Pass': 'Pase a lo Loco',
+    'Juggernaut': 'Imparable',
+    'Leap': 'Saltar',
+    'Shadowing': 'Perseguir',
+    'Two Heads': 'Dos Cabezas',
+    'Leader': 'Líder',
+    'Mighty Blow': 'Golpe Mortífero',
+    'Safe Pair of Hands': 'Proteger el Cuero',
+    'Strip Ball': 'Robar Balón',
+    'Very Long Legs': 'Piernas Muy Largas',
+    'Nerves of Steel': 'Nervios de Acero',
+    'Multiple Block': 'Placaje Múltiple',
+    'Sidestep': 'Paso Lateral',
+    'Sure Hands': 'Manos Seguras',
+    'Monstrous Mouth': 'Boca Monstruosa',
+    'On the Ball': 'Atento al Balón',
+    'Pile Driver': 'Crujir',
+    'Sneaky Git': 'Furtivo',
+    'Tackle': 'Placaje Defensivo',
+    'Prehensile Tail': 'Cola Prensil',
+    'Pass': 'Pasar',
+    'Stand Firm': 'Mantenerse Firme',
+    'Sprint': 'Esprintar',
+    'Wrestle': 'Forcejeo',
+    'Extra Arms': 'Brazos Adicionales',
+    'Running Pass': 'Pase en carrera',
+    'Strong Arm': 'Brazo Fuerte',
+    'Sure Feet': 'Pies Firmes',
+    'Block': 'Placar',
+    'Claws': 'Garras',
+    'Safe Pass': 'Pase Seguro',
+    'Thick Skull': 'Cabeza Dura',
+  };
+
+  Widget _buildCompactAdvancementList(
+      String lang, List<Map<String, dynamic>> perks) {
+    final headers = _advancementHeaders(lang);
+    final headerColors = _advancementHeaderColors;
+    final rows = _advancementRows;
+    final families = [
+      '',
+      '',
+      'Agility',
+      'General',
+      'Mutation',
+      'Passing',
+      'Strength',
     ];
 
-    // Advancement table data: [1stD6, 2ndD6, Agility, General, Mutation, Passing, Strength, Extraordinary]
-    final rows = [
-      ['1-3', '1', 'Catch', 'Dauntless', 'Big Hand', 'Accurate', 'Arm Bar'],
-      [
-        '1-3',
-        '2',
-        'Diving Catch',
-        'Dirty Player',
-        'Disturbing Presence',
-        'Cannoneer',
-        'Brawler'
-      ],
-      [
-        '1-3',
-        '3',
-        'Diving Tackle',
-        'Fend',
-        'Foul Appearance',
-        'Cloud Burster',
-        'Break Tackle'
-      ],
-      ['1-3', '4', 'Dodge', 'Frenzy', 'Horns', 'Dump-Off', 'Grab'],
-      [
-        '1-3',
-        '5',
-        'Defensive',
-        'Kick',
-        'Iron Hard Skin',
-        'Fumblerooskie',
-        'Guard'
-      ],
-      [
-        '1-3',
-        '6',
-        'Jump Up',
-        'Pro',
-        'Tentacles',
-        'Hail Mary Pass',
-        'Juggernaut'
-      ],
-      ['4-6', '1', 'Leap', 'Shadowing', 'Two Heads', 'Leader', 'Mighty Blow'],
-      [
-        '4-6',
-        '2',
-        'Safe Pair of Hands',
-        'Strip Ball',
-        'Very Long Legs',
-        'Nerves of Steel',
-        'Multiple Block'
-      ],
-      [
-        '4-6',
-        '3',
-        'Sidestep',
-        'Sure Hands',
-        'Monstrous Mouth',
-        'On the Ball',
-        'Pile Driver'
-      ],
-      [
-        '4-6',
-        '4',
-        'Sneaky Git',
-        'Tackle',
-        'Prehensile Tail',
-        'Pass',
-        'Stand Firm'
-      ],
-      [
-        '4-6',
-        '5',
-        'Sprint',
-        'Wrestle',
-        'Extra Arms',
-        'Running Pass',
-        'Strong Arm'
-      ],
-      ['4-6', '6', 'Sure Feet', 'Block', 'Claws', 'Safe Pass', 'Thick Skull'],
-    ];
+    return Column(
+      children: List.generate(rows.length, (rowIdx) {
+        final row = rows[rowIdx];
+        final isTopHalf = rowIdx < 6;
+
+        return Container(
+          width: double.infinity,
+          margin: EdgeInsets.only(bottom: rowIdx == rows.length - 1 ? 0 : 10),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: isTopHalf
+                ? AppColors.surface.withOpacity(0.35)
+                : AppColors.surface.withOpacity(0.7),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: AppColors.surfaceLight),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _buildDiceBadge(headers[0], row[0]),
+                  _buildDiceBadge(headers[1], row[1]),
+                ],
+              ),
+              const SizedBox(height: 10),
+              ...List.generate(5, (skillIdx) {
+                final colIdx = skillIdx + 2;
+                final color = headerColors[colIdx];
+
+                return InkWell(
+                  borderRadius: BorderRadius.circular(6),
+                  onTap: () => showSkillPopup(context, ref,
+                      skillName: row[colIdx], family: families[colIdx]),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(
+                          width: 78,
+                          child: Text(
+                            headers[colIdx],
+                            style: TextStyle(
+                              fontFamily: AppTypography.displayFontFamily,
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              color: color,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _localizedSkillName(row[colIdx], perks, lang),
+                            style: TextStyle(
+                              fontSize: 15,
+                              color: color.withOpacity(0.9),
+                              decoration: TextDecoration.underline,
+                              decorationColor: color.withOpacity(0.4),
+                              decorationStyle: TextDecorationStyle.dotted,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }),
+            ],
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _buildDiceBadge(String label, String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppColors.accent.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.accent.withOpacity(0.25)),
+      ),
+      child: Text(
+        '$label: $value',
+        style: const TextStyle(
+          fontSize: 12,
+          color: AppColors.accent,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTable(String lang, List<Map<String, dynamic>> perks) {
+    final headers = _advancementHeaders(lang);
+    final headerColors = _advancementHeaderColors;
+    final rows = _advancementRows;
 
     return DataTable(
       headingRowColor: WidgetStateProperty.all(AppColors.surface),
@@ -249,7 +457,7 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
-                              row[colIdx],
+                              _localizedSkillName(row[colIdx], perks, lang),
                               style: TextStyle(
                                 fontSize: 15,
                                 color: textColor,
@@ -265,6 +473,8 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
                     )
                   : Text(
                       row[colIdx],
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 12,
                         color: textColor,
@@ -328,14 +538,15 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: sortedFamilies.map((family) {
             final familyPerks = families[family]!;
-            return _buildFamilySection(family, familyPerks);
+            return _buildFamilySection(family, familyPerks, lang);
           }).toList(),
         );
       },
     );
   }
 
-  Widget _buildFamilySection(String family, List<Map<String, dynamic>> perks) {
+  Widget _buildFamilySection(
+      String family, List<Map<String, dynamic>> perks, String lang) {
     final color = _familyColor(family);
 
     return Container(
@@ -405,7 +616,8 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
                           crossAxisCount;
                   return SizedBox(
                     width: cardWidth,
-                    child: _buildSkillCard(perk, family),
+                    height: constraints.maxWidth > 600 ? 132 : 148,
+                    child: _buildSkillCard(perk, family, lang),
                   );
                 }).toList(),
               );
@@ -416,13 +628,24 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
     );
   }
 
-  Widget _buildSkillCard(Map<String, dynamic> perk, String family) {
+  Widget _buildSkillCard(
+      Map<String, dynamic> perk, String family, String lang) {
     final perkId = perk['_id'] as String? ?? '';
     final nameMap = perk['name'] as Map? ?? {};
     final nameEs = nameMap['es'] as String? ?? '';
     final nameEn = nameMap['en'] as String? ?? '';
     final descMap = perk['description'] as Map? ?? {};
-    final descEs = descMap['es'] as String? ?? descMap['en'] as String? ?? '';
+    final descEs = descMap['es'] as String? ?? '';
+    final descEn = descMap['en'] as String? ?? '';
+    final primaryName = lang == 'es'
+        ? (nameEs.isNotEmpty ? nameEs : nameEn)
+        : (nameEn.isNotEmpty ? nameEn : nameEs);
+    final secondaryName = lang == 'es'
+        ? (nameEn.isNotEmpty ? nameEn : nameEs)
+        : (nameEs.isNotEmpty ? nameEs : nameEn);
+    final description = lang == 'es'
+        ? (descEs.isNotEmpty ? descEs : descEn)
+        : (descEn.isNotEmpty ? descEn : descEs);
     final color = _familyColor(family);
 
     return GestureDetector(
@@ -431,6 +654,7 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
         child: Container(
+          height: double.infinity,
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             color: AppColors.card,
@@ -469,7 +693,9 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      nameEs.toUpperCase(),
+                      primaryName.toUpperCase(),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontFamily: AppTypography.displayFontFamily,
                         fontSize: 20,
@@ -477,14 +703,17 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
                         color: AppColors.textPrimary,
                       ),
                     ),
-                    if (nameEn.isNotEmpty)
-                      Text(nameEn,
+                    if (secondaryName.isNotEmpty &&
+                        secondaryName != primaryName)
+                      Text(secondaryName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                               fontSize: 16, color: AppColors.textMuted)),
                     const SizedBox(height: 6),
                     Text(
-                      descEs,
-                      maxLines: 3,
+                      description,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                           fontSize: 11,

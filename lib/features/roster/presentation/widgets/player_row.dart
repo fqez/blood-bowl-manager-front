@@ -34,19 +34,47 @@ class PlayerRow extends ConsumerWidget {
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(12),
-          child: Row(
-            children: [
-              _buildJerseyNumber(),
-              const SizedBox(width: 12),
-              Expanded(child: _buildInfo()),
-              _buildStats(),
-              const SizedBox(width: 8),
-              Icon(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final isCompact = constraints.maxWidth < 460;
+              final caret = Icon(
                 PhosphorIcons.caretRight(PhosphorIconsStyle.bold),
                 color: AppColors.textMuted,
                 size: 16,
-              ),
-            ],
+              );
+
+              if (isCompact) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        _buildJerseyNumber(),
+                        const SizedBox(width: 12),
+                        Expanded(child: _buildInfo()),
+                        caret,
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: _buildStats(),
+                    ),
+                  ],
+                );
+              }
+
+              return Row(
+                children: [
+                  _buildJerseyNumber(),
+                  const SizedBox(width: 12),
+                  Expanded(child: _buildInfo()),
+                  _buildStats(),
+                  const SizedBox(width: 8),
+                  caret,
+                ],
+              );
+            },
           ),
         ),
       ),
@@ -158,19 +186,25 @@ class PlayerRow extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 4),
-        Row(
+        Wrap(
+          spacing: 8,
+          runSpacing: 4,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             _buildLevelBadge(),
-            const SizedBox(width: 8),
-            if (character.skills.isNotEmpty) ...[
-              Icon(PhosphorIcons.sparkle(PhosphorIconsStyle.fill),
-                  size: 12, color: AppColors.info),
-              const SizedBox(width: 2),
-              Text(
-                '${character.skills.length} habs',
-                style: TextStyle(fontSize: 11, color: AppColors.info),
+            if (character.skills.isNotEmpty)
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(PhosphorIcons.sparkle(PhosphorIconsStyle.fill),
+                      size: 12, color: AppColors.info),
+                  const SizedBox(width: 2),
+                  Text(
+                    '${character.skills.length} habs',
+                    style: TextStyle(fontSize: 11, color: AppColors.info),
+                  ),
+                ],
               ),
-            ],
           ],
         ),
       ],
@@ -243,8 +277,9 @@ class PlayerRow extends ConsumerWidget {
   }
 
   Color _getBorderColor() {
-    if (character.status == PlayerStatus.dead)
+    if (character.status == PlayerStatus.dead) {
       return AppColors.textMuted.withOpacity(0.5);
+    }
     if (character.status == PlayerStatus.injured) return AppColors.warning;
     if (character.missNextGame) return AppColors.error;
     return AppColors.surfaceLight;

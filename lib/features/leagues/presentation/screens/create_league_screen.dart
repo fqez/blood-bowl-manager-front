@@ -82,10 +82,9 @@ class _CreateLeagueScreenState extends ConsumerState<CreateLeagueScreen> {
       builder: (_) => AlertDialog(
         backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(children: [
+        title: Wrap(spacing: 10, runSpacing: 8, children: [
           Icon(PhosphorIcons.checkCircle(PhosphorIconsStyle.fill),
               color: AppColors.success),
-          const SizedBox(width: 10),
           Text(tr(lang, 'createLeague.created'),
               style: TextStyle(color: AppColors.textPrimary)),
         ]),
@@ -106,8 +105,11 @@ class _CreateLeagueScreenState extends ConsumerState<CreateLeagueScreen> {
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: AppColors.accent.withOpacity(0.5)),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              child: Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 12,
+                runSpacing: 12,
                 children: [
                   Text(
                     code,
@@ -298,6 +300,7 @@ class _CreateLeagueScreenState extends ConsumerState<CreateLeagueScreen> {
       );
 
   Widget _buildFormatSelector(String lang) {
+    final isCompact = MediaQuery.of(context).size.width < 560;
     final options = [
       (
         'round_robin',
@@ -321,11 +324,11 @@ class _CreateLeagueScreenState extends ConsumerState<CreateLeagueScreen> {
         Text(tr(lang, 'createLeague.formatLabel'),
             style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
         const SizedBox(height: 8),
-        Row(
-          children: options
-              .map((opt) => Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.only(right: 8),
+        if (isCompact)
+          Column(
+            children: options
+                .map((opt) => Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
                       child: _FormatOption(
                         value: opt.$1,
                         label: opt.$2,
@@ -333,10 +336,26 @@ class _CreateLeagueScreenState extends ConsumerState<CreateLeagueScreen> {
                         selected: _format == opt.$1,
                         onTap: () => setState(() => _format = opt.$1),
                       ),
-                    ),
-                  ))
-              .toList(),
-        ),
+                    ))
+                .toList(),
+          )
+        else
+          Row(
+            children: options
+                .map((opt) => Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: _FormatOption(
+                          value: opt.$1,
+                          label: opt.$2,
+                          subtitle: opt.$3,
+                          selected: _format == opt.$1,
+                          onTap: () => setState(() => _format = opt.$1),
+                        ),
+                      ),
+                    ))
+                .toList(),
+          ),
       ],
     );
   }

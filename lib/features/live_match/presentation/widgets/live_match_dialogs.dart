@@ -1036,7 +1036,7 @@ extension _LiveMatchDialogs on _LiveMatchScreenState {
     // The newest player is the one whose ID is not in tempIds or selectedIds yet
     for (final p in team.players.reversed) {
       if (!tempIds.contains(p.id) && !selectedIds.contains(p.id)) {
-        setState(() {
+        _updateLocalState(() {
           tempIds.add(p.id);
           // Also auto-select if under 11
           if (selectedIds.length < 11) {
@@ -1069,19 +1069,19 @@ extension _LiveMatchDialogs on _LiveMatchScreenState {
             backgroundColor: AppColors.surface,
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            title: Row(
+            title: Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 Icon(PhosphorIcons.star(PhosphorIconsStyle.fill),
                     color: AppColors.accent, size: 20),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    '${spName.toUpperCase()} — ${_fmtGold(spCost)} GP',
-                    style: const TextStyle(
-                        color: AppColors.accent,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold),
-                  ),
+                Text(
+                  '${spName.toUpperCase()} — ${_fmtGold(spCost)} GP',
+                  style: const TextStyle(
+                      color: AppColors.accent,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold),
                 ),
               ],
             ),

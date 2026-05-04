@@ -32,7 +32,7 @@ class MyTacticsScreen extends ConsumerWidget {
       backgroundColor: AppColors.background,
       body: Column(
         children: [
-          _buildTopBar(lang),
+          _buildTopBar(context, lang),
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(20),
@@ -103,7 +103,9 @@ class MyTacticsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildTopBar(String lang) {
+  Widget _buildTopBar(BuildContext context, String lang) {
+    final isCompact = MediaQuery.of(context).size.width < 700;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: const BoxDecoration(
@@ -112,11 +114,13 @@ class MyTacticsScreen extends ConsumerWidget {
       ),
       child: SafeArea(
         bottom: false,
-        child: Row(
+        child: Wrap(
+          spacing: 10,
+          runSpacing: 4,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             Icon(PhosphorIcons.folder(PhosphorIconsStyle.fill),
                 color: AppColors.accent, size: 22),
-            const SizedBox(width: 12),
             Text(
               'TÁCTICAS',
               style: TextStyle(
@@ -127,8 +131,9 @@ class MyTacticsScreen extends ConsumerWidget {
                 letterSpacing: 1,
               ),
             ),
-            const Text('  >  ',
-                style: TextStyle(fontSize: 11, color: Colors.white38)),
+            if (!isCompact)
+              const Text('  >  ',
+                  style: TextStyle(fontSize: 11, color: Colors.white38)),
             Text(
               tr(lang, 'myTactics.title'),
               style: TextStyle(
@@ -145,6 +150,8 @@ class MyTacticsScreen extends ConsumerWidget {
   }
 
   Widget _buildHeader(BuildContext context, String lang) {
+    final isCompact = MediaQuery.of(context).size.width < 700;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -160,61 +167,120 @@ class MyTacticsScreen extends ConsumerWidget {
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppColors.primary.withOpacity(0.3)),
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
+      child: isCompact
+          ? Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
                     Icon(PhosphorIcons.folder(PhosphorIconsStyle.fill),
-                        color: AppColors.accent, size: 26),
+                        color: AppColors.accent, size: 24),
                     const SizedBox(width: 12),
-                    Text(
-                      tr(lang, 'myTactics.title'),
-                      style: TextStyle(
-                        fontFamily: AppTypography.displayFontFamily,
-                        fontSize: 30,
-                        fontWeight: FontWeight.w900,
-                        color: AppColors.textPrimary,
-                        letterSpacing: 2,
+                    Expanded(
+                      child: Text(
+                        tr(lang, 'myTactics.title'),
+                        style: TextStyle(
+                          fontFamily: AppTypography.displayFontFamily,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.textPrimary,
+                          letterSpacing: 1.4,
+                        ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 8),
                 Text(
                   tr(lang, 'myTactics.subtitle'),
                   style: const TextStyle(
                       fontSize: 13, color: AppColors.textSecondary),
                 ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () => context.go('/tactics'),
+                    icon: Icon(PhosphorIcons.plus(PhosphorIconsStyle.bold),
+                        size: 16),
+                    label: Text(
+                      'NUEVA',
+                      style: TextStyle(
+                        fontFamily: AppTypography.displayFontFamily,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.accent,
+                      foregroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 10),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
+                ),
+              ],
+            )
+          : Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(PhosphorIcons.folder(PhosphorIconsStyle.fill),
+                              color: AppColors.accent, size: 26),
+                          const SizedBox(width: 12),
+                          Text(
+                            tr(lang, 'myTactics.title'),
+                            style: TextStyle(
+                              fontFamily: AppTypography.displayFontFamily,
+                              fontSize: 30,
+                              fontWeight: FontWeight.w900,
+                              color: AppColors.textPrimary,
+                              letterSpacing: 2,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        tr(lang, 'myTactics.subtitle'),
+                        style: const TextStyle(
+                            fontSize: 13, color: AppColors.textSecondary),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 16),
+                ElevatedButton.icon(
+                  onPressed: () => context.go('/tactics'),
+                  icon: Icon(PhosphorIcons.plus(PhosphorIconsStyle.bold),
+                      size: 16),
+                  label: Text(
+                    'NUEVA',
+                    style: TextStyle(
+                      fontFamily: AppTypography.displayFontFamily,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.accent,
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 10),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
               ],
             ),
-          ),
-          const SizedBox(width: 16),
-          ElevatedButton.icon(
-            onPressed: () => context.go('/tactics'),
-            icon: Icon(PhosphorIcons.plus(PhosphorIconsStyle.bold), size: 16),
-            label: Text(
-              'NUEVA',
-              style: TextStyle(
-                fontFamily: AppTypography.displayFontFamily,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 0.5,
-              ),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.accent,
-              foregroundColor: Colors.black,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -280,6 +346,7 @@ class MyTacticsScreen extends ConsumerWidget {
     final goodAgainstCount = tactic['good_against_count'] as int? ?? 0;
     final roster = rosterMap[rosterId];
     final isAttack = mode == 'attack';
+    final isCompact = MediaQuery.of(context).size.width < 700;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -295,123 +362,270 @@ class MyTacticsScreen extends ConsumerWidget {
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: AppColors.surfaceLight),
             ),
-            child: Row(
-              children: [
-                // Team logo
-                SizedBox(
-                  width: 44,
-                  height: 44,
-                  child: roster != null
-                      ? Image.asset(
-                          'assets/teams/${roster.id}/logo.webp',
-                          fit: BoxFit.contain,
-                          errorBuilder: (_, __, ___) => Icon(
-                              PhosphorIcons.shield(PhosphorIconsStyle.fill),
-                              size: 28,
-                              color: AppColors.textMuted),
-                        )
-                      : Icon(PhosphorIcons.shield(PhosphorIconsStyle.fill),
-                          size: 28, color: AppColors.textMuted),
-                ),
-                const SizedBox(width: 14),
-                // Info
-                Expanded(
-                  child: Column(
+            child: isCompact
+                ? Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        name,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 3),
                       Row(
                         children: [
-                          Text(
-                            roster?.name ?? rosterId,
-                            style: const TextStyle(
-                                fontSize: 12, color: AppColors.textSecondary),
+                          SizedBox(
+                            width: 44,
+                            height: 44,
+                            child: roster != null
+                                ? Image.asset(
+                                    'assets/teams/${roster.id}/logo.webp',
+                                    fit: BoxFit.contain,
+                                    errorBuilder: (_, __, ___) => Icon(
+                                        PhosphorIcons.shield(
+                                            PhosphorIconsStyle.fill),
+                                        size: 28,
+                                        color: AppColors.textMuted),
+                                  )
+                                : Icon(
+                                    PhosphorIcons.shield(
+                                        PhosphorIconsStyle.fill),
+                                    size: 28,
+                                    color: AppColors.textMuted),
                           ),
-                          const SizedBox(width: 8),
-                          Text(
-                            '$playerCount jugadores',
-                            style: const TextStyle(
-                                fontSize: 11, color: AppColors.textMuted),
-                          ),
-                          if (goodAgainstCount > 0) ...[
-                            const SizedBox(width: 8),
-                            Icon(PhosphorIcons.sword(PhosphorIconsStyle.fill),
-                                size: 11, color: AppColors.success),
-                            const SizedBox(width: 2),
-                            Text(
-                              '$goodAgainstCount',
-                              style: const TextStyle(
-                                  fontSize: 11, color: AppColors.success),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  name,
+                                  style: const TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: 3),
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 4,
+                                  children: [
+                                    Text(
+                                      roster?.name ?? rosterId,
+                                      style: const TextStyle(
+                                          fontSize: 12,
+                                          color: AppColors.textSecondary),
+                                    ),
+                                    Text(
+                                      '$playerCount jugadores',
+                                      style: const TextStyle(
+                                          fontSize: 11,
+                                          color: AppColors.textMuted),
+                                    ),
+                                    if (goodAgainstCount > 0) ...[
+                                      Icon(
+                                          PhosphorIcons.sword(
+                                              PhosphorIconsStyle.fill),
+                                          size: 11,
+                                          color: AppColors.success),
+                                      Text(
+                                        '$goodAgainstCount',
+                                        style: const TextStyle(
+                                            fontSize: 11,
+                                            color: AppColors.success),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ],
                             ),
-                          ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(child: _buildModeBadge(isAttack)),
+                          const SizedBox(width: 8),
+                          IconButton(
+                            icon: Icon(
+                                PhosphorIcons.trash(PhosphorIconsStyle.regular),
+                                size: 18,
+                                color: AppColors.error.withOpacity(0.6)),
+                            onPressed: () =>
+                                _confirmDelete(context, ref, id, name, lang),
+                            tooltip: tr(lang, 'myTactics.delete'),
+                            splashRadius: 18,
+                          ),
                         ],
                       ),
                     ],
-                  ),
-                ),
-                // Mode badge
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color:
-                        (isAttack ? AppColors.error : const Color(0xFF2196F3))
-                            .withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(
-                      color: isAttack
-                          ? AppColors.error.withOpacity(0.4)
-                          : const Color(0xFF2196F3).withOpacity(0.4),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
+                  )
+                : Row(
                     children: [
-                      Icon(
-                        isAttack
-                            ? PhosphorIcons.sword(PhosphorIconsStyle.fill)
-                            : PhosphorIcons.shieldStar(PhosphorIconsStyle.fill),
-                        size: 12,
-                        color: isAttack
-                            ? AppColors.error
-                            : const Color(0xFF2196F3),
+                      // Team logo
+                      SizedBox(
+                        width: 44,
+                        height: 44,
+                        child: roster != null
+                            ? Image.asset(
+                                'assets/teams/${roster.id}/logo.webp',
+                                fit: BoxFit.contain,
+                                errorBuilder: (_, __, ___) => Icon(
+                                    PhosphorIcons.shield(
+                                        PhosphorIconsStyle.fill),
+                                    size: 28,
+                                    color: AppColors.textMuted),
+                              )
+                            : Icon(
+                                PhosphorIcons.shield(PhosphorIconsStyle.fill),
+                                size: 28,
+                                color: AppColors.textMuted),
                       ),
-                      const SizedBox(width: 4),
-                      Text(
-                        isAttack ? 'ATAQUE' : 'DEFENSA',
-                        style: TextStyle(
-                          fontFamily: AppTypography.displayFontFamily,
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: isAttack
-                              ? AppColors.error
-                              : const Color(0xFF2196F3),
+                      const SizedBox(width: 14),
+                      // Info
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              name,
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            Row(
+                              children: [
+                                Text(
+                                  roster?.name ?? rosterId,
+                                  style: const TextStyle(
+                                      fontSize: 12,
+                                      color: AppColors.textSecondary),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  '$playerCount jugadores',
+                                  style: const TextStyle(
+                                      fontSize: 11, color: AppColors.textMuted),
+                                ),
+                                if (goodAgainstCount > 0) ...[
+                                  const SizedBox(width: 8),
+                                  Icon(
+                                      PhosphorIcons.sword(
+                                          PhosphorIconsStyle.fill),
+                                      size: 11,
+                                      color: AppColors.success),
+                                  const SizedBox(width: 2),
+                                  Text(
+                                    '$goodAgainstCount',
+                                    style: const TextStyle(
+                                        fontSize: 11, color: AppColors.success),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ],
                         ),
+                      ),
+                      // Mode badge
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: (isAttack
+                                  ? AppColors.error
+                                  : const Color(0xFF2196F3))
+                              .withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: isAttack
+                                ? AppColors.error.withOpacity(0.4)
+                                : const Color(0xFF2196F3).withOpacity(0.4),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              isAttack
+                                  ? PhosphorIcons.sword(PhosphorIconsStyle.fill)
+                                  : PhosphorIcons.shieldStar(
+                                      PhosphorIconsStyle.fill),
+                              size: 12,
+                              color: isAttack
+                                  ? AppColors.error
+                                  : const Color(0xFF2196F3),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              isAttack ? 'ATAQUE' : 'DEFENSA',
+                              style: TextStyle(
+                                fontFamily: AppTypography.displayFontFamily,
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: isAttack
+                                    ? AppColors.error
+                                    : const Color(0xFF2196F3),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      // Delete button
+                      IconButton(
+                        icon: Icon(
+                            PhosphorIcons.trash(PhosphorIconsStyle.regular),
+                            size: 18,
+                            color: AppColors.error.withOpacity(0.6)),
+                        onPressed: () =>
+                            _confirmDelete(context, ref, id, name, lang),
+                        tooltip: tr(lang, 'myTactics.delete'),
+                        splashRadius: 18,
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(width: 10),
-                // Delete button
-                IconButton(
-                  icon: Icon(PhosphorIcons.trash(PhosphorIconsStyle.regular),
-                      size: 18, color: AppColors.error.withOpacity(0.6)),
-                  onPressed: () => _confirmDelete(context, ref, id, name, lang),
-                  tooltip: tr(lang, 'myTactics.delete'),
-                  splashRadius: 18,
-                ),
-              ],
-            ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildModeBadge(bool isAttack) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: (isAttack ? AppColors.error : const Color(0xFF2196F3))
+            .withOpacity(0.15),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(
+          color: isAttack
+              ? AppColors.error.withOpacity(0.4)
+              : const Color(0xFF2196F3).withOpacity(0.4),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            isAttack
+                ? PhosphorIcons.sword(PhosphorIconsStyle.fill)
+                : PhosphorIcons.shieldStar(PhosphorIconsStyle.fill),
+            size: 12,
+            color: isAttack ? AppColors.error : const Color(0xFF2196F3),
+          ),
+          const SizedBox(width: 4),
+          Flexible(
+            child: Text(
+              isAttack ? 'ATAQUE' : 'DEFENSA',
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontFamily: AppTypography.displayFontFamily,
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: isAttack ? AppColors.error : const Color(0xFF2196F3),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -304,7 +304,7 @@ La estructura por features, el uso de Riverpod y la intencion de modelar dominio
 
 **VISUALES**
 
-- [ ] Centrar tabla de perks
+- [X] Centrar tabla de perks
 - [ ] Pills de habilidades adquiridas con otro color o icono para diferenciarlos de las habilidades base
 - [ ] Reorganizar la sección de mis tácticas - el mapa debería aparecer lo primero
 - [ ] En la parte de mis tacticas en lugar de lista que sea un grid. Ademas que sea multiidioma las labels de ataque y defensa
