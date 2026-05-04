@@ -13,11 +13,51 @@ final myUserTeamsProvider = FutureProvider<List<UserTeamSummary>>((ref) async {
   return ref.watch(teamRepositoryProvider).getUserTeams();
 });
 
-class MyTeamsScreen extends ConsumerWidget {
+class MyTeamsScreen extends ConsumerStatefulWidget {
   const MyTeamsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MyTeamsScreen> createState() => _MyTeamsScreenState();
+}
+
+class _MyTeamsScreenState extends ConsumerState<MyTeamsScreen> {
+  final _searchController = TextEditingController();
+  final _sharedTeamCodeController = TextEditingController();
+  String _searchQuery = '';
+  String? _selectedRace;
+  bool _isOpeningSharedTeam = false;
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _sharedTeamCodeController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _openSharedTeam(String lang) async {
+    final teamCode = _sharedTeamCodeController.text.trim();
+    if (teamCode.isEmpty || _isOpeningSharedTeam) return;
+
+    setState(() => _isOpeningSharedTeam = true);
+    try {
+      await ref.read(teamRepositoryProvider).getUserTeamDetail(teamCode);
+      if (!mounted) return;
+      context.go('/teams/$teamCode');
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(tr(lang, 'myTeams.sharedTeamNotFound')),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isOpeningSharedTeam = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final lang = ref.watch(localeProvider);
     final teamsAsync = ref.watch(myUserTeamsProvider);
     final isWide = MediaQuery.of(context).size.width >= 800;
@@ -32,7 +72,7 @@ class MyTeamsScreen extends ConsumerWidget {
           error: (err, _) => _buildError(context, ref, err, lang),
           data: (teams) => teams.isEmpty
               ? _buildEmptyState(context, lang)
-              : _buildTeamGrid(context, teams, isWide),
+              : _buildTeamOverview(context, teams, isWide, lang),
         ),
       ),
     );
@@ -127,7 +167,7 @@ class MyTeamsScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 24),
           Text(
-            'Sin equipos todavía',
+            tr(lang, 'myTeams.emptyTitle'),
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -136,7 +176,7 @@ class MyTeamsScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Crea tu primer equipo de Blood Bowl para empezar',
+            tr(lang, 'myTeams.emptySubtitle'),
             style: TextStyle(fontSize: 14, color: AppColors.textMuted),
             textAlign: TextAlign.center,
           ),
@@ -149,13 +189,29 @@ class MyTeamsScreen extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
             ),
           ),
+          const SizedBox(height: 24),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520),
+            child: _buildSharedTeamLookup(lang),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildTeamGrid(
-      BuildContext context, List<UserTeamSummary> teams, bool isWide) {
+  Widget _buildTeamOverview(BuildContext context, List<UserTeamSummary> teams,
+      bool isWide, String lang) {
+    final races = teams.map((team) => team.raceLabel).toSet().toList()..sort();
+    final query = _searchQuery.trim().toLowerCase();
+    final filteredTeams = teams.where((team) {
+      final matchesRace =
+          _selectedRace == null || team.raceLabel == _selectedRace;
+      final matchesSearch = query.isEmpty ||
+          team.name.toLowerCase().contains(query) ||
+          team.raceLabel.toLowerCase().contains(query);
+      return matchesRace && matchesSearch;
+    }).toList();
+
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: EdgeInsets.fromLTRB(
@@ -167,41 +223,323 @@ class MyTeamsScreen extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Summary row
-          _buildSummaryRow(teams),
+          _buildOverviewHeader(context, teams, isWide, lang),
           const SizedBox(height: 24),
-          // Grid
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: isWide ? 3 : 1,
-              mainAxisSpacing: 16,
-              crossAxisSpacing: 16,
-              childAspectRatio: isWide ? 1.6 : 1.25,
+          _buildControlPanel(lang, races),
+          const SizedBox(height: 24),
+          if (filteredTeams.isEmpty)
+            _buildNoFilteredTeams(lang)
+          else
+            _buildTeamsWrap(context, filteredTeams, lang),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOverviewHeader(BuildContext context, List<UserTeamSummary> teams,
+      bool isWide, String lang) {
+    final totalTV = teams.fold<int>(0, (sum, team) => sum + team.teamValue);
+    final totalPlayers =
+        teams.fold<int>(0, (sum, team) => sum + team.playerCount);
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(isWide ? 20 : 16),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.surfaceLight),
+      ),
+      child: isWide
+          ? Row(
+              children: [
+                Expanded(child: _buildOverviewCopy(lang)),
+                const SizedBox(width: 20),
+                _buildSummaryRow(teams.length, totalPlayers, totalTV, lang),
+              ],
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildOverviewCopy(lang),
+                const SizedBox(height: 16),
+                _buildSummaryRow(teams.length, totalPlayers, totalTV, lang),
+              ],
             ),
-            itemCount: teams.length,
-            itemBuilder: (context, i) => _TeamCard(
-              team: teams[i],
-              onTap: () => context.go('/teams/${teams[i].id}'),
+    );
+  }
+
+  Widget _buildOverviewCopy(String lang) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(PhosphorIcons.shieldChevron(PhosphorIconsStyle.fill),
+                color: AppColors.accent, size: 24),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                tr(lang, 'nav.myTeams').toUpperCase(),
+                style: TextStyle(
+                  fontFamily: AppTypography.displayFontFamily,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.textPrimary,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Text(
+          tr(lang, 'team.manageRoster'),
+          style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildControlPanel(String lang, List<String> races) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.surfaceLight),
+      ),
+      child: Column(
+        children: [
+          _buildFilters(lang, races),
+          const SizedBox(height: 14),
+          _buildSharedTeamLookup(lang, embedded: true),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTeamsWrap(
+      BuildContext context, List<UserTeamSummary> teams, String lang) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final columns = width >= 1180
+            ? 3
+            : width >= 760
+                ? 2
+                : 1;
+        final spacing = columns == 1 ? 12.0 : 16.0;
+        final cardWidth = (width - spacing * (columns - 1)) / columns;
+
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: teams
+              .map((team) => SizedBox(
+                    width: cardWidth,
+                    child: _TeamCard(
+                      team: team,
+                      lang: lang,
+                      onTap: () => context.go('/teams/${team.id}'),
+                    ),
+                  ))
+              .toList(),
+        );
+      },
+    );
+  }
+
+  Widget _buildFilters(String lang, List<String> races) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isCompact = constraints.maxWidth < 640;
+        final searchField = TextField(
+          controller: _searchController,
+          onChanged: (value) => setState(() => _searchQuery = value),
+          style: const TextStyle(color: AppColors.textPrimary),
+          decoration: InputDecoration(
+            hintText: tr(lang, 'myTeams.searchHint'),
+            prefixIcon: Icon(PhosphorIcons.magnifyingGlass(), size: 18),
+            suffixIcon: _searchQuery.isEmpty
+                ? null
+                : IconButton(
+                    icon: Icon(PhosphorIcons.x(), size: 18),
+                    onPressed: () {
+                      _searchController.clear();
+                      setState(() => _searchQuery = '');
+                    },
+                  ),
+          ),
+        );
+
+        final raceFilter = DropdownButtonFormField<String>(
+          value: _selectedRace,
+          isExpanded: true,
+          decoration: InputDecoration(
+            labelText: tr(lang, 'myTeams.raceFilter'),
+            prefixIcon: Icon(PhosphorIcons.shield(), size: 18),
+          ),
+          dropdownColor: AppColors.surface,
+          items: [
+            DropdownMenuItem<String>(
+              value: null,
+              child: Text(tr(lang, 'myTeams.allRaces')),
+            ),
+            ...races.map(
+              (race) => DropdownMenuItem<String>(
+                value: race,
+                child: Text(race, overflow: TextOverflow.ellipsis),
+              ),
+            ),
+          ],
+          onChanged: (value) => setState(() => _selectedRace = value),
+        );
+
+        if (isCompact) {
+          return Column(
+            children: [
+              searchField,
+              const SizedBox(height: 12),
+              raceFilter,
+            ],
+          );
+        }
+
+        return Row(
+          children: [
+            Expanded(flex: 3, child: searchField),
+            const SizedBox(width: 12),
+            Expanded(flex: 2, child: raceFilter),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildNoFilteredTeams(String lang) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.surfaceLight),
+      ),
+      child: Column(
+        children: [
+          Icon(PhosphorIcons.magnifyingGlass(),
+              size: 32, color: AppColors.textMuted),
+          const SizedBox(height: 12),
+          Text(
+            tr(lang, 'myTeams.noFilteredTeams'),
+            style: const TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            tr(lang, 'myTeams.adjustFilters'),
+            style: const TextStyle(color: AppColors.textMuted, fontSize: 13),
+            textAlign: TextAlign.center,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSummaryRow(List<UserTeamSummary> teams) {
-    final totalTV = teams.fold<int>(0, (sum, t) => sum + t.teamValue);
+  Widget _buildSharedTeamLookup(String lang, {bool embedded = false}) {
+    return Container(
+      padding: EdgeInsets.all(embedded ? 0 : 16),
+      decoration: BoxDecoration(
+        color: embedded ? Colors.transparent : AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: embedded ? null : Border.all(color: AppColors.surfaceLight),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isCompact = constraints.maxWidth < 620;
+          final input = TextField(
+            controller: _sharedTeamCodeController,
+            onSubmitted: (_) => _openSharedTeam(lang),
+            style: const TextStyle(color: AppColors.textPrimary),
+            decoration: InputDecoration(
+              labelText: tr(lang, 'myTeams.sharedTeamCode'),
+              hintText: tr(lang, 'myTeams.sharedTeamCodeHint'),
+              prefixIcon: Icon(PhosphorIcons.identificationCard(), size: 18),
+            ),
+          );
+          final button = ElevatedButton.icon(
+            onPressed:
+                _isOpeningSharedTeam ? null : () => _openSharedTeam(lang),
+            icon: _isOpeningSharedTeam
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Icon(PhosphorIcons.eye(PhosphorIconsStyle.bold), size: 18),
+            label: Text(tr(lang, 'myTeams.viewSharedTeam')),
+          );
 
+          if (isCompact) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  tr(lang, 'myTeams.viewOtherTeams'),
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                input,
+                const SizedBox(height: 12),
+                button,
+              ],
+            );
+          }
+
+          return Row(
+            children: [
+              Expanded(
+                flex: 2,
+                child: Text(
+                  tr(lang, 'myTeams.viewOtherTeams'),
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(flex: 3, child: input),
+              const SizedBox(width: 12),
+              button,
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildSummaryRow(
+      int teamCount, int totalPlayers, int totalTV, String lang) {
     return Wrap(
-      spacing: 16,
-      runSpacing: 12,
+      spacing: 10,
+      runSpacing: 10,
       children: [
-        _buildStat('${teams.length}', 'Equipos'),
-        _buildStat('${teams.fold<int>(0, (s, t) => s + t.playerCount)}',
-            'Jugadores en total'),
-        _buildStat('${totalTV ~/ 1000}k', 'TV total'),
+        _buildStat('${teamCount}', tr(lang, 'myTeams.teams')),
+        _buildStat('$totalPlayers', tr(lang, 'myTeams.totalPlayers')),
+        _buildStat('${totalTV ~/ 1000}k', tr(lang, 'myTeams.totalTV')),
       ],
     );
   }
@@ -234,9 +572,11 @@ class MyTeamsScreen extends ConsumerWidget {
 
 class _TeamCard extends StatelessWidget {
   final UserTeamSummary team;
+  final String lang;
   final VoidCallback onTap;
 
-  const _TeamCard({required this.team, required this.onTap});
+  const _TeamCard(
+      {required this.team, required this.lang, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -247,6 +587,7 @@ class _TeamCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Container(
+          constraints: const BoxConstraints(minHeight: 170),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
@@ -255,10 +596,11 @@ class _TeamCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header row: logo + name
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(width: 12),
+                  _buildLogo(),
+                  const SizedBox(width: 14),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -267,44 +609,52 @@ class _TeamCard extends StatelessWidget {
                           team.name,
                           style: TextStyle(
                             fontFamily: AppTypography.displayFontFamily,
-                            fontSize: 18,
+                            fontSize: 21,
                             fontWeight: FontWeight.bold,
                             color: AppColors.textPrimary,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
+                        const SizedBox(height: 4),
                         Text(
                           team.raceLabel,
                           style: TextStyle(
-                              fontSize: 12, color: AppColors.textSecondary),
+                              fontSize: 14, color: AppColors.textSecondary),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
                   ),
-                  Icon(
-                    PhosphorIcons.caretRight(PhosphorIconsStyle.bold),
-                    size: 16,
-                    color: AppColors.textMuted,
+                  Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceLight,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      PhosphorIcons.caretRight(PhosphorIconsStyle.bold),
+                      size: 16,
+                      color: AppColors.textMuted,
+                    ),
                   ),
                 ],
               ),
-              const Spacer(),
-              Center(
-                child: _buildLogo(),
-              ),
-              const Spacer(),
-              // Stats row
-              Row(
+              const SizedBox(height: 18),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
                 children: [
-                  _buildChip(PhosphorIcons.soccerBall(PhosphorIconsStyle.fill),
-                      '${team.playerCount}', 'Jugadores'),
-                  const SizedBox(width: 8),
+                  _buildChip(PhosphorIcons.usersThree(PhosphorIconsStyle.fill),
+                      '${team.playerCount}', tr(lang, 'myTeams.players')),
                   _buildChip(PhosphorIcons.trophy(PhosphorIconsStyle.fill),
                       '${team.teamValue ~/ 1000}k', 'TV'),
-                  const SizedBox(width: 8),
-                  _buildChip(PhosphorIcons.coins(PhosphorIconsStyle.fill),
-                      '${team.treasury ~/ 1000}k', 'Tesoro'),
+                  _buildChip(
+                      PhosphorIcons.coins(PhosphorIconsStyle.fill),
+                      '${team.treasury ~/ 1000}k',
+                      tr(lang, 'myTeams.treasury')),
                 ],
               ),
             ],
@@ -316,16 +666,22 @@ class _TeamCard extends StatelessWidget {
 
   Widget _buildLogo() {
     return Container(
-      width: 150,
-      height: 150,
+      width: 64,
+      height: 64,
+      padding: const EdgeInsets.all(6),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.accent.withOpacity(0.45)),
+      ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(8),
         child: Image.asset(
           'assets/teams/${team.baseRosterId}/logo.webp',
-          fit: BoxFit.cover,
+          fit: BoxFit.contain,
           errorBuilder: (_, __, ___) => Center(
             child: Icon(PhosphorIcons.shield(PhosphorIconsStyle.fill),
-                color: AppColors.textMuted, size: 24),
+                color: AppColors.textMuted, size: 28),
           ),
         ),
       ),
@@ -333,31 +689,37 @@ class _TeamCard extends StatelessWidget {
   }
 
   Widget _buildChip(IconData icon, String value, String label) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceLight,
-          borderRadius: BorderRadius.circular(6),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(icon, size: 10, color: AppColors.accent),
-                const SizedBox(width: 4),
-                Text(value,
+    return Container(
+      width: 106,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceLight,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 14, color: AppColors.accent),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(value,
                     style: TextStyle(
-                        fontSize: 13,
+                        fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: AppColors.accent)),
-              ],
-            ),
-            Text(label,
-                style: TextStyle(fontSize: 9, color: AppColors.textMuted)),
-          ],
-        ),
+                        color: AppColors.accent),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis),
+              ),
+            ],
+          ),
+          const SizedBox(height: 2),
+          Text(label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
+        ],
       ),
     );
   }

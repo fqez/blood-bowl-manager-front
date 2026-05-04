@@ -88,8 +88,8 @@ class MyTacticsScreen extends ConsumerWidget {
                             ),
                           ),
                           const SizedBox(height: 12),
-                          ...tactics.map((t) => _buildTacticCard(
-                              context, ref, t, rosterMap, lang)),
+                          _buildTacticsGrid(
+                              context, ref, tactics, rosterMap, lang),
                         ],
                       );
                     },
@@ -332,6 +332,38 @@ class MyTacticsScreen extends ConsumerWidget {
     );
   }
 
+  Widget _buildTacticsGrid(
+      BuildContext context,
+      WidgetRef ref,
+      List<Map<String, dynamic>> tactics,
+      Map<String, BaseTeam> rosterMap,
+      String lang) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final columns = width >= 1180
+            ? 3
+            : width >= 760
+                ? 2
+                : 1;
+        final spacing = columns == 1 ? 10.0 : 12.0;
+        final cardWidth = (width - spacing * (columns - 1)) / columns;
+
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: tactics
+              .map((tactic) => SizedBox(
+                    width: cardWidth,
+                    child:
+                        _buildTacticCard(context, ref, tactic, rosterMap, lang),
+                  ))
+              .toList(),
+        );
+      },
+    );
+  }
+
   Widget _buildTacticCard(
       BuildContext context,
       WidgetRef ref,
@@ -346,250 +378,123 @@ class MyTacticsScreen extends ConsumerWidget {
     final goodAgainstCount = tactic['good_against_count'] as int? ?? 0;
     final roster = rosterMap[rosterId];
     final isAttack = mode == 'attack';
-    final isCompact = MediaQuery.of(context).size.width < 700;
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Material(
-        color: AppColors.card,
+    return Material(
+      color: AppColors.card,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: () => context.go('/tactics?id=$id'),
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.surfaceLight),
-            ),
-            child: isCompact
-                ? Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          SizedBox(
-                            width: 44,
-                            height: 44,
-                            child: roster != null
-                                ? Image.asset(
-                                    'assets/teams/${roster.id}/logo.webp',
-                                    fit: BoxFit.contain,
-                                    errorBuilder: (_, __, ___) => Icon(
-                                        PhosphorIcons.shield(
-                                            PhosphorIconsStyle.fill),
-                                        size: 28,
-                                        color: AppColors.textMuted),
-                                  )
-                                : Icon(
-                                    PhosphorIcons.shield(
-                                        PhosphorIconsStyle.fill),
-                                    size: 28,
-                                    color: AppColors.textMuted),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  name,
-                                  style: const TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.textPrimary,
-                                  ),
-                                ),
-                                const SizedBox(height: 3),
-                                Wrap(
-                                  spacing: 8,
-                                  runSpacing: 4,
-                                  children: [
-                                    Text(
-                                      roster?.name ?? rosterId,
-                                      style: const TextStyle(
-                                          fontSize: 12,
-                                          color: AppColors.textSecondary),
-                                    ),
-                                    Text(
-                                      '$playerCount jugadores',
-                                      style: const TextStyle(
-                                          fontSize: 11,
-                                          color: AppColors.textMuted),
-                                    ),
-                                    if (goodAgainstCount > 0) ...[
-                                      Icon(
-                                          PhosphorIcons.sword(
-                                              PhosphorIconsStyle.fill),
-                                          size: 11,
-                                          color: AppColors.success),
-                                      Text(
-                                        '$goodAgainstCount',
-                                        style: const TextStyle(
-                                            fontSize: 11,
-                                            color: AppColors.success),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(child: _buildModeBadge(isAttack)),
-                          const SizedBox(width: 8),
-                          IconButton(
-                            icon: Icon(
-                                PhosphorIcons.trash(PhosphorIconsStyle.regular),
-                                size: 18,
-                                color: AppColors.error.withOpacity(0.6)),
-                            onPressed: () =>
-                                _confirmDelete(context, ref, id, name, lang),
-                            tooltip: tr(lang, 'myTactics.delete'),
-                            splashRadius: 18,
-                          ),
-                        ],
-                      ),
-                    ],
-                  )
-                : Row(
-                    children: [
-                      // Team logo
-                      SizedBox(
-                        width: 44,
-                        height: 44,
-                        child: roster != null
-                            ? Image.asset(
-                                'assets/teams/${roster.id}/logo.webp',
-                                fit: BoxFit.contain,
-                                errorBuilder: (_, __, ___) => Icon(
-                                    PhosphorIcons.shield(
-                                        PhosphorIconsStyle.fill),
-                                    size: 28,
-                                    color: AppColors.textMuted),
-                              )
-                            : Icon(
+        onTap: () => context.go('/tactics?id=$id'),
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 178),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.surfaceLight),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: 48,
+                    height: 48,
+                    child: roster != null
+                        ? Image.asset(
+                            'assets/teams/${roster.id}/logo.webp',
+                            fit: BoxFit.contain,
+                            errorBuilder: (_, __, ___) => Icon(
                                 PhosphorIcons.shield(PhosphorIconsStyle.fill),
-                                size: 28,
+                                size: 30,
                                 color: AppColors.textMuted),
-                      ),
-                      const SizedBox(width: 14),
-                      // Info
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              name,
-                              style: const TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                            const SizedBox(height: 3),
-                            Row(
-                              children: [
-                                Text(
-                                  roster?.name ?? rosterId,
-                                  style: const TextStyle(
-                                      fontSize: 12,
-                                      color: AppColors.textSecondary),
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  '$playerCount jugadores',
-                                  style: const TextStyle(
-                                      fontSize: 11, color: AppColors.textMuted),
-                                ),
-                                if (goodAgainstCount > 0) ...[
-                                  const SizedBox(width: 8),
-                                  Icon(
-                                      PhosphorIcons.sword(
-                                          PhosphorIconsStyle.fill),
-                                      size: 11,
-                                      color: AppColors.success),
-                                  const SizedBox(width: 2),
-                                  Text(
-                                    '$goodAgainstCount',
-                                    style: const TextStyle(
-                                        fontSize: 11, color: AppColors.success),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      // Mode badge
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: (isAttack
-                                  ? AppColors.error
-                                  : const Color(0xFF2196F3))
-                              .withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(
-                            color: isAttack
-                                ? AppColors.error.withOpacity(0.4)
-                                : const Color(0xFF2196F3).withOpacity(0.4),
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              isAttack
-                                  ? PhosphorIcons.sword(PhosphorIconsStyle.fill)
-                                  : PhosphorIcons.shieldStar(
-                                      PhosphorIconsStyle.fill),
-                              size: 12,
-                              color: isAttack
-                                  ? AppColors.error
-                                  : const Color(0xFF2196F3),
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              isAttack ? 'ATAQUE' : 'DEFENSA',
-                              style: TextStyle(
-                                fontFamily: AppTypography.displayFontFamily,
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: isAttack
-                                    ? AppColors.error
-                                    : const Color(0xFF2196F3),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      // Delete button
-                      IconButton(
-                        icon: Icon(
-                            PhosphorIcons.trash(PhosphorIconsStyle.regular),
-                            size: 18,
-                            color: AppColors.error.withOpacity(0.6)),
-                        onPressed: () =>
-                            _confirmDelete(context, ref, id, name, lang),
-                        tooltip: tr(lang, 'myTactics.delete'),
-                        splashRadius: 18,
-                      ),
-                    ],
+                          )
+                        : Icon(PhosphorIcons.shield(PhosphorIconsStyle.fill),
+                            size: 30, color: AppColors.textMuted),
                   ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          name,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          roster?.name ?? rosterId,
+                          style: const TextStyle(
+                              fontSize: 12, color: AppColors.textSecondary),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(PhosphorIcons.trash(PhosphorIconsStyle.regular),
+                        size: 18, color: AppColors.error.withOpacity(0.6)),
+                    onPressed: () =>
+                        _confirmDelete(context, ref, id, name, lang),
+                    tooltip: tr(lang, 'myTactics.delete'),
+                    splashRadius: 18,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              _buildModeBadge(isAttack, lang),
+              const SizedBox(height: 14),
+              Wrap(
+                spacing: 10,
+                runSpacing: 8,
+                children: [
+                  _buildMetricChip(
+                    PhosphorIcons.usersThree(PhosphorIconsStyle.fill),
+                    '$playerCount jugadores',
+                    AppColors.textSecondary,
+                  ),
+                  if (goodAgainstCount > 0)
+                    _buildMetricChip(
+                      PhosphorIcons.sword(PhosphorIconsStyle.fill),
+                      '$goodAgainstCount',
+                      AppColors.success,
+                    ),
+                ],
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _buildModeBadge(bool isAttack) {
+  Widget _buildMetricChip(IconData icon, String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 13, color: color),
+          const SizedBox(width: 6),
+          Text(label, style: TextStyle(fontSize: 12, color: color)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildModeBadge(bool isAttack, String lang) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
@@ -615,7 +520,8 @@ class MyTacticsScreen extends ConsumerWidget {
           const SizedBox(width: 4),
           Flexible(
             child: Text(
-              isAttack ? 'ATAQUE' : 'DEFENSA',
+              tr(lang, isAttack ? 'tactics.attack' : 'tactics.defense')
+                  .toUpperCase(),
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontFamily: AppTypography.displayFontFamily,

@@ -224,6 +224,7 @@ Map<String, dynamic> _normalizeStatsJson(Map<String, dynamic> json) => {
 Map<String, dynamic> _normalizeSkillJson(Map<String, dynamic> json) => {
       ...json,
       'family': json['family'] ?? json['category'] ?? '',
+      'isStarting': json['isStarting'] ?? json['is_starting'] ?? false,
     };
 
 Map<String, dynamic> _normalizeBaseTeamJson(Map<String, dynamic> json) => {

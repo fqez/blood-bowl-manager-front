@@ -343,31 +343,47 @@ class _TacticsScreenState extends ConsumerState<TacticsScreen> {
                         _buildTeamSelector(rostersAsync, lang),
                         const SizedBox(height: 20),
                         if (_selectedTeam != null) ...[
-                          // Name + mode + save bar
-                          _buildTacticBar(lang),
-                          const SizedBox(height: 16),
-                          // Position selector always on top
-                          _buildPositionSelector(lang),
-                          const SizedBox(height: 16),
-                          // Opponent placement selector
-                          _buildOpponentSelector(lang),
-                          const SizedBox(height: 16),
-                          // Validation + stats bar
-                          _buildStatsBar(lang),
-                          const SizedBox(height: 16),
                           if (isWide)
                             Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Expanded(flex: 3, child: _buildPitchSection()),
+                                Expanded(
+                                  flex: 3,
+                                  child: Column(
+                                    children: [
+                                      _buildPitchSection(),
+                                      const SizedBox(height: 16),
+                                      _buildStatsBar(lang),
+                                    ],
+                                  ),
+                                ),
                                 const SizedBox(width: 20),
                                 Expanded(
-                                    flex: 2,
-                                    child: _buildSidePanel(rostersAsync)),
+                                  flex: 2,
+                                  child: Column(
+                                    children: [
+                                      _buildTacticBar(lang),
+                                      const SizedBox(height: 16),
+                                      _buildPositionSelector(lang),
+                                      const SizedBox(height: 16),
+                                      _buildOpponentSelector(lang),
+                                      const SizedBox(height: 16),
+                                      _buildSidePanel(rostersAsync),
+                                    ],
+                                  ),
+                                ),
                               ],
                             )
                           else ...[
                             _buildPitchSection(),
+                            const SizedBox(height: 16),
+                            _buildStatsBar(lang),
+                            const SizedBox(height: 16),
+                            _buildTacticBar(lang),
+                            const SizedBox(height: 16),
+                            _buildPositionSelector(lang),
+                            const SizedBox(height: 16),
+                            _buildOpponentSelector(lang),
                             const SizedBox(height: 20),
                             _buildSidePanel(rostersAsync),
                           ],

@@ -123,8 +123,7 @@ class UserPlayer {
         status: json['status'] as String? ?? 'healthy',
         image: json['image'] as String?,
         career: json['career'] != null
-            ? UserPlayerCareer.fromJson(
-                json['career'] as Map<String, dynamic>)
+            ? UserPlayerCareer.fromJson(json['career'] as Map<String, dynamic>)
             : const UserPlayerCareer(),
       );
 
@@ -209,7 +208,7 @@ class UserTeamSummary {
 
   /// e.g. "shambling-undead" → "Shambling Undead"
   String get raceLabel => baseRosterId
-      .split('-')
+      .split(RegExp(r'[-_]'))
       .map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}')
       .join(' ');
 }

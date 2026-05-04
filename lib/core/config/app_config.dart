@@ -2,7 +2,6 @@ class AppConfig {
   AppConfig._();
 
   // API Configuration
-  // static const String apiBaseUrl = 'http://localhost:8081';
   static const String apiBaseUrl =
       'https://web-production-9aceb.up.railway.app';
 

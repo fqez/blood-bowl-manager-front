@@ -5,36 +5,43 @@ import '../../domain/models/team.dart';
 
 class SkillBadge extends StatelessWidget {
   final Skill skill;
+  final bool? isAcquired;
 
-  const SkillBadge({super.key, required this.skill});
+  const SkillBadge({super.key, required this.skill, this.isAcquired});
 
   @override
   Widget build(BuildContext context) {
+    final acquired = isAcquired ?? !skill.isStarting;
+    final categoryColor = _getCategoryColor();
+    final badgeColor = acquired ? AppColors.accent : categoryColor;
+
     return Tooltip(
       message: skill.description ?? skill.name,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          color: _getCategoryColor().withOpacity(0.15),
+          color: badgeColor.withOpacity(acquired ? 0.18 : 0.15),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: _getCategoryColor().withOpacity(0.5)),
+          border:
+              Border.all(color: badgeColor.withOpacity(acquired ? 0.7 : 0.5)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Skill icon
             Container(
               width: 20,
               height: 20,
               decoration: BoxDecoration(
-                color: _getCategoryColor().withOpacity(0.3),
+                color: badgeColor.withOpacity(acquired ? 0.35 : 0.3),
                 shape: BoxShape.circle,
               ),
               child: Center(
                 child: Icon(
-                  _getCategoryIcon(),
+                  acquired
+                      ? PhosphorIcons.plusCircle(PhosphorIconsStyle.fill)
+                      : _getCategoryIcon(),
                   size: 12,
-                  color: _getCategoryColor(),
+                  color: acquired ? AppColors.accentLight : categoryColor,
                 ),
               ),
             ),
@@ -52,7 +59,7 @@ class SkillBadge extends StatelessWidget {
               Icon(
                 PhosphorIcons.starFour(PhosphorIconsStyle.fill),
                 size: 10,
-                color: _getCategoryColor(),
+                color: categoryColor,
               ),
             ],
           ],

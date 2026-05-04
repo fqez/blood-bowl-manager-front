@@ -15,6 +15,11 @@ import '../../../shared/presentation/widgets/skill_popup.dart';
 
 // ignore_for_file: deprecated_member_use
 
+final _playerBaseRosterProvider =
+    FutureProvider.family<BaseTeam, String>((ref, rosterId) async {
+  return ref.watch(teamRepositoryProvider).getBaseTeamDetail(rosterId);
+});
+
 class PlayerCardScreen extends ConsumerStatefulWidget {
   final String leagueId;
   final String teamId;
@@ -573,6 +578,58 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
     return next > 0 && player.spp >= next;
   }
 
+  Set<String>? _startingSkillKeys(BaseTeam? roster, Character player) {
+    if (roster == null) return null;
+
+    BasePosition? position;
+    for (final candidate in roster.positions) {
+      final candidateKeys = <String>{
+        _positionKey(candidate.id),
+        _positionKey(candidate.name),
+        if (candidate.position != null) _positionKey(candidate.position!),
+      }..remove('');
+      final playerKeys = <String>{
+        _positionKey(player.positionId),
+        _positionKey(player.position),
+      }..remove('');
+
+      if (candidateKeys.intersection(playerKeys).isNotEmpty) {
+        position = candidate;
+        break;
+      }
+    }
+
+    if (position == null) return null;
+
+    final keys = <String>{};
+    for (final perk in position.startingPerks) {
+      keys.add(_skillKey(perk.id));
+      keys.add(_skillKey(perk.name));
+    }
+    keys.remove('');
+    return keys;
+  }
+
+  String _positionKey(String value) =>
+      value.toLowerCase().trim().replaceAll(RegExp(r'[^a-z0-9]+'), '');
+
+  String _skillKey(String value) {
+    final normalized = value
+        .toLowerCase()
+        .trim()
+        .replaceAll(RegExp(r'[_\s]+'), '-')
+        .replaceAll(RegExp(r'[^a-z0-9-]+'), '');
+    return normalized.startsWith('perk-')
+        ? normalized.substring('perk-'.length)
+        : normalized;
+  }
+
+  bool? _isAcquiredSkill(Skill skill, Set<String>? startingSkillKeys) {
+    if (startingSkillKeys == null) return null;
+    return !startingSkillKeys.contains(_skillKey(skill.id)) &&
+        !startingSkillKeys.contains(_skillKey(skill.name));
+  }
+
   // -- Build -----------------------------------------------------------------
 
   @override
@@ -595,10 +652,13 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
         data: (team) {
           final isOwner =
               currentUserId != null && team.ownerId == currentUserId;
+          final baseRoster =
+              ref.watch(_playerBaseRosterProvider(team.baseTeamId)).valueOrNull;
           final player = team.characters.firstWhere(
             (c) => c.id == playerId,
             orElse: () => throw Exception(tr(lang, 'player.notFound')),
           );
+          final startingSkillKeys = _startingSkillKeys(baseRoster, player);
           return Column(children: [
             _buildTopBar(context, team, player, lang),
             Expanded(
@@ -611,10 +671,11 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                       _buildHeroSection(context, team, player, isOwner, lang),
                       const SizedBox(height: 24),
                       if (isWide)
-                        _buildWideLayout(context, team, player, isOwner, lang)
+                        _buildWideLayout(context, team, player, isOwner, lang,
+                            startingSkillKeys)
                       else
-                        _buildNarrowLayout(
-                            context, team, player, isOwner, lang),
+                        _buildNarrowLayout(context, team, player, isOwner, lang,
+                            startingSkillKeys),
                     ],
                   ),
                 ),
@@ -974,7 +1035,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
   // -- Layouts ---------------------------------------------------------------
 
   Widget _buildWideLayout(BuildContext context, Team team, Character player,
-      bool isOwner, String lang) {
+      bool isOwner, String lang, Set<String>? startingSkillKeys) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -985,7 +1046,8 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
             children: [
               _buildCoreAttributesCard(context, player, isOwner),
               const SizedBox(height: 20),
-              _buildAbilitiesCard(context, player, isOwner, lang),
+              _buildAbilitiesCard(
+                  context, player, isOwner, lang, startingSkillKeys),
               const SizedBox(height: 20),
               _buildCareerChronicleCard(player, lang),
             ],
@@ -1010,14 +1072,14 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
   }
 
   Widget _buildNarrowLayout(BuildContext context, Team team, Character player,
-      bool isOwner, String lang) {
+      bool isOwner, String lang, Set<String>? startingSkillKeys) {
     return Column(
       children: [
         _buildLevelTrackerCard(player),
         const SizedBox(height: 20),
         _buildCoreAttributesCard(context, player, isOwner),
         const SizedBox(height: 20),
-        _buildAbilitiesCard(context, player, isOwner, lang),
+        _buildAbilitiesCard(context, player, isOwner, lang, startingSkillKeys),
         const SizedBox(height: 20),
         _buildPerformanceRecordsCard(player),
         const SizedBox(height: 20),
@@ -1160,8 +1222,8 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
 
   // -- Abilities & Traits Card -----------------------------------------------
 
-  Widget _buildAbilitiesCard(
-      BuildContext context, Character player, bool isOwner, String lang) {
+  Widget _buildAbilitiesCard(BuildContext context, Character player,
+      bool isOwner, String lang, Set<String>? startingSkillKeys) {
     return _card(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1241,7 +1303,10 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                             description: s.description),
                         child: MouseRegion(
                           cursor: SystemMouseCursors.click,
-                          child: SkillBadge(skill: s),
+                          child: SkillBadge(
+                            skill: s,
+                            isAcquired: _isAcquiredSkill(s, startingSkillKeys),
+                          ),
                         ),
                       ))
                   .toList(),

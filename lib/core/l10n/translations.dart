@@ -41,6 +41,53 @@ const _t = <String, Map<String, String>>{
   'nav.activeLeague': {'es': 'LIGA ACTIVA', 'en': 'ACTIVE LEAGUE'},
   'nav.coach': {'es': 'Coach', 'en': 'Coach'},
 
+  // ── My Teams ───────────────────────────────────────────────────────────
+  'myTeams.searchHint': {
+    'es': 'Buscar equipo o raza...',
+    'en': 'Search team or race...',
+  },
+  'myTeams.raceFilter': {'es': 'Raza', 'en': 'Race'},
+  'myTeams.allRaces': {'es': 'Todas las razas', 'en': 'All races'},
+  'myTeams.noFilteredTeams': {
+    'es': 'No hay equipos con esos filtros',
+    'en': 'No teams match those filters',
+  },
+  'myTeams.adjustFilters': {
+    'es': 'Cambia la búsqueda o selecciona otra raza.',
+    'en': 'Change the search or select another race.',
+  },
+  'myTeams.viewOtherTeams': {
+    'es': 'Mirar equipos de otros jugadores',
+    'en': 'View other players teams',
+  },
+  'myTeams.sharedTeamCode': {
+    'es': 'Código de equipo',
+    'en': 'Team code',
+  },
+  'myTeams.sharedTeamCodeHint': {
+    'es': 'Pega el código del equipo',
+    'en': 'Paste the team code',
+  },
+  'myTeams.viewSharedTeam': {'es': 'Ver equipo', 'en': 'View team'},
+  'myTeams.sharedTeamNotFound': {
+    'es': 'No se ha encontrado ningún equipo con ese código.',
+    'en': 'No team was found with that code.',
+  },
+  'myTeams.emptyTitle': {'es': 'Sin equipos todavía', 'en': 'No teams yet'},
+  'myTeams.emptySubtitle': {
+    'es': 'Crea tu primer equipo de Blood Bowl para empezar',
+    'en': 'Create your first Blood Bowl team to get started',
+  },
+  'myTeams.teams': {'es': 'Equipos', 'en': 'Teams'},
+  'myTeams.totalPlayers': {
+    'es': 'Jugadores en total',
+    'en': 'Total players',
+  },
+  'myTeams.totalTV': {'es': 'TV total', 'en': 'Total TV'},
+  'myTeams.players': {'es': 'Jugadores', 'en': 'Players'},
+  'myTeams.treasury': {'es': 'Tesoro', 'en': 'Treasury'},
+  'myTeams.openRoster': {'es': 'Abrir roster', 'en': 'Open roster'},
+
   // ── Auth ────────────────────────────────────────────────────────────────
   'auth.bloodBowl': {'es': 'BLOOD BOWL', 'en': 'BLOOD BOWL'},
   'auth.leagueManager': {'es': 'LEAGUE MANAGER', 'en': 'LEAGUE MANAGER'},

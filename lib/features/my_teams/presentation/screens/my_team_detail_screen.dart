@@ -1,4 +1,4 @@
-﻿// GENERATED: full rewrite to match roster management UI
+// GENERATED: full rewrite to match roster management UI
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -133,8 +133,7 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, _) => _buildError(err, lang),
         data: (team) {
-          final isOwner = widget.leagueId == null ||
-              (currentUserId != null && team.userId == currentUserId);
+          final isOwner = currentUserId != null && team.userId == currentUserId;
           return Column(children: [
             _buildTopBar(team, isWide, isOwner, lang),
             Expanded(
@@ -143,7 +142,7 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildTeamHeader(team, lang),
+                    _buildTeamHeader(team, isWide, lang),
                     const SizedBox(height: 16),
                     _buildStatsStrip(team, isWide, isOwner),
                     const SizedBox(height: 20),
@@ -285,7 +284,7 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
                 color: AppColors.textMuted,
                 tooltip: tr(lang, 'team.refresh'),
               ),
-              if (isOwner) ...[
+              if (isOwner && isWide) ...[
                 const SizedBox(width: 4),
                 FilledButton.icon(
                   onPressed: () => _showHireDialog(context),
@@ -303,7 +302,17 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
                         horizontal: 14, vertical: 10),
                   ),
                 ),
-              ],
+              ] else if (isOwner)
+                IconButton.filled(
+                  onPressed: () => _showHireDialog(context),
+                  icon: Icon(PhosphorIcons.userPlus(PhosphorIconsStyle.bold),
+                      size: 18),
+                  tooltip: tr(lang, 'team.hirePlayer'),
+                  style: IconButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: AppColors.textPrimary,
+                  ),
+                ),
               const SizedBox(width: 8),
             ],
           ),
@@ -314,95 +323,125 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
 
   // ── Team header ──
 
-  Widget _buildTeamHeader(UserTeamDetail team, String lang) {
+  Widget _buildTeamHeader(UserTeamDetail team, bool isWide, String lang) {
     final activeCount = team.players.where((p) => p.status == 'healthy').length;
     final isValid = activeCount >= 11;
     final textTheme = context.textTheme;
+
+    final logo = Container(
+      width: 56,
+      height: 56,
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.accent.withOpacity(0.6)),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(9),
+        child: Image.asset(
+          'assets/teams/${team.baseRosterId}/logo.webp',
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => Center(
+            child: Icon(PhosphorIcons.shield(PhosphorIconsStyle.fill),
+                size: 28, color: AppColors.textMuted),
+          ),
+        ),
+      ),
+    );
+
+    final titleBlock = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '${team.name} Roster',
+          style: (isWide ? textTheme.displayMedium : textTheme.titleLarge)
+              ?.copyWith(color: AppColors.textPrimary),
+          maxLines: isWide ? 1 : 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+        Text(
+          'Gestiona tu plantilla, tesorería, staff y preparativos para el próximo partido.',
+          style: textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
+          maxLines: isWide ? 1 : 3,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
+    );
+
+    final statusChip = _rosterStatusChip(isValid, lang);
+
+    if (!isWide) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              logo,
+              const SizedBox(width: 12),
+              Expanded(child: titleBlock),
+            ],
+          ),
+          const SizedBox(height: 12),
+          statusChip,
+        ],
+      );
+    }
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: AppColors.accent.withOpacity(0.6)),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(9),
-            child: Image.asset(
-              'assets/teams/${team.baseRosterId}/logo.webp',
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Center(
-                child: Icon(PhosphorIcons.shield(PhosphorIconsStyle.fill),
-                    size: 28, color: AppColors.textMuted),
-              ),
-            ),
-          ),
-        ),
+        logo,
         const SizedBox(width: 14),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '${team.name} Roster',
-                style: textTheme.displayMedium?.copyWith(
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              Text(
-                'Gestiona tu plantilla, tesorería, staff y preparativos para el próximo partido.',
-                style: textTheme.bodySmall
-                    ?.copyWith(color: AppColors.textSecondary),
-              ),
-            ],
-          ),
-        ),
+        Expanded(child: titleBlock),
         const SizedBox(width: 12),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: isValid
-                ? AppColors.success.withOpacity(0.15)
-                : AppColors.warning.withOpacity(0.15),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: isValid
-                  ? AppColors.success.withOpacity(0.5)
-                  : AppColors.warning.withOpacity(0.5),
+        statusChip,
+      ],
+    );
+  }
+
+  Widget _rosterStatusChip(bool isValid, String lang) {
+    final textTheme = context.textTheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: isValid
+            ? AppColors.success.withOpacity(0.15)
+            : AppColors.warning.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isValid
+              ? AppColors.success.withOpacity(0.5)
+              : AppColors.warning.withOpacity(0.5),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(tr(lang, 'team.status'),
+              style: textTheme.bodySmall?.copyWith(
+                color: AppColors.textMuted,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+              )),
+          Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                  color: isValid ? AppColors.success : AppColors.warning,
+                  shape: BoxShape.circle)),
+          const SizedBox(width: 6),
+          Text(
+            isValid
+                ? tr(lang, 'team.validRoster')
+                : tr(lang, 'team.invalidRoster'),
+            style: textTheme.bodySmall?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: isValid ? AppColors.success : AppColors.warning,
             ),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(tr(lang, 'team.status'),
-                  style: textTheme.bodySmall?.copyWith(
-                    color: AppColors.textMuted,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.5,
-                  )),
-              Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                      color: isValid ? AppColors.success : AppColors.warning,
-                      shape: BoxShape.circle)),
-              const SizedBox(width: 6),
-              Text(
-                isValid
-                    ? tr(lang, 'team.validRoster')
-                    : tr(lang, 'team.invalidRoster'),
-                style: textTheme.bodySmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: isValid ? AppColors.success : AppColors.warning,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -667,6 +706,8 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
       UserTeamDetail team, bool isWide, bool isOwner, String lang) {
     final filtered = _filterPlayers(team.players);
     final totalActive = team.players.where((p) => !p.isDead).length;
+    final baseRoster =
+        ref.watch(_baseRosterDetailProvider(team.baseRosterId)).valueOrNull;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -677,43 +718,47 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
           runSpacing: 8,
           alignment: WrapAlignment.spaceBetween,
           children: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                SizedBox(
-                  width: 180,
-                  height: 36,
-                  child: TextField(
-                    controller: _searchController,
-                    onChanged: (v) =>
-                        setState(() => _searchQuery = v.toLowerCase()),
-                    style:
-                        TextStyle(fontSize: 13, color: AppColors.textPrimary),
-                    decoration: InputDecoration(
-                      hintText: 'Buscar jugador...',
-                      hintStyle:
-                          TextStyle(color: AppColors.textMuted, fontSize: 13),
-                      prefixIcon: Icon(
-                          PhosphorIcons.magnifyingGlass(
-                              PhosphorIconsStyle.regular),
-                          size: 16,
-                          color: AppColors.textMuted),
-                      filled: true,
-                      fillColor: AppColors.surface,
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide.none),
-                      contentPadding: EdgeInsets.zero,
+                ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minWidth: isWide ? 180 : 170,
+                    maxWidth: isWide ? 180 : 210,
+                  ),
+                  child: SizedBox(
+                    height: 36,
+                    child: TextField(
+                      controller: _searchController,
+                      onChanged: (v) =>
+                          setState(() => _searchQuery = v.toLowerCase()),
+                      style:
+                          TextStyle(fontSize: 13, color: AppColors.textPrimary),
+                      decoration: InputDecoration(
+                        hintText: 'Buscar jugador...',
+                        hintStyle:
+                            TextStyle(color: AppColors.textMuted, fontSize: 13),
+                        prefixIcon: Icon(
+                            PhosphorIcons.magnifyingGlass(
+                                PhosphorIconsStyle.regular),
+                            size: 16,
+                            color: AppColors.textMuted),
+                        filled: true,
+                        fillColor: AppColors.surface,
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide.none),
+                        contentPadding: EdgeInsets.zero,
+                      ),
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
                 _filterPill('Activos', _showActive,
                     (v) => setState(() => _showActive = v)),
-                const SizedBox(width: 6),
                 _filterPill('Lesionados', _showInjured,
                     (v) => setState(() => _showInjured = v)),
-                const SizedBox(width: 6),
                 _filterPill(
                     'Muertos', _showDead, (v) => setState(() => _showDead = v)),
               ],
@@ -771,7 +816,8 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
               ),
             )
           else
-            ...filtered.map((p) => _buildPlayerRow(p, team, isWide, isOwner)),
+            ...filtered.map(
+                (p) => _buildPlayerRow(p, team, isWide, isOwner, baseRoster)),
         ] else
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
@@ -798,8 +844,8 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
                       ),
                     )
                   else
-                    ...filtered
-                        .map((p) => _buildPlayerRow(p, team, isWide, isOwner)),
+                    ...filtered.map((p) =>
+                        _buildPlayerRow(p, team, isWide, isOwner, baseRoster)),
                 ],
               ),
             ),
@@ -876,11 +922,69 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
           color: AppColors.textMuted,
           letterSpacing: 0.8));
 
+  Set<String>? _startingPerkKeys(BaseTeam? roster, UserPlayer player) {
+    if (roster == null) return null;
+
+    BasePosition? position;
+    for (final candidate in roster.positions) {
+      final candidateKeys = <String>{
+        _positionKey(candidate.id),
+        _positionKey(candidate.name),
+        if (candidate.position != null) _positionKey(candidate.position!),
+      }..remove('');
+      final playerKeys = <String>{
+        _positionKey(player.baseType),
+        _positionKey(player.positionLabel),
+      }..remove('');
+
+      if (candidateKeys.intersection(playerKeys).isNotEmpty) {
+        position = candidate;
+        break;
+      }
+    }
+
+    if (position == null) return null;
+
+    final keys = <String>{};
+    for (final perk in position.startingPerks) {
+      keys.add(_perkKey(perk.id));
+      keys.add(_perkKey(perk.name));
+    }
+    keys.remove('');
+    return keys;
+  }
+
+  String _positionKey(String value) =>
+      value.toLowerCase().trim().replaceAll(RegExp(r'[^a-z0-9]+'), '');
+
+  String _perkKey(String value) {
+    final normalized = value
+        .toLowerCase()
+        .trim()
+        .replaceAll(RegExp(r'[_\s]+'), '-')
+        .replaceAll(RegExp(r'[^a-z0-9-]+'), '');
+    return normalized.startsWith('perk-')
+        ? normalized.substring('perk-'.length)
+        : normalized;
+  }
+
+  bool? _isAcquiredPerk(UserPlayerPerk perk, Set<String>? startingPerkKeys) {
+    if (startingPerkKeys == null) return null;
+    return !startingPerkKeys.contains(_perkKey(perk.id)) &&
+        !startingPerkKeys.contains(_perkKey(perk.name));
+  }
+
   Widget _buildPlayerRow(
-      UserPlayer player, UserTeamDetail team, bool isWide, bool isOwner) {
+    UserPlayer player,
+    UserTeamDetail team,
+    bool isWide,
+    bool isOwner,
+    BaseTeam? baseRoster,
+  ) {
     final lang = ref.watch(localeProvider);
     final isDead = player.isDead;
     final canLevelUp = _canLevelUp(player);
+    final startingPerkKeys = _startingPerkKeys(baseRoster, player);
     return InkWell(
       onTap: () {
         final tid = widget.teamId;
@@ -959,7 +1063,12 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
                 child: Wrap(
                     spacing: 4,
                     runSpacing: 4,
-                    children: player.perks.take(4).map(_skillBadge).toList()),
+                    children: player.perks
+                        .take(4)
+                        .map((perk) => _skillBadge(perk,
+                            isAcquired:
+                                _isAcquiredPerk(perk, startingPerkKeys)))
+                        .toList()),
               ),
             // SPP
             SizedBox(
@@ -1142,24 +1251,51 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
     );
   }
 
-  Widget _skillBadge(UserPlayerPerk perk) {
+  Widget _skillBadge(UserPlayerPerk perk, {bool? isAcquired}) {
+    final color = isAcquired == true ? AppColors.accent : AppColors.primary;
+    final backgroundOpacity = isAcquired == true ? 0.2 : 0.15;
+    final borderOpacity = isAcquired == true ? 0.65 : 0.4;
+
     return GestureDetector(
       onTap: () => showSkillPopup(context, ref,
           skillName: perk.name, family: perk.category),
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-          decoration: BoxDecoration(
-            color: AppColors.primary.withOpacity(0.15),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.primary.withOpacity(0.4)),
+      child: Tooltip(
+        message: isAcquired == true ? '${perk.name} (adquirida)' : perk.name,
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: Container(
+            padding: EdgeInsets.only(
+              left: isAcquired == true ? 5 : 7,
+              right: 7,
+              top: 3,
+              bottom: 3,
+            ),
+            decoration: BoxDecoration(
+              color: color.withOpacity(backgroundOpacity),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: color.withOpacity(borderOpacity)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (isAcquired == true) ...[
+                  Icon(
+                    PhosphorIcons.plusCircle(PhosphorIconsStyle.fill),
+                    size: 10,
+                    color: AppColors.accentLight,
+                  ),
+                  const SizedBox(width: 3),
+                ],
+                Text(perk.name,
+                    style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: isAcquired == true
+                            ? FontWeight.w700
+                            : FontWeight.w500,
+                        color: AppColors.textPrimary)),
+              ],
+            ),
           ),
-          child: Text(perk.name,
-              style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textPrimary)),
         ),
       ),
     );

@@ -287,8 +287,8 @@ La estructura por features, el uso de Riverpod y la intencion de modelar dominio
 
 **TECNICAS**
 
-- [ ] Filtro por raza + busqueda en mis equipos
-- [ ] Posibilidad de mirar equipos de otros jugadores "amigos" o con código de jugador
+- [X] Filtro por raza + busqueda en mis equipos [DONE]
+- [X] Posibilidad de mirar equipos de otros jugadores "amigos" o con código de jugador [DONE: acceso por código de equipo]
 - [ ] Histórico de compras o modificación de jugadores con SPP
 - [ ] Buscador en la sección de habilidades
 - [ ] Jugadores estrella disponibles en la creación de equipo QUITAR
@@ -305,11 +305,11 @@ La estructura por features, el uso de Riverpod y la intencion de modelar dominio
 **VISUALES**
 
 - [X] Centrar tabla de perks
-- [ ] Pills de habilidades adquiridas con otro color o icono para diferenciarlos de las habilidades base
-- [ ] Reorganizar la sección de mis tácticas - el mapa debería aparecer lo primero
-- [ ] En la parte de mis tacticas en lugar de lista que sea un grid. Ademas que sea multiidioma las labels de ataque y defensa
+- [X] Pills de habilidades adquiridas con otro color o icono para diferenciarlos de las habilidades base [DONE]
+- [X] Reorganizar la sección de mis tácticas - el mapa debería aparecer lo primero [DONE]
+- [X] En la parte de mis tacticas en lugar de lista que sea un grid. Ademas que sea multiidioma las labels de ataque y defensa [DONE]
 - [ ] Calculos post-partido en backend
-- [ ] La vista de mis equipos rediseñarla.
+- [X] La vista de mis equipos rediseñarla. [DONE]
 - [ ] En partido rapido rediseñar las tarjetas de selector de equipo: logo, valor equipo, nombre, raza
 - [ ] Seccion de notificaciones de mis ligas más estrecho, que quepan 2 tarjetas de liga en grid
 - [ ] Rediseño del calendario para que sea editable e incluya mas informacion cada tarjeta21
