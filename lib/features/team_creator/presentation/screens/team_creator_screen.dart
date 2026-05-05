@@ -1740,36 +1740,21 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
     try {
       final repository = ref.read(teamRepositoryProvider);
 
-      // 1. Crear equipo vacío
       final teamId = await repository.createUserTeam(
         name: _teamName,
         baseRosterId: _selectedRace!.id,
+        players: [
+          for (int i = 0; i < _roster.length; i++)
+            {
+              'base_type': _roster[i].position.id,
+              'number': i + 1,
+            }
+        ],
+        rerolls: _rerolls,
+        cheerleaders: _cheerleaders,
+        assistantCoaches: _assistantCoaches,
+        apothecary: _apothecary,
       );
-
-      // 2. Fichar cada jugador
-      for (int i = 0; i < _roster.length; i++) {
-        final pos = _roster[i].position;
-        await repository.hirePlayer(
-          teamId,
-          baseType: pos.id,
-          name: pos.name,
-          number: i + 1,
-        );
-      }
-
-      // 3. Guardar staff y re-rolls
-      if (_rerolls > 0 ||
-          _cheerleaders > 0 ||
-          _assistantCoaches > 0 ||
-          _apothecary) {
-        await repository.patchTeamStaff(
-          teamId,
-          rerolls: _rerolls,
-          cheerleaders: _cheerleaders,
-          assistantCoaches: _assistantCoaches,
-          apothecary: _apothecary,
-        );
-      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1778,7 +1763,7 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
             backgroundColor: AppColors.success,
           ),
         );
-        context.go('/dashboard');
+        context.go('/teams/$teamId');
       }
     } catch (e) {
       if (mounted) {

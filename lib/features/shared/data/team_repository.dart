@@ -56,11 +56,21 @@ class TeamRepository {
   Future<String> createUserTeam({
     required String name,
     required String baseRosterId,
+    List<Map<String, dynamic>> players = const [],
+    int rerolls = 0,
+    int cheerleaders = 0,
+    int assistantCoaches = 0,
+    bool apothecary = false,
   }) async {
     try {
       final response = await _dio.post('/user-teams/', data: {
         'name': name,
         'base_roster_id': baseRosterId,
+        'players': players,
+        'rerolls': rerolls,
+        'cheerleaders': cheerleaders,
+        'assistant_coaches': assistantCoaches,
+        'apothecary': apothecary,
       });
       return response.data['id'] as String;
     } on DioException catch (e) {
