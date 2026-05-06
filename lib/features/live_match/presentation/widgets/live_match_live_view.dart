@@ -21,17 +21,12 @@ extension _LiveMatchLiveView on _LiveMatchScreenState {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Half / Turn
+                // Turn tracker
                 _buildMatchStateRow(match, lang),
                 const SizedBox(height: 24),
 
-                // Quick Actions — centered
-                _sectionHeader(tr(lang, 'liveMatch.quickAdd'),
-                    PhosphorIcons.plusCircle(PhosphorIconsStyle.fill)),
-                const SizedBox(height: 12),
-                _buildQuickActions(match, lang),
-                const SizedBox(height: 10),
-                _buildRerollCards(match),
+                // Quick Actions
+                _buildQuickActionsPanel(match, lang),
                 const SizedBox(height: 28),
 
                 // Gate + Rerolls
@@ -183,7 +178,10 @@ extension _LiveMatchLiveView on _LiveMatchScreenState {
                         _teamLogo(homeLogo, 130),
                         const SizedBox(height: 4),
                         Text(match.home.teamName,
-                            style: _displaySmall.copyWith(fontSize: 26),
+                            style: _displaySmall.copyWith(
+                              fontSize: 34,
+                              fontWeight: FontWeight.w900,
+                            ),
                             textAlign: TextAlign.center,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis),
@@ -207,7 +205,10 @@ extension _LiveMatchLiveView on _LiveMatchScreenState {
                           children: [
                             Text('${match.scoreHome}',
                                 style: _displayLarge.copyWith(
-                                    fontSize: 60, letterSpacing: 2)),
+                                  fontSize: 118,
+                                  letterSpacing: 2,
+                                  height: 0.82,
+                                )),
                             const SizedBox(height: 6),
                             Row(
                               mainAxisSize: MainAxisSize.min,
@@ -231,17 +232,20 @@ extension _LiveMatchLiveView on _LiveMatchScreenState {
                           ],
                         ),
                         Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 14),
+                          padding: const EdgeInsets.symmetric(horizontal: 18),
                           child: Text('–',
                               style: _displayLarge.copyWith(
-                                  fontSize: 40, color: AppColors.textMuted)),
+                                  fontSize: 76, color: AppColors.textMuted)),
                         ),
                         // Away score
                         Column(
                           children: [
                             Text('${match.scoreAway}',
                                 style: _displayLarge.copyWith(
-                                    fontSize: 60, letterSpacing: 2)),
+                                  fontSize: 118,
+                                  letterSpacing: 2,
+                                  height: 0.82,
+                                )),
                             const SizedBox(height: 6),
                             Row(
                               mainAxisSize: MainAxisSize.min,
@@ -275,7 +279,10 @@ extension _LiveMatchLiveView on _LiveMatchScreenState {
                         _teamLogo(awayLogo, 130),
                         const SizedBox(height: 4),
                         Text(match.away.teamName,
-                            style: _displaySmall.copyWith(fontSize: 26),
+                            style: _displaySmall.copyWith(
+                              fontSize: 34,
+                              fontWeight: FontWeight.w900,
+                            ),
                             textAlign: TextAlign.center,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis),
@@ -438,38 +445,355 @@ extension _LiveMatchLiveView on _LiveMatchScreenState {
     );
   }
 
-  // ── Half / Turn counters ──
+  // ── Turn tracker ──
 
   Widget _buildMatchStateRow(Match match, String lang) {
+    final activeTeam = match.currentTeam == 'away' ? 'away' : 'home';
+    final activeName =
+        activeTeam == 'home' ? match.home.teamName : match.away.teamName;
+    final activeTurn = activeTeam == 'home' ? match.homeTurn : match.awayTurn;
+    final canPass = !(activeTeam == 'away' && activeTurn >= 16);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppColors.card,
+            AppColors.surface.withValues(alpha: 0.72),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border:
+            Border.all(color: AppColors.surfaceLight.withValues(alpha: 0.7)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.35),
+                  ),
+                ),
+                child: Icon(PhosphorIcons.timer(PhosphorIconsStyle.fill),
+                    color: AppColors.primary, size: 22),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${tr(lang, 'liveMatch.half')} ${match.currentHalf} · ${tr(lang, 'liveMatch.turn')} $activeTurn',
+                      style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Activo: $activeName · ${_fmtDuration(_activeTurnElapsed(match))}',
+                      style: const TextStyle(
+                        color: AppColors.textMuted,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              ElevatedButton.icon(
+                onPressed: canPass ? () => _passTurn(match) : null,
+                icon: Icon(PhosphorIcons.arrowRight(PhosphorIconsStyle.bold),
+                    size: 18),
+                label: const Text('Pasar turno'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor:
+                      activeTeam == 'home' ? AppColors.info : AppColors.error,
+                  foregroundColor: Colors.white,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _turnTrack(
+            teamName: match.home.teamName,
+            teamKey: 'home',
+            currentTeam: activeTeam,
+            teamTurn: match.homeTurn,
+            seconds: match.homeTurnSeconds,
+            color: AppColors.info,
+          ),
+          const SizedBox(height: 10),
+          _halftimeRail(),
+          const SizedBox(height: 10),
+          _turnTrack(
+            teamName: match.away.teamName,
+            teamKey: 'away',
+            currentTeam: activeTeam,
+            teamTurn: match.awayTurn,
+            seconds: match.awayTurnSeconds,
+            color: AppColors.error,
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: _turnTimeSummary(
+                  label: match.home.teamName,
+                  seconds: match.homeTurnSeconds,
+                  color: AppColors.info,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _turnTimeSummary(
+                  label: match.away.teamName,
+                  seconds: match.awayTurnSeconds,
+                  color: AppColors.error,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _passTurn(Match match) async {
+    final activeTeam = match.currentTeam == 'away' ? 'away' : 'home';
+    final activeTurn = activeTeam == 'home' ? match.homeTurn : match.awayTurn;
+    if (activeTeam == 'away' && activeTurn >= 16) return;
+
+    if (activeTeam == 'home') {
+      final awayTurn =
+          match.awayTurn < activeTurn ? activeTurn : match.awayTurn;
+      await _updateState(
+        currentTeam: 'away',
+        awayTurn: awayTurn,
+        currentTurn: awayTurn,
+        currentHalf: awayTurn >= 9 ? 2 : 1,
+      );
+    } else {
+      final nextTurn = (activeTurn + 1).clamp(1, 16).toInt();
+      await _updateState(
+        currentTeam: 'home',
+        homeTurn: nextTurn,
+        currentTurn: nextTurn,
+        currentHalf: nextTurn >= 9 ? 2 : 1,
+        rerollsUsedHome: nextTurn == 9 ? 0 : null,
+        rerollsUsedAway: nextTurn == 9 ? 0 : null,
+      );
+    }
+  }
+
+  Duration _activeTurnElapsed(Match match) {
+    final started = match.turnStartedAt;
+    if (started == null) return Duration.zero;
+    return DateTime.now().toUtc().difference(_toUtc(started));
+  }
+
+  Widget _turnTrack({
+    required String teamName,
+    required String teamKey,
+    required String currentTeam,
+    required int teamTurn,
+    required List<int> seconds,
+    required Color color,
+  }) {
     return Row(
       children: [
-        Expanded(
-          child: _counterChip(
-            label: tr(lang, 'liveMatch.half'),
-            value: match.currentHalf,
-            onDec: match.currentHalf > 1
-                ? () => _updateState(currentHalf: match.currentHalf - 1)
-                : null,
-            onInc: match.currentHalf < 2
-                ? () => _updateState(currentHalf: match.currentHalf + 1)
-                : null,
+        SizedBox(
+          width: 120,
+          child: Text(
+            teamName,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: color,
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+            ),
           ),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 10),
         Expanded(
-          child: _counterChip(
-            label: tr(lang, 'liveMatch.turn'),
-            value: match.currentTurn,
-            onDec: match.currentTurn > 1
-                ? () => _updateState(currentTurn: match.currentTurn - 1)
-                : null,
-            onInc: match.currentTurn < 16
-                ? () => _updateState(currentTurn: match.currentTurn + 1)
-                : null,
-          ),
+          child: LayoutBuilder(builder: (context, constraints) {
+            final gapCount = 15;
+            final gapWidth = 4.0;
+            final dividerWidth = 10.0;
+            final squareSize =
+                ((constraints.maxWidth - (gapCount * gapWidth) - dividerWidth) /
+                        16)
+                    .clamp(18.0, 34.0);
+            final children = <Widget>[];
+            for (var turn = 1; turn <= 16; turn++) {
+              if (turn == 9) {
+                children.add(_halfDivider(height: squareSize));
+                children.add(SizedBox(width: gapWidth));
+              }
+              final completed = seconds.length >= turn;
+              final active = currentTeam == teamKey && teamTurn == turn;
+              children.add(_turnSquare(
+                turn: turn,
+                completed: completed,
+                active: active,
+                seconds: completed ? seconds[turn - 1] : null,
+                color: color,
+                size: squareSize,
+              ));
+              if (turn != 16) children.add(SizedBox(width: gapWidth));
+            }
+            return SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minWidth: constraints.maxWidth),
+                child: Center(
+                  child:
+                      Row(mainAxisSize: MainAxisSize.min, children: children),
+                ),
+              ),
+            );
+          }),
         ),
       ],
     );
+  }
+
+  Widget _turnSquare({
+    required int turn,
+    required bool completed,
+    required bool active,
+    required int? seconds,
+    required Color color,
+    required double size,
+  }) {
+    final display =
+        completed && seconds != null ? _fmtShortSeconds(seconds) : '$turn';
+    final child = AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      width: size,
+      height: size,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: active
+            ? color
+            : completed
+                ? color.withValues(alpha: 0.28)
+                : AppColors.surfaceLight.withValues(alpha: 0.52),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: active
+              ? Colors.white.withValues(alpha: 0.85)
+              : completed
+                  ? color.withValues(alpha: 0.5)
+                  : AppColors.surfaceLight,
+          width: active ? 2 : 1,
+        ),
+        boxShadow: active
+            ? [BoxShadow(color: color.withValues(alpha: 0.45), blurRadius: 14)]
+            : null,
+      ),
+      child: Text(
+        display,
+        style: TextStyle(
+          color:
+              active ? Colors.white : (completed ? color : AppColors.textMuted),
+          fontSize: completed ? 9 : 12,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
+    if (!completed || seconds == null) return child;
+    return Tooltip(
+        message: 'Turno $turn · ${_fmtDuration(Duration(seconds: seconds))}',
+        child: child);
+  }
+
+  Widget _halfDivider({required double height}) => Container(
+        width: 6,
+        height: height,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(999),
+          color: AppColors.accent,
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.accent.withValues(alpha: 0.45),
+              blurRadius: 10,
+            ),
+          ],
+        ),
+      );
+
+  Widget _halftimeRail() => Divider(
+        color: AppColors.surfaceLight.withValues(alpha: 0.9),
+        height: 1,
+      );
+
+  Widget _turnTimeSummary({
+    required String label,
+    required List<int> seconds,
+    required Color color,
+  }) {
+    final total = seconds.fold<int>(0, (sum, value) => sum + value);
+    final avg = seconds.isEmpty ? 0 : total ~/ seconds.length;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        children: [
+          Icon(PhosphorIcons.timer(PhosphorIconsStyle.fill),
+              color: color, size: 17),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          Text(
+            '${seconds.length}/16 · avg ${_fmtShortSeconds(avg)}',
+            style: TextStyle(
+              color: color,
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _fmtShortSeconds(int seconds) {
+    if (seconds < 60) return '${seconds}s';
+    final m = seconds ~/ 60;
+    final s = seconds.remainder(60);
+    return s == 0 ? '${m}m' : '$m:${s.toString().padLeft(2, '0')}';
   }
 
   Widget _counterChip({
@@ -516,7 +840,9 @@ extension _LiveMatchLiveView on _LiveMatchScreenState {
     VoidCallback? onDec,
     VoidCallback? onInc,
   }) {
-    final isFull = total != null && used >= total;
+    final remaining =
+        total == null ? used : (total - used).clamp(0, total).toInt();
+    final isEmpty = total != null && remaining <= 0;
     return Container(
       width: 104,
       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
@@ -530,7 +856,8 @@ extension _LiveMatchLiveView on _LiveMatchScreenState {
           end: Alignment.bottomCenter,
         ),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: color.withValues(alpha: isFull ? 0.7 : 0.25)),
+        border:
+            Border.all(color: color.withValues(alpha: isEmpty ? 0.7 : 0.25)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -543,10 +870,10 @@ extension _LiveMatchLiveView on _LiveMatchScreenState {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                '$used',
+                '$remaining',
                 style: _displayLarge.copyWith(
                     fontSize: 28,
-                    color: isFull ? AppColors.error : color,
+                    color: isEmpty ? AppColors.error : color,
                     height: 1),
               ),
               if (total != null)
@@ -564,7 +891,7 @@ extension _LiveMatchLiveView on _LiveMatchScreenState {
           ),
           const SizedBox(height: 3),
           Text(
-            teamName,
+            'Restantes · $teamName',
             style: TextStyle(
                 color: color.withValues(alpha: 0.8),
                 fontSize: 9,
@@ -588,7 +915,117 @@ extension _LiveMatchLiveView on _LiveMatchScreenState {
     );
   }
 
-  // ── Quick Actions (centered wrap) ──
+  // ── Quick Actions panel ──
+
+  Widget _buildQuickActionsPanel(Match match, String lang) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.card.withValues(alpha: 0.88),
+        borderRadius: BorderRadius.circular(22),
+        border:
+            Border.all(color: AppColors.surfaceLight.withValues(alpha: 0.72)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.16),
+            blurRadius: 24,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(
+                  PhosphorIcons.lightning(PhosphorIconsStyle.fill),
+                  color: AppColors.primary,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      tr(lang, 'liveMatch.quickAdd').toUpperCase(),
+                      style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    const Text(
+                      'Registra acciones clave sin romper el ritmo del partido.',
+                      style: TextStyle(
+                        color: AppColors.textMuted,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _buildQuickActions(match, lang),
+          const SizedBox(height: 16),
+          const Divider(color: AppColors.surfaceLight),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: _rerollCard(
+                  teamName: match.home.teamName,
+                  used: match.rerollsUsedHome,
+                  total: _homeTeam?.rerolls,
+                  color: AppColors.info,
+                  onDec: (_homeTeam?.rerolls ?? 0) > match.rerollsUsedHome
+                      ? () => _updateState(
+                          rerollsUsedHome: match.rerollsUsedHome + 1)
+                      : null,
+                  onInc: match.rerollsUsedHome > 0
+                      ? () => _updateState(
+                          rerollsUsedHome: match.rerollsUsedHome - 1)
+                      : null,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _rerollCard(
+                  teamName: match.away.teamName,
+                  used: match.rerollsUsedAway,
+                  total: _awayTeam?.rerolls,
+                  color: AppColors.error,
+                  onDec: (_awayTeam?.rerolls ?? 0) > match.rerollsUsedAway
+                      ? () => _updateState(
+                          rerollsUsedAway: match.rerollsUsedAway + 1)
+                      : null,
+                  onInc: match.rerollsUsedAway > 0
+                      ? () => _updateState(
+                          rerollsUsedAway: match.rerollsUsedAway - 1)
+                      : null,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildQuickActions(Match match, String lang) {
     final actions = [
@@ -604,6 +1041,8 @@ extension _LiveMatchLiveView on _LiveMatchScreenState {
           PhosphorIcons.handGrabbing(PhosphorIconsStyle.fill),
           AppColors.success,
           'interception'),
+      _QA('Lanzar comp.', PhosphorIcons.userSwitch(PhosphorIconsStyle.fill),
+          AppColors.info, 'throw_teammate'),
       _QA('KO', PhosphorIcons.lightningSlash(PhosphorIconsStyle.fill),
           AppColors.warning, 'ko'),
       _QA(
@@ -617,20 +1056,26 @@ extension _LiveMatchLiveView on _LiveMatchScreenState {
           AppColors.primaryLight, 'foul'),
     ];
 
-    return Center(
-      child: Wrap(
-        spacing: 10,
-        runSpacing: 10,
-        alignment: WrapAlignment.center,
-        children: [
-          ...actions.map((a) => _quickBtn(
-                label: a.label,
-                icon: a.icon,
-                color: a.color,
-                onTap: () => _showAddEventDialog(match, lang, a.type),
-              )),
-        ],
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 700;
+        return GridView.count(
+          crossAxisCount: compact ? 2 : 4,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisSpacing: 8,
+          mainAxisSpacing: 8,
+          childAspectRatio: compact ? 3.8 : 3.15,
+          children: [
+            ...actions.map((a) => _quickBtn(
+                  label: a.label,
+                  icon: a.icon,
+                  color: a.color,
+                  onTap: () => _showAddEventDialog(match, lang, a.type),
+                )),
+          ],
+        );
+      },
     );
   }
 
@@ -644,11 +1089,11 @@ extension _LiveMatchLiveView on _LiveMatchScreenState {
             used: match.rerollsUsedHome,
             total: _homeTeam?.rerolls,
             color: AppColors.info,
-            onDec: match.rerollsUsedHome > 0
-                ? () => _updateState(rerollsUsedHome: match.rerollsUsedHome - 1)
-                : null,
-            onInc: match.rerollsUsedHome < (_homeTeam?.rerolls ?? 99)
+            onDec: (_homeTeam?.rerolls ?? 0) > match.rerollsUsedHome
                 ? () => _updateState(rerollsUsedHome: match.rerollsUsedHome + 1)
+                : null,
+            onInc: match.rerollsUsedHome > 0
+                ? () => _updateState(rerollsUsedHome: match.rerollsUsedHome - 1)
                 : null,
           ),
           const SizedBox(width: 10),
@@ -657,11 +1102,11 @@ extension _LiveMatchLiveView on _LiveMatchScreenState {
             used: match.rerollsUsedAway,
             total: _awayTeam?.rerolls,
             color: AppColors.error,
-            onDec: match.rerollsUsedAway > 0
-                ? () => _updateState(rerollsUsedAway: match.rerollsUsedAway - 1)
-                : null,
-            onInc: match.rerollsUsedAway < (_awayTeam?.rerolls ?? 99)
+            onDec: (_awayTeam?.rerolls ?? 0) > match.rerollsUsedAway
                 ? () => _updateState(rerollsUsedAway: match.rerollsUsedAway + 1)
+                : null,
+            onInc: match.rerollsUsedAway > 0
+                ? () => _updateState(rerollsUsedAway: match.rerollsUsedAway - 1)
                 : null,
           ),
         ],
@@ -681,29 +1126,71 @@ extension _LiveMatchLiveView on _LiveMatchScreenState {
         onTap: onTap,
         borderRadius: BorderRadius.circular(14),
         child: Container(
-          width: 88,
-          padding: const EdgeInsets.symmetric(vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
+                color.withValues(alpha: 0.46),
                 color.withValues(alpha: 0.2),
-                color.withValues(alpha: 0.08),
+                AppColors.surface.withValues(alpha: 0.5),
               ],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: color.withValues(alpha: 0.25)),
+            border: Border.all(color: color.withValues(alpha: 0.65)),
+            boxShadow: [
+              BoxShadow(
+                color: color.withValues(alpha: 0.26),
+                blurRadius: 14,
+                offset: const Offset(0, 6),
+              ),
+              BoxShadow(
+                color: Colors.white.withValues(alpha: 0.05),
+                blurRadius: 1,
+                offset: const Offset(0, 1),
+              ),
+            ],
           ),
-          child: Column(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, color: color, size: 24),
-              const SizedBox(height: 6),
-              Text(label,
-                  style: TextStyle(
-                      color: color, fontSize: 10, fontWeight: FontWeight.w700),
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(13),
+                  border:
+                      Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: color.withValues(alpha: 0.36),
+                      blurRadius: 12,
+                    ),
+                  ],
+                ),
+                child: Icon(icon, color: Colors.white, size: 26),
+              ),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
+                    shadows: [
+                      Shadow(
+                        color: Colors.black54,
+                        blurRadius: 8,
+                      ),
+                    ],
+                  ),
                   maxLines: 1,
-                  overflow: TextOverflow.ellipsis),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
             ],
           ),
         ),

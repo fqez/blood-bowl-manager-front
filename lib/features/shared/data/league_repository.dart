@@ -192,6 +192,25 @@ class LeagueRepository {
     }
   }
 
+  Future<void> applyAftermatchSpp({
+    required String leagueId,
+    required String matchId,
+    required List<Map<String, dynamic>> home,
+    required List<Map<String, dynamic>> away,
+    required List<Map<String, dynamic>> postMatchEvents,
+  }) async {
+    try {
+      await _dio
+          .post('/leagues/$leagueId/matches/$matchId/aftermatch/spp', data: {
+        'home': home,
+        'away': away,
+        'post_match_events': postMatchEvents,
+      });
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
   Future<LeagueSummaryModel> updateLeagueSettings(
     String leagueId, {
     String? name,
@@ -320,6 +339,9 @@ class LeagueRepository {
     int? scoreAway,
     int? currentHalf,
     int? currentTurn,
+    String? currentTeam,
+    int? homeTurn,
+    int? awayTurn,
     String? weather,
     String? kickoffEvent,
     bool? homeReady,
@@ -340,6 +362,9 @@ class LeagueRepository {
           if (scoreAway != null) 'score_away': scoreAway,
           if (currentHalf != null) 'current_half': currentHalf,
           if (currentTurn != null) 'current_turn': currentTurn,
+          if (currentTeam != null) 'current_team': currentTeam,
+          if (homeTurn != null) 'home_turn': homeTurn,
+          if (awayTurn != null) 'away_turn': awayTurn,
           if (weather != null) 'weather': weather,
           if (kickoffEvent != null) 'kickoff_event': kickoffEvent,
           if (homeReady != null) 'home_ready': homeReady,

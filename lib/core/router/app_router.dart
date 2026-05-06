@@ -126,6 +126,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   return AftermatchScreen(
                     leagueId: leagueId,
                     matchId: matchId,
+                    debugRandomSeed: int.tryParse(
+                        state.uri.queryParameters['debugSeed'] ?? ''),
                   );
                 },
               ),

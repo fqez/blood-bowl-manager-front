@@ -28,6 +28,107 @@ final starPlayersForTeamProvider =
   return repo.getStarPlayersForTeam(teamId);
 });
 
+final expensiveMistakesRulesProvider =
+    FutureProvider<ExpensiveMistakesRules>((ref) async {
+  final repo = ref.watch(teamRepositoryProvider);
+  return repo.getExpensiveMistakesRules();
+});
+
+class ExpensiveMistakesRules {
+  final int minTreasury;
+  final List<ExpensiveMistakeBand> bands;
+  final Map<String, ExpensiveMistakeEffect> effects;
+
+  const ExpensiveMistakesRules({
+    required this.minTreasury,
+    required this.bands,
+    required this.effects,
+  });
+
+  factory ExpensiveMistakesRules.fromJson(Map<String, dynamic> json) {
+    final effectList = (json['effects'] as List<dynamic>? ?? [])
+        .map((e) => ExpensiveMistakeEffect.fromJson(e as Map<String, dynamic>))
+        .toList();
+    return ExpensiveMistakesRules(
+      minTreasury: (json['min_treasury'] as num?)?.toInt() ?? 100000,
+      bands: (json['bands'] as List<dynamic>? ?? [])
+          .map((e) => ExpensiveMistakeBand.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      effects: {for (final effect in effectList) effect.code: effect},
+    );
+  }
+
+  String? resultFor(int treasury, int roll) {
+    if (treasury < minTreasury) return null;
+    final clampedRoll = roll.clamp(1, 6).toInt();
+    for (final band in bands) {
+      final upper = band.maxTreasury;
+      if (treasury >= band.minTreasury &&
+          (upper == null || treasury <= upper)) {
+        return band.results[clampedRoll - 1];
+      }
+    }
+    return null;
+  }
+}
+
+class ExpensiveMistakeBand {
+  final int minTreasury;
+  final int? maxTreasury;
+  final List<String> results;
+
+  const ExpensiveMistakeBand({
+    required this.minTreasury,
+    required this.maxTreasury,
+    required this.results,
+  });
+
+  factory ExpensiveMistakeBand.fromJson(Map<String, dynamic> json) =>
+      ExpensiveMistakeBand(
+        minTreasury: (json['min_treasury'] as num?)?.toInt() ?? 0,
+        maxTreasury: (json['max_treasury'] as num?)?.toInt(),
+        results:
+            (json['results'] as List<dynamic>? ?? []).map((e) => '$e').toList(),
+      );
+}
+
+class ExpensiveMistakeEffect {
+  final String code;
+  final Map<String, String> label;
+  final Map<String, String> description;
+  final String calculation;
+  final List<String> requiredDice;
+
+  const ExpensiveMistakeEffect({
+    required this.code,
+    required this.label,
+    required this.description,
+    required this.calculation,
+    required this.requiredDice,
+  });
+
+  factory ExpensiveMistakeEffect.fromJson(Map<String, dynamic> json) =>
+      ExpensiveMistakeEffect(
+        code: json['code'] as String? ?? '',
+        label: _localized(json['label']),
+        description: _localized(json['description']),
+        calculation: json['calculation'] as String? ?? 'none',
+        requiredDice: (json['required_dice'] as List<dynamic>? ?? [])
+            .map((e) => '$e')
+            .toList(),
+      );
+
+  String localizedLabel(String lang) => label[lang] ?? label['en'] ?? code;
+
+  String localizedDescription(String lang) =>
+      description[lang] ?? description['en'] ?? '';
+
+  static Map<String, String> _localized(dynamic value) {
+    if (value is! Map) return const {};
+    return value.map((key, val) => MapEntry('$key', '$val'));
+  }
+}
+
 class TeamRepository {
   final Dio _dio;
 
@@ -123,6 +224,7 @@ class TeamRepository {
     bool? apothecary,
     int? fanFactor,
     int? dedicatedFans,
+    int? treasury,
   }) async {
     try {
       final response = await _dio.patch('/user-teams/$teamId', data: {
@@ -133,6 +235,7 @@ class TeamRepository {
         if (apothecary != null) 'apothecary': apothecary,
         if (fanFactor != null) 'fan_factor': fanFactor,
         if (dedicatedFans != null) 'dedicated_fans': dedicatedFans,
+        if (treasury != null) 'treasury': treasury,
       });
       return UserTeamDetail.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
@@ -191,6 +294,17 @@ class TeamRepository {
   Future<void> deleteUserTeam(String teamId) async {
     try {
       await _dio.delete('/user-teams/$teamId');
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  Future<ExpensiveMistakesRules> getExpensiveMistakesRules() async {
+    try {
+      final response = await _dio.get('/rules/expensive-mistakes');
+      return ExpensiveMistakesRules.fromJson(
+        response.data as Map<String, dynamic>,
+      );
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }

@@ -13,6 +13,7 @@ import '../../../my_teams/domain/models/user_team.dart';
 import '../../../roster/domain/models/team.dart';
 import '../../../auth/data/providers/auth_provider.dart';
 import '../../../shared/data/repositories.dart';
+import '../../../shared/presentation/widgets/match_event_dialog.dart';
 import '../../../shared/presentation/widgets/skill_popup.dart';
 import '../../data/active_match_provider.dart';
 
@@ -368,6 +369,9 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
     int? scoreAway,
     int? currentHalf,
     int? currentTurn,
+    String? currentTeam,
+    int? homeTurn,
+    int? awayTurn,
     String? weather,
     String? kickoffEvent,
     bool? homeReady,
@@ -389,6 +393,9 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
           scoreAway: scoreAway,
           currentHalf: currentHalf,
           currentTurn: currentTurn,
+          currentTeam: currentTeam,
+          homeTurn: homeTurn,
+          awayTurn: awayTurn,
           weather: weather,
           kickoffEvent: kickoffEvent,
           homeReady: homeReady,
@@ -410,6 +417,9 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
           scoreAway: scoreAway,
           currentHalf: currentHalf,
           currentTurn: currentTurn,
+          currentTeam: currentTeam,
+          homeTurn: homeTurn,
+          awayTurn: awayTurn,
           weather: weather,
           kickoffEvent: kickoffEvent,
           homeReady: homeReady,

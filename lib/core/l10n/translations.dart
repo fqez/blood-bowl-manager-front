@@ -739,8 +739,165 @@ const _t = <String, Map<String, String>>{
 
   // ── Post-Match ──────────────────────────────────────────────────────────
   'aftermatch.title': {'es': 'Post-Partido', 'en': 'Post-Match'},
+  'aftermatch.reportTitle': {
+    'es': 'Acta post-partido',
+    'en': 'Post-match report',
+  },
+  'aftermatch.matchVersus': {
+    'es': '{home}  vs  {away}',
+    'en': '{home}  vs  {away}',
+  },
   'aftermatch.result': {'es': 'Resultado', 'en': 'Result'},
+  'aftermatch.matchResultTitle': {
+    'es': 'Resultado del partido',
+    'en': 'Match result',
+  },
+  'aftermatch.matchResultSubtitle': {
+    'es': 'Revisa el marcador final y ajusta las estadísticas principales.',
+    'en': 'Review the final score and adjust the main statistics.',
+  },
+  'aftermatch.teamWins': {'es': '{team} gana', 'en': '{team} wins'},
+  'aftermatch.draw': {'es': 'Empate', 'en': 'Draw'},
   'aftermatch.touchdowns': {'es': 'Touchdowns', 'en': 'Touchdowns'},
+  'aftermatch.casualties': {'es': 'Bajas', 'en': 'Casualties'},
+  'aftermatch.completions': {'es': 'Completados', 'en': 'Completions'},
+  'aftermatch.interceptions': {
+    'es': 'Intercepciones',
+    'en': 'Interceptions',
+  },
+  'aftermatch.fouls': {'es': 'Faltas', 'en': 'Fouls'},
+  'aftermatch.kos': {'es': 'KOs', 'en': 'KOs'},
+  'aftermatch.rerollsUsed': {
+    'es': 'Segundas usadas',
+    'en': 'Rerolls used',
+  },
+  'aftermatch.stalling': {'es': 'Retener balón', 'en': 'Stalling'},
+  'aftermatch.stallingYes': {
+    'es': 'Hubo retención: sin bonus',
+    'en': 'Stalling: no bonus',
+  },
+  'aftermatch.stallingNo': {
+    'es': 'Sin retención: +1 bonus',
+    'en': 'No stalling: +1 bonus',
+  },
+  'aftermatch.stallingYesShort': {'es': 'Sí', 'en': 'Yes'},
+  'aftermatch.stallingNoShort': {'es': 'No', 'en': 'No'},
+  'aftermatch.gate': {'es': 'Taquilla', 'en': 'Gate'},
+  'aftermatch.winningsTitle': {'es': 'Ganancias', 'en': 'Winnings'},
+  'aftermatch.winningsSubtitle': {
+    'es': 'Ganancias finales de cada equipo. Pulsa la i para ver el cálculo.',
+    'en': 'Final winnings for each team. Tap the i to see the calculation.',
+  },
+  'aftermatch.winningsCalcTitle': {
+    'es': 'Cálculo de {team}',
+    'en': '{team} calculation',
+  },
+  'aftermatch.currentFanFactor': {
+    'es': 'Hinchas actuales',
+    'en': 'Current dedicated fans',
+  },
+  'aftermatch.opponentFanFactor': {
+    'es': 'Hinchas rivales',
+    'en': 'Opponent dedicated fans',
+  },
+  'aftermatch.fanFactorBase': {
+    'es': 'Base por hinchas',
+    'en': 'Dedicated fans base',
+  },
+  'aftermatch.noStallingBonus': {
+    'es': 'Bonus sin retener balón',
+    'en': 'No stalling bonus',
+  },
+  'aftermatch.gp': {'es': 'mo', 'en': 'gp'},
+  'aftermatch.dedicatedFansTitle': {
+    'es': 'Hinchas',
+    'en': 'Dedicated fans',
+  },
+  'aftermatch.d6Roll': {'es': 'Tirada D6', 'en': 'D6 roll'},
+  'aftermatch.currentFansLabel': {
+    'es': 'Hinchas actuales',
+    'en': 'Current fans'
+  },
+  'aftermatch.previousFansLabel': {
+    'es': 'Antes: {fans}',
+    'en': 'Previous: {fans}',
+  },
+  'aftermatch.fansDrawNoChange': {
+    'es': 'Empate: sin cambios',
+    'en': 'Draw: no change',
+  },
+  'aftermatch.fansRollPending': {
+    'es': 'Introduce el resultado del D6',
+    'en': 'Enter the D6 result',
+  },
+  'aftermatch.fansPlusOne': {'es': '+1 hincha', 'en': '+1 fan'},
+  'aftermatch.fansMinusOne': {'es': '−1 hincha', 'en': '−1 fan'},
+  'aftermatch.fansNoChangeMax': {
+    'es': 'Sin cambios: máximo 7',
+    'en': 'No change: max 7',
+  },
+  'aftermatch.fansNoChangeMin': {
+    'es': 'Sin cambios: mínimo 1',
+    'en': 'No change: min 1',
+  },
+  'aftermatch.fansNoChangeLowRoll': {
+    'es': 'Sin cambios: tirada menor que hinchas',
+    'en': 'No change: roll below fans',
+  },
+  'aftermatch.fansNoChangeHighRoll': {
+    'es': 'Sin cambios: tirada igual o mayor',
+    'en': 'No change: roll equal or higher',
+  },
+  'aftermatch.mvpTitle': {
+    'es': 'Jugador más valioso',
+    'en': 'Most valuable player',
+  },
+  'aftermatch.randomMvp': {'es': 'MVP Aleatorio', 'en': 'Random MVP'},
+  'aftermatch.addBonusSpp': {
+    'es': 'Añadir puntos bonus',
+    'en': 'Add bonus points',
+  },
+  'aftermatch.bonusDescription': {
+    'es': 'Descripción opcional',
+    'en': 'Optional description',
+  },
+  'aftermatch.bonusDescriptionHint': {
+    'es': 'Motivo del bonus, si aplica',
+    'en': 'Reason for the bonus, if needed',
+  },
+  'aftermatch.bonusSpp': {'es': 'Bonus', 'en': 'Bonus'},
+  'aftermatch.noSppReasons': {
+    'es': 'Este jugador no tiene puntos de estrellato todavía.',
+    'en': 'This player has no star player points yet.',
+  },
+  'aftermatch.expensiveMistakesTitle': {
+    'es': 'Errores costosos',
+    'en': 'Expensive mistakes',
+  },
+  'aftermatch.treasuryAfterWinnings': {
+    'es': 'Tesorería tras ganancias',
+    'en': 'Treasury after winnings',
+  },
+  'aftermatch.expensiveSafe': {'es': 'Seguro', 'en': 'Safe'},
+  'aftermatch.expensiveRollPending': {
+    'es': 'Introduce el resultado del D6',
+    'en': 'Enter the D6 result',
+  },
+  'aftermatch.expensiveNotApplicable': {
+    'es': 'No aplica: menos de 100.000 mo',
+    'en': 'Not applicable: below 100,000 gp',
+  },
+  'aftermatch.d3Roll': {'es': 'Tirada D3', 'en': 'D3 roll'},
+  'aftermatch.firstD6': {'es': 'Primer D6', 'en': 'First D6'},
+  'aftermatch.secondD6': {'es': 'Segundo D6', 'en': 'Second D6'},
+  'aftermatch.finalTreasury': {
+    'es': 'Tesorería final',
+    'en': 'Final treasury',
+  },
+  'aftermatch.treasuryLost': {
+    'es': 'Pérdida',
+    'en': 'Lost',
+  },
   'aftermatch.injuries': {'es': 'Lesiones', 'en': 'Injuries'},
   'aftermatch.sppBonus': {'es': 'SPP Bonus', 'en': 'SPP Bonus'},
   'aftermatch.confirm': {'es': 'Confirmar', 'en': 'Confirm'},
@@ -857,6 +1014,50 @@ const _t = <String, Map<String, String>>{
   'aftermatch.injuryFor': {
     'es': 'Lesión {team}',
     'en': 'Injury {team}',
+  },
+
+  // ── Debug aftermatch launcher ───────────────────────────────────────────
+  'debugAftermatch.preparing': {
+    'es': 'Preparando acceso debug...',
+    'en': 'Preparing debug access...',
+  },
+  'debugAftermatch.login': {
+    'es': 'Entrando como usuario debug...',
+    'en': 'Signing in as debug user...',
+  },
+  'debugAftermatch.loginError': {
+    'es': 'No se pudo iniciar sesión con el usuario debug.',
+    'en': 'Could not sign in with the debug user.',
+  },
+  'debugAftermatch.searchingLeagues': {
+    'es': 'Buscando ligas del usuario debug...',
+    'en': 'Searching debug user leagues...',
+  },
+  'debugAftermatch.startingLeague': {
+    'es': 'Iniciando liga debug...',
+    'en': 'Starting debug league...',
+  },
+  'debugAftermatch.preparingMatch': {
+    'es': 'Preparando partido para post-partido...',
+    'en': 'Preparing match for post-match...',
+  },
+  'debugAftermatch.randomizing': {
+    'es': 'Añadiendo datos aleatorios...',
+    'en': 'Adding random data...',
+  },
+  'debugAftermatch.completingMatch': {
+    'es': 'Completando partido en curso...',
+    'en': 'Completing current match...',
+  },
+  'debugAftermatch.openError': {
+    'es': 'No se pudo abrir el post-partido debug.',
+    'en': 'Could not open debug post-match.',
+  },
+  'debugAftermatch.noMatch': {
+    'es':
+        'No hay ninguna liga con dos equipos y un partido disponible para test@test.com.',
+    'en':
+        'No league with two teams and an available match exists for test@test.com.',
   },
 
   // ── Wiki: Skills ────────────────────────────────────────────────────────
@@ -1207,6 +1408,7 @@ const _t = <String, Map<String, String>>{
 
   // ── Common ──────────────────────────────────────────────────────────────
   'common.cancel': {'es': 'Cancelar', 'en': 'Cancel'},
+  'common.add': {'es': 'Añadir', 'en': 'Add'},
   'common.error': {'es': 'Error: {e}', 'en': 'Error: {e}'},
   'common.retry': {'es': 'Reintentar', 'en': 'Retry'},
   'common.save': {'es': 'Guardar', 'en': 'Save'},

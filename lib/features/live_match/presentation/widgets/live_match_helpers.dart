@@ -186,6 +186,7 @@ extension _LiveMatchHelpers on _LiveMatchScreenState {
         return AppColors.warning;
       case 'completion':
       case 'interception':
+      case 'throw_teammate':
         return AppColors.info;
       case 'foul':
         return AppColors.primaryLight;
@@ -218,6 +219,8 @@ extension _LiveMatchHelpers on _LiveMatchScreenState {
         return PhosphorIcons.lightningSlash(PhosphorIconsStyle.fill);
       case 'completion':
         return PhosphorIcons.arrowBendUpRight(PhosphorIconsStyle.fill);
+      case 'throw_teammate':
+        return PhosphorIcons.userSwitch(PhosphorIconsStyle.fill);
       case 'interception':
         return PhosphorIcons.handGrabbing(PhosphorIconsStyle.fill);
       case 'foul':

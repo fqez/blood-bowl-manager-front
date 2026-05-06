@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
+import '../../../../core/l10n/locale_provider.dart';
+import '../../../../core/l10n/translations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../auth/data/providers/auth_provider.dart';
 import '../../../league/domain/models/league.dart';
@@ -21,7 +23,7 @@ class _DebugLeagueAftermatchLauncherState
   static const _debugEmail = 'test@test.com';
   static const _debugPassword = 'Password123!';
 
-  String _message = 'Preparando acceso debug...';
+  String _messageKey = 'debugAftermatch.preparing';
   String? _error;
 
   @override
@@ -35,13 +37,13 @@ class _DebugLeagueAftermatchLauncherState
       await _ensureDebugUser();
       final target = await _findOrPrepareLeagueMatch();
       if (!mounted) return;
-      context
-          .go('/league/${target.leagueId}/match/${target.matchId}/aftermatch');
+      context.go(
+          '/league/${target.leagueId}/match/${target.matchId}/aftermatch?debugSeed=${target.debugSeed}');
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _error = e.toString();
-        _message = 'No se pudo abrir el post-partido debug.';
+        _messageKey = 'debugAftermatch.openError';
       });
     }
   }
@@ -50,20 +52,21 @@ class _DebugLeagueAftermatchLauncherState
     final current = ref.read(authStateProvider).valueOrNull;
     if (current?.user?.email == _debugEmail) return;
 
-    _setMessage('Entrando como $_debugEmail...');
+    _setMessage('debugAftermatch.login');
     await ref
         .read(authStateProvider.notifier)
         .login(_debugEmail, _debugPassword);
 
     final next = ref.read(authStateProvider).valueOrNull;
     if (next?.user?.email != _debugEmail) {
-      throw Exception('No se pudo iniciar sesión con el usuario debug.');
+      throw Exception(
+          tr(ref.read(localeProvider), 'debugAftermatch.loginError'));
     }
   }
 
   Future<_DebugAftermatchTarget> _findOrPrepareLeagueMatch() async {
     final repo = ref.read(leagueRepositoryProvider);
-    _setMessage('Buscando ligas del usuario debug...');
+    _setMessage('debugAftermatch.searchingLeagues');
 
     final leagues = await repo.getMyLeaguesSummary();
     final orderedLeagues = [
@@ -76,13 +79,10 @@ class _DebugLeagueAftermatchLauncherState
       if (detail.teams.length < 2) continue;
 
       var matches = await repo.getLeagueMatches(detail.id);
-      var match = _firstOrNull(matches.where((m) => m.isPlayed));
-      if (match != null) {
-        return _DebugAftermatchTarget(detail.id, match.id);
-      }
+      Match? match;
 
       if (detail.status == LeagueStatus.draft) {
-        _setMessage('Iniciando liga debug ${detail.name}...');
+        _setMessage('debugAftermatch.startingLeague');
         try {
           await repo.startLeague(detail.id);
           matches = await repo.getLeagueMatches(detail.id);
@@ -93,23 +93,28 @@ class _DebugLeagueAftermatchLauncherState
 
       match = _firstOrNull(matches.where((m) => m.isInProgress));
       if (match != null) {
-        _setMessage('Completando partido en curso...');
+        _setMessage('debugAftermatch.completingMatch');
         await repo.completeMatch(detail.id, match.id);
-        return _DebugAftermatchTarget(detail.id, match.id);
+        return _DebugAftermatchTarget.random(detail.id, match.id);
       }
 
       match = _firstOrNull(matches.where((m) => m.isPending));
       if (match != null) {
-        _setMessage('Preparando partido para post-partido...');
+        _setMessage('debugAftermatch.preparingMatch');
         await repo.startMatch(detail.id, match.id);
+        _setMessage('debugAftermatch.randomizing');
         await repo.completeMatch(detail.id, match.id);
-        return _DebugAftermatchTarget(detail.id, match.id);
+        return _DebugAftermatchTarget.random(detail.id, match.id);
+      }
+
+      match = _firstOrNull(matches.where((m) => m.isPlayed));
+      if (match != null) {
+        _setMessage('debugAftermatch.randomizing');
+        return _DebugAftermatchTarget.random(detail.id, match.id);
       }
     }
 
-    throw Exception(
-      'No hay ninguna liga con dos equipos y un partido disponible para test@test.com.',
-    );
+    throw Exception(tr(ref.read(localeProvider), 'debugAftermatch.noMatch'));
   }
 
   T? _firstOrNull<T>(Iterable<T> values) {
@@ -117,13 +122,15 @@ class _DebugLeagueAftermatchLauncherState
     return iterator.moveNext() ? iterator.current : null;
   }
 
-  void _setMessage(String message) {
+  void _setMessage(String messageKey) {
     if (!mounted) return;
-    setState(() => _message = message);
+    setState(() => _messageKey = messageKey);
   }
 
   @override
   Widget build(BuildContext context) {
+    final lang = ref.watch(localeProvider);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Center(
@@ -147,7 +154,7 @@ class _DebugLeagueAftermatchLauncherState
               ),
               const SizedBox(height: 16),
               Text(
-                _message,
+                tr(lang, _messageKey),
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   color: AppColors.textPrimary,
@@ -169,7 +176,7 @@ class _DebugLeagueAftermatchLauncherState
                 ElevatedButton.icon(
                   onPressed: _openAftermatch,
                   icon: Icon(PhosphorIcons.arrowClockwise()),
-                  label: const Text('Reintentar'),
+                  label: Text(tr(lang, 'common.retry')),
                 ),
               ],
             ],
@@ -181,8 +188,17 @@ class _DebugLeagueAftermatchLauncherState
 }
 
 class _DebugAftermatchTarget {
-  const _DebugAftermatchTarget(this.leagueId, this.matchId);
+  const _DebugAftermatchTarget(this.leagueId, this.matchId, this.debugSeed);
+
+  factory _DebugAftermatchTarget.random(String leagueId, String matchId) {
+    return _DebugAftermatchTarget(
+      leagueId,
+      matchId,
+      DateTime.now().millisecondsSinceEpoch,
+    );
+  }
 
   final String leagueId;
   final String matchId;
+  final int debugSeed;
 }
