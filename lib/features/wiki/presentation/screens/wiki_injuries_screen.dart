@@ -126,7 +126,7 @@ class WikiInjuriesScreen extends ConsumerWidget {
                 tr(lang, 'wikiInjuries.procedure'),
                 style: TextStyle(
                   fontFamily: AppTypography.displayFontFamily,
-                  fontSize: 20,
+                  fontSize: AppTypography.wikiSectionTitleFontSize,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textPrimary,
                   letterSpacing: 1,
@@ -316,7 +316,7 @@ class WikiInjuriesScreen extends ConsumerWidget {
                 tr(lang, 'wikiInjuries.injuryTable'),
                 style: TextStyle(
                   fontFamily: AppTypography.displayFontFamily,
-                  fontSize: 20,
+                  fontSize: AppTypography.wikiSectionTitleFontSize,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textPrimary,
                   letterSpacing: 1,
@@ -479,7 +479,7 @@ class WikiInjuriesScreen extends ConsumerWidget {
                 tr(lang, 'wikiInjuries.casualtyTable'),
                 style: TextStyle(
                   fontFamily: AppTypography.displayFontFamily,
-                  fontSize: 20,
+                  fontSize: AppTypography.wikiSectionTitleFontSize,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textPrimary,
                   letterSpacing: 1,
@@ -651,7 +651,7 @@ class WikiInjuriesScreen extends ConsumerWidget {
                 tr(lang, 'wikiInjuries.modifiers'),
                 style: TextStyle(
                   fontFamily: AppTypography.displayFontFamily,
-                  fontSize: 20,
+                  fontSize: AppTypography.wikiSectionTitleFontSize,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textPrimary,
                   letterSpacing: 1,

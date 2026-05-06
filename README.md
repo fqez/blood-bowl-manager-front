@@ -289,15 +289,16 @@ La estructura por features, el uso de Riverpod y la intencion de modelar dominio
 
 - [X] Filtro por raza + busqueda en mis equipos [DONE]
 - [X] Posibilidad de mirar equipos de otros jugadores "amigos" o con código de jugador [DONE: acceso por código de equipo]
+- [X] Posibilidad de borrar equipos ya creados. [DONE]
 - [ ] Histórico de compras o modificación de jugadores con SPP
-- [ ] Buscador en la sección de habilidades
+- [X] Buscador en la sección de habilidades [DONE]
 - [ ] Jugadores estrella disponibles en la creación de equipo QUITAR
 - [ ] Tabla de perks y fichas de perks multiidioma
 - [ ] Tooltips en perks que hablen de otros perks
-- [ ] En la ventana de clima, refactorizar para DRY, se definen widgets iguales por duplicado. Centralizar widget y solo cambiar contenido.
-- [ ] Lo mismo con lesiones.
-- [ ] Lo mismo con bloqueos
-- [ ] Los terminos clave estan en ingles la mayoria, esos tambien deberian ser multiidioma
+- [X] En la ventana de clima, refactorizar para DRY, se definen widgets iguales por duplicado. Centralizar widget y solo cambiar contenido.
+- [X] Lo mismo con lesiones.
+- [X] Lo mismo con bloqueos
+- [X] Los terminos clave estan en ingles la mayoria, esos tambien deberian ser multiidioma
 - [ ] Implementar Mis ligas - liga - jornada actual
 - [ ] Implementar Mis ligas - liga - estadisticas
 - [ ] En partido rapido hacer busqueda por usuario e implemetar toda la logica de notificaciones, conexion a partido, etc

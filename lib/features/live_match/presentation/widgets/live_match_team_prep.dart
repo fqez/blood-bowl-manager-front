@@ -469,6 +469,7 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
   }
 
   void _showStarPlayerDetail(Map<String, dynamic> sp, String lang) {
+    final allPerks = ref.watch(allPerksProvider).valueOrNull ?? [];
     final id = sp['id'] as String? ?? '';
     final name = sp['name'] as String? ?? '';
     final cost = sp['cost'] as int? ?? 0;
@@ -607,34 +608,33 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
                           Wrap(
                             spacing: 4,
                             runSpacing: 4,
-                            children: skills
-                                .map((s) => InkWell(
-                                      borderRadius: BorderRadius.circular(4),
-                                      onTap: () {
-                                        Navigator.pop(ctx);
-                                        showSkillPopup(context, ref,
-                                            skillName: s);
-                                      },
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 7, vertical: 3),
-                                        decoration: BoxDecoration(
-                                          color: AppColors.surfaceLight
-                                              .withValues(alpha: 0.5),
-                                          borderRadius:
-                                              BorderRadius.circular(4),
-                                          border: Border.all(
-                                              color: AppColors.accent
-                                                  .withValues(alpha: 0.15)),
-                                        ),
-                                        child: Text(s,
-                                            style: const TextStyle(
-                                                fontSize: 10,
-                                                color:
-                                                    AppColors.textSecondary)),
-                                      ),
-                                    ))
-                                .toList(),
+                            children: skills.map((s) {
+                              final displayName =
+                                  localizedPerkName(allPerks, s, lang);
+                              return InkWell(
+                                borderRadius: BorderRadius.circular(4),
+                                onTap: () {
+                                  Navigator.pop(ctx);
+                                  showSkillPopup(context, ref, skillName: s);
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 7, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.surfaceLight
+                                        .withValues(alpha: 0.5),
+                                    borderRadius: BorderRadius.circular(4),
+                                    border: Border.all(
+                                        color: AppColors.accent
+                                            .withValues(alpha: 0.15)),
+                                  ),
+                                  child: Text(displayName,
+                                      style: const TextStyle(
+                                          fontSize: 10,
+                                          color: AppColors.textSecondary)),
+                                ),
+                              );
+                            }).toList(),
                           ),
                           const SizedBox(height: 10),
                         ],
@@ -820,6 +820,7 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
 
   Widget _buildRosterTable(UserTeamDetail team, String lang,
       {required bool isHome, required bool canEdit}) {
+    final allPerks = ref.watch(allPerksProvider).valueOrNull ?? [];
     final selectedIds = isHome ? _selectedHomePlayers : _selectedAwayPlayers;
     final tempIds = isHome ? _tempHiredHomePlayers : _tempHiredAwayPlayers;
 
@@ -972,29 +973,30 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
                   DataCell(Wrap(
                     spacing: 4,
                     runSpacing: 2,
-                    children: p.perks
-                        .map((perk) => GestureDetector(
-                              onTap: () => showSkillPopup(context, ref,
-                                  skillName: perk.name, family: perk.category),
-                              child: MouseRegion(
-                                cursor: SystemMouseCursors.click,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primary
-                                        .withValues(alpha: 0.15),
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Text(perk.name.toUpperCase(),
-                                      style: const TextStyle(
-                                          color: AppColors.textSecondary,
-                                          fontSize: 9,
-                                          fontWeight: FontWeight.bold)),
-                                ),
-                              ),
-                            ))
-                        .toList(),
+                    children: p.perks.map((perk) {
+                      final displayName =
+                          localizedPerkName(allPerks, perk.name, lang);
+                      return GestureDetector(
+                        onTap: () => showSkillPopup(context, ref,
+                            skillName: perk.name, family: perk.category),
+                        child: MouseRegion(
+                          cursor: SystemMouseCursors.click,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(displayName.toUpperCase(),
+                                style: const TextStyle(
+                                    color: AppColors.textSecondary,
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.bold)),
+                          ),
+                        ),
+                      );
+                    }).toList(),
                   )),
                   DataCell(Text('${p.spp}',
                       style: const TextStyle(

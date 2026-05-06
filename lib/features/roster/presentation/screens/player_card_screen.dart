@@ -1224,6 +1224,8 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
 
   Widget _buildAbilitiesCard(BuildContext context, Character player,
       bool isOwner, String lang, Set<String>? startingSkillKeys) {
+    final allPerks = ref.watch(allPerksProvider).valueOrNull ?? [];
+
     return _card(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1295,21 +1297,24 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
             Wrap(
               spacing: 10,
               runSpacing: 10,
-              children: player.skills
-                  .map((s) => GestureDetector(
-                        onTap: () => showSkillPopup(context, ref,
-                            skillName: s.name,
-                            family: s.family,
-                            description: s.description),
-                        child: MouseRegion(
-                          cursor: SystemMouseCursors.click,
-                          child: SkillBadge(
-                            skill: s,
-                            isAcquired: _isAcquiredSkill(s, startingSkillKeys),
-                          ),
-                        ),
-                      ))
-                  .toList(),
+              children: player.skills.map((s) {
+                final displayName = localizedPerkName(allPerks, s.name, lang);
+                return GestureDetector(
+                  onTap: () => showSkillPopup(context, ref,
+                      skillName: s.name,
+                      family: s.family,
+                      description: s.description),
+                  child: MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: SkillBadge(
+                      skill: s,
+                      isAcquired: _isAcquiredSkill(s, startingSkillKeys),
+                      displayName: displayName,
+                      tooltip: displayName,
+                    ),
+                  ),
+                );
+              }).toList(),
             ),
         ],
       ),

@@ -150,7 +150,7 @@ class WikiBlockingScreen extends ConsumerWidget {
                 tr(lang, 'wikiBlocking.blockDice'),
                 style: TextStyle(
                   fontFamily: AppTypography.displayFontFamily,
-                  fontSize: 20,
+                  fontSize: AppTypography.wikiSectionTitleFontSize,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textPrimary,
                   letterSpacing: 1,
@@ -317,7 +317,7 @@ class WikiBlockingScreen extends ConsumerWidget {
                 tr(lang, 'wikiBlocking.procedure'),
                 style: TextStyle(
                   fontFamily: AppTypography.displayFontFamily,
-                  fontSize: 20,
+                  fontSize: AppTypography.wikiSectionTitleFontSize,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textPrimary,
                   letterSpacing: 1,
@@ -503,7 +503,7 @@ class WikiBlockingScreen extends ConsumerWidget {
                 tr(lang, 'wikiBlocking.diceCount'),
                 style: TextStyle(
                   fontFamily: AppTypography.displayFontFamily,
-                  fontSize: 20,
+                  fontSize: AppTypography.wikiSectionTitleFontSize,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textPrimary,
                   letterSpacing: 1,
@@ -551,7 +551,7 @@ class WikiBlockingScreen extends ConsumerWidget {
                   e.dice.split(' ').first,
                   style: TextStyle(
                     fontFamily: AppTypography.displayFontFamily,
-                    fontSize: 20,
+                    fontSize: AppTypography.wikiSectionTitleFontSize,
                     fontWeight: FontWeight.w900,
                     color: e.color,
                   ),
@@ -687,7 +687,7 @@ class WikiBlockingScreen extends ConsumerWidget {
                 tr(lang, 'wikiBlocking.specialRules'),
                 style: TextStyle(
                   fontFamily: AppTypography.displayFontFamily,
-                  fontSize: 20,
+                  fontSize: AppTypography.wikiSectionTitleFontSize,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textPrimary,
                   letterSpacing: 1,

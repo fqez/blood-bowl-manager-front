@@ -144,7 +144,7 @@ class WikiWeatherScreen extends ConsumerWidget {
                 tr(lang, 'wikiWeather.preGame'),
                 style: TextStyle(
                   fontFamily: AppTypography.displayFontFamily,
-                  fontSize: 30,
+                  fontSize: AppTypography.wikiSectionTitleFontSize,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textPrimary,
                   letterSpacing: 1,
@@ -330,7 +330,7 @@ class WikiWeatherScreen extends ConsumerWidget {
                 tr(lang, 'wikiWeather.weatherTable'),
                 style: TextStyle(
                   fontFamily: AppTypography.displayFontFamily,
-                  fontSize: 20,
+                  fontSize: AppTypography.wikiSectionTitleFontSize,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textPrimary,
                   letterSpacing: 1,
@@ -535,7 +535,7 @@ class WikiWeatherScreen extends ConsumerWidget {
                 tr(lang, 'wikiWeather.kickoff'),
                 style: TextStyle(
                   fontFamily: AppTypography.displayFontFamily,
-                  fontSize: 20,
+                  fontSize: AppTypography.wikiSectionTitleFontSize,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textPrimary,
                   letterSpacing: 1,

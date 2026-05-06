@@ -30,29 +30,20 @@ void showSkillPopup(
         final allPerks = perksAsync.valueOrNull ?? [];
         final isLoading = perksAsync.isLoading && allPerks.isEmpty;
 
-        final lowerName = skillName.toLowerCase().trim();
-        Map<String, dynamic>? match;
-        for (final p in allPerks) {
-          final nameMap = p['name'] as Map? ?? {};
-          final id = (p['_id'] as String? ?? '').toLowerCase().trim();
-          final en = (nameMap['en'] as String? ?? '').toLowerCase().trim();
-          final es = (nameMap['es'] as String? ?? '').toLowerCase().trim();
-          if (id == lowerName || en == lowerName || es == lowerName) {
-            match = p;
-            break;
-          }
-        }
+        final match = findPerkDefinition(allPerks, skillName);
 
         final perkId = match?['_id'] as String? ?? '';
-        final nameMap = match?['name'] as Map? ?? {};
-        final nameEs = nameMap['es'] as String? ?? skillName;
-        final nameEn = nameMap['en'] as String? ?? '';
+        final displayName = localizedPerkName(allPerks, skillName, lang);
+        final alternateName =
+            alternateLocalizedPerkName(allPerks, skillName, lang);
         final descMap = match?['description'] as Map? ?? {};
-        final descEs = descMap['es'] as String? ??
-            descMap['en'] as String? ??
-            description ??
-            '';
+        final displayDescription = localizedPerkValue(
+          descMap,
+          lang,
+          fallback: description ?? '',
+        );
         final perkFamily = match?['family'] as String? ?? family ?? '';
+        final familyLabel = localizedPerkFamily(perkFamily, lang);
         final color = _familyColor(perkFamily);
 
         final screenWidth = MediaQuery.of(ctx).size.width;
@@ -162,7 +153,7 @@ void showSkillPopup(
                                         size: 13, color: color),
                                     const SizedBox(width: 6),
                                     Text(
-                                      perkFamily.toUpperCase(),
+                                      familyLabel.toUpperCase(),
                                       style: TextStyle(
                                         fontSize: 11,
                                         fontWeight: FontWeight.bold,
@@ -174,9 +165,9 @@ void showSkillPopup(
                                 ),
                               ),
                             const SizedBox(height: 14),
-                            // Name (Spanish)
+                            // Name
                             Text(
-                              nameEs.toUpperCase(),
+                              displayName.toUpperCase(),
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontFamily: AppTypography.displayFontFamily,
@@ -186,11 +177,11 @@ void showSkillPopup(
                                 letterSpacing: 1.2,
                               ),
                             ),
-                            // Name (English)
-                            if (nameEn.isNotEmpty &&
-                                nameEn.toLowerCase() != nameEs.toLowerCase())
+                            if (alternateName.isNotEmpty &&
+                                alternateName.toLowerCase() !=
+                                    displayName.toLowerCase())
                               Text(
-                                nameEn,
+                                alternateName,
                                 style: const TextStyle(
                                     fontSize: 12, color: AppColors.textMuted),
                               ),
@@ -224,7 +215,7 @@ void showSkillPopup(
                             ),
                           ),
                         )
-                      else if (descEs.isNotEmpty)
+                      else if (displayDescription.isNotEmpty)
                         Padding(
                           padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
                           child: Container(
@@ -236,7 +227,7 @@ void showSkillPopup(
                               border: Border.all(color: AppColors.surfaceLight),
                             ),
                             child: Text(
-                              descEs,
+                              displayDescription,
                               style: const TextStyle(
                                 fontSize: 13,
                                 color: AppColors.textSecondary,
@@ -279,6 +270,76 @@ void showSkillPopup(
       },
     ),
   );
+}
+
+Map<String, dynamic>? findPerkDefinition(
+  List<Map<String, dynamic>> allPerks,
+  String value,
+) {
+  final lowerValue = value.toLowerCase().trim();
+  for (final perk in allPerks) {
+    final nameMap = perk['name'] as Map? ?? {};
+    final id = (perk['_id'] as String? ?? '').toLowerCase().trim();
+    final en = (nameMap['en'] as String? ?? '').toLowerCase().trim();
+    final es = (nameMap['es'] as String? ?? '').toLowerCase().trim();
+    if (id == lowerValue || en == lowerValue || es == lowerValue) {
+      return perk;
+    }
+  }
+  return null;
+}
+
+String localizedPerkName(
+  List<Map<String, dynamic>> allPerks,
+  String skillName,
+  String lang,
+) {
+  final match = findPerkDefinition(allPerks, skillName);
+  final nameMap = match?['name'] as Map? ?? {};
+  return localizedPerkValue(nameMap, lang, fallback: skillName);
+}
+
+String alternateLocalizedPerkName(
+  List<Map<String, dynamic>> allPerks,
+  String skillName,
+  String lang,
+) {
+  final match = findPerkDefinition(allPerks, skillName);
+  final nameMap = match?['name'] as Map? ?? {};
+  return _alternateLocalizedValue(nameMap, lang);
+}
+
+String localizedPerkValue(Map source, String lang, {required String fallback}) {
+  final value = source[lang] as String?;
+  if (value != null && value.trim().isNotEmpty) return value;
+
+  final english = source['en'] as String?;
+  if (english != null && english.trim().isNotEmpty) return english;
+
+  final spanish = source['es'] as String?;
+  if (spanish != null && spanish.trim().isNotEmpty) return spanish;
+
+  return fallback;
+}
+
+String _alternateLocalizedValue(Map source, String lang) {
+  final alternateLang = lang == 'es' ? 'en' : 'es';
+  return source[alternateLang] as String? ?? '';
+}
+
+String localizedPerkFamily(String family, String lang) {
+  final labels = {
+    'general': {'es': 'General', 'en': 'General'},
+    'agility': {'es': 'Agilidad', 'en': 'Agility'},
+    'strength': {'es': 'Fuerza', 'en': 'Strength'},
+    'passing': {'es': 'Pase', 'en': 'Passing'},
+    'mutation': {'es': 'Mutación', 'en': 'Mutation'},
+    'extraordinary': {'es': 'Rasgo', 'en': 'Trait'},
+    'trait': {'es': 'Rasgo', 'en': 'Trait'},
+    'devious': {'es': 'Juego sucio', 'en': 'Devious'},
+  };
+  final normalized = family.toLowerCase();
+  return labels[normalized]?[lang] ?? family;
 }
 
 Color _familyColor(String family) {

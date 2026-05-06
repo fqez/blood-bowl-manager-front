@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/money_format.dart';
 
 class BudgetBar extends StatelessWidget {
   final int spent;
@@ -40,7 +42,7 @@ class BudgetBar extends StatelessWidget {
               ),
               const Spacer(),
               Text(
-                '${spent ~/ 1000}k / ${total ~/ 1000}k',
+                '${formatBudget(spent)} / ${formatBudget(total)}',
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
@@ -71,14 +73,14 @@ class BudgetBar extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Gastado: ${spent ~/ 1000}k',
+                'Gastado: ${formatBudget(spent)}',
                 style: TextStyle(
                   fontSize: 11,
                   color: AppColors.textMuted,
                 ),
               ),
               Text(
-                'Restante: ${remaining ~/ 1000}k',
+                'Restante: ${formatBudget(remaining)}',
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,

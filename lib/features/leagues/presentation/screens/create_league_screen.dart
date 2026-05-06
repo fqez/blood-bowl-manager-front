@@ -7,6 +7,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../core/l10n/locale_provider.dart';
 import '../../../../core/l10n/translations.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/money_format.dart';
 import '../../../shared/data/repositories.dart';
 import '../../domain/models/league_summary.dart';
 
@@ -400,13 +401,7 @@ class _CreateLeagueScreenState extends ConsumerState<CreateLeagueScreen> {
   }
 
   Widget _buildBudgetChips(String lang) {
-    final budgets = [
-      (800000, '800k'),
-      (1000000, '1000k'),
-      (1050000, '1050k'),
-      (1100000, '1100k'),
-      (1200000, '1200k'),
-    ];
+    final budgets = [800000, 1000000, 1050000, 1100000, 1200000];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -416,20 +411,20 @@ class _CreateLeagueScreenState extends ConsumerState<CreateLeagueScreen> {
         Wrap(
           spacing: 8,
           children: budgets
-              .map((b) => ChoiceChip(
-                    label: Text(b.$2),
-                    selected: _startingBudget == b.$1,
-                    onSelected: (_) => setState(() => _startingBudget = b.$1),
+              .map((budget) => ChoiceChip(
+                    label: Text(formatBudget(budget)),
+                    selected: _startingBudget == budget,
+                    onSelected: (_) => setState(() => _startingBudget = budget),
                     selectedColor: AppColors.primary.withOpacity(0.8),
                     backgroundColor: AppColors.card,
                     labelStyle: TextStyle(
-                      color: _startingBudget == b.$1
+                      color: _startingBudget == budget
                           ? AppColors.textPrimary
                           : AppColors.textSecondary,
                       fontWeight: FontWeight.bold,
                     ),
                     side: BorderSide(
-                      color: _startingBudget == b.$1
+                      color: _startingBudget == budget
                           ? AppColors.primary
                           : AppColors.surfaceLight,
                     ),

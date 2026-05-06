@@ -171,6 +171,43 @@ class UserPlayer {
 
 // ─────────────────────────── Summary ─────────────────────────
 
+class TeamLeagueMembership {
+  final String id;
+  final String name;
+  final String status;
+  final int season;
+
+  const TeamLeagueMembership({
+    required this.id,
+    required this.name,
+    required this.status,
+    required this.season,
+  });
+
+  factory TeamLeagueMembership.fromJson(Map<String, dynamic> json) =>
+      TeamLeagueMembership(
+        id: json['id'] as String? ?? '',
+        name: json['name'] as String? ?? '',
+        status: json['status'] as String? ?? '',
+        season: (json['season'] as num?)?.toInt() ?? 1,
+      );
+
+  String get statusLabel {
+    switch (status) {
+      case 'draft':
+        return 'Draft';
+      case 'active':
+        return 'Activa';
+      case 'completed':
+        return 'Finalizada';
+      case 'cancelled':
+        return 'Cancelada';
+      default:
+        return status;
+    }
+  }
+}
+
 class UserTeamSummary {
   final String id;
   final String name;
@@ -178,6 +215,8 @@ class UserTeamSummary {
   final int teamValue;
   final int treasury;
   final int playerCount;
+  final bool canManageRoster;
+  final List<TeamLeagueMembership> leagueMemberships;
   final String? icon;
   final DateTime createdAt;
 
@@ -188,6 +227,8 @@ class UserTeamSummary {
     required this.teamValue,
     required this.treasury,
     required this.playerCount,
+    required this.canManageRoster,
+    required this.leagueMemberships,
     this.icon,
     required this.createdAt,
   });
@@ -200,6 +241,11 @@ class UserTeamSummary {
         teamValue: (json['team_value'] as num?)?.toInt() ?? 0,
         treasury: (json['treasury'] as num?)?.toInt() ?? 1000000,
         playerCount: (json['player_count'] as num?)?.toInt() ?? 0,
+        canManageRoster: json['can_manage_roster'] as bool? ?? true,
+        leagueMemberships: (json['league_memberships'] as List<dynamic>? ?? [])
+            .map(
+                (e) => TeamLeagueMembership.fromJson(e as Map<String, dynamic>))
+            .toList(),
         icon: json['icon'] as String?,
         createdAt: json['created_at'] != null
             ? DateTime.parse(json['created_at'] as String)
@@ -231,6 +277,8 @@ class UserTeamDetail {
   final bool apothecary;
   final bool apothecaryAllowed;
   final int dedicatedFans;
+  final bool canManageRoster;
+  final List<TeamLeagueMembership> leagueMemberships;
   final String? icon;
   final String? wallpaper;
   final DateTime createdAt;
@@ -252,6 +300,8 @@ class UserTeamDetail {
     required this.apothecary,
     required this.apothecaryAllowed,
     required this.dedicatedFans,
+    required this.canManageRoster,
+    required this.leagueMemberships,
     this.icon,
     this.wallpaper,
     required this.createdAt,
@@ -276,6 +326,11 @@ class UserTeamDetail {
         apothecary: json['apothecary'] as bool? ?? false,
         apothecaryAllowed: json['apothecary_allowed'] as bool? ?? true,
         dedicatedFans: (json['dedicated_fans'] as num?)?.toInt() ?? 1,
+        canManageRoster: json['can_manage_roster'] as bool? ?? true,
+        leagueMemberships: (json['league_memberships'] as List<dynamic>? ?? [])
+            .map(
+                (e) => TeamLeagueMembership.fromJson(e as Map<String, dynamic>))
+            .toList(),
         icon: json['icon'] as String?,
         wallpaper: json['wallpaper'] as String?,
         createdAt: json['created_at'] != null

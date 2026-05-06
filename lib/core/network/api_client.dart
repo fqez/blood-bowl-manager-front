@@ -34,7 +34,8 @@ class AuthInterceptor extends Interceptor {
   AuthInterceptor(this.ref);
 
   @override
-  void onRequest(RequestOptions options, RequestInterceptorHandler handler) async {
+  void onRequest(
+      RequestOptions options, RequestInterceptorHandler handler) async {
     // Skip auth header for login/register endpoints
     if (options.path.contains('/auth/login') ||
         options.path.contains('/auth/register')) {
@@ -66,10 +67,12 @@ class AuthInterceptor extends Interceptor {
           });
 
           final newAccessToken = response.data['access_token'];
-          await storage.write(key: AppConfig.accessTokenKey, value: newAccessToken);
+          await storage.write(
+              key: AppConfig.accessTokenKey, value: newAccessToken);
 
           // Retry the original request
-          err.requestOptions.headers['Authorization'] = 'Bearer $newAccessToken';
+          err.requestOptions.headers['Authorization'] =
+              'Bearer $newAccessToken';
           final retryResponse = await dio.fetch(err.requestOptions);
 
           return handler.resolve(retryResponse);
@@ -105,7 +108,8 @@ class ApiException implements Exception {
         final detail = e.response!.data['detail'];
         if (detail is List && detail.isNotEmpty) {
           // FastAPI validation errors
-          message = detail.map((err) => err['msg'] ?? err.toString()).join(', ');
+          message =
+              detail.map((err) => err['msg'] ?? err.toString()).join(', ');
         } else if (detail is String) {
           message = detail;
         } else {

@@ -40,7 +40,9 @@ class WikiPageTopBar extends StatelessWidget {
               'WIKI',
               style: TextStyle(
                 fontFamily: AppTypography.displayFontFamily,
-                fontSize: isCompact ? 22 : 30,
+                fontSize: isCompact
+                    ? AppTypography.wikiTopBarBrandCompactFontSize
+                    : AppTypography.wikiTopBarBrandFontSize,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary,
                 letterSpacing: 1.4,
@@ -65,7 +67,9 @@ class WikiPageTopBar extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontFamily: AppTypography.displayFontFamily,
-                  fontSize: isCompact ? 18 : 26,
+                  fontSize: isCompact
+                      ? AppTypography.wikiTopBarTitleCompactFontSize
+                      : AppTypography.wikiTopBarTitleFontSize,
                   fontWeight: FontWeight.bold,
                   color: AppColors.accent,
                   letterSpacing: 1,
@@ -104,7 +108,7 @@ class WikiPageHeroHeader extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(useCompact ? 16 : 32),
+      padding: EdgeInsets.all(useCompact ? 16 : 24),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.centerLeft,
@@ -123,7 +127,7 @@ class WikiPageHeroHeader extends StatelessWidget {
           ? Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(icon, color: accentColor, size: 28),
+                Icon(icon, color: accentColor, size: 24),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -135,7 +139,7 @@ class WikiPageHeroHeader extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontFamily: AppTypography.displayFontFamily,
-                          fontSize: 26,
+                          fontSize: AppTypography.wikiHeroTitleCompactFontSize,
                           fontWeight: FontWeight.w900,
                           color: AppColors.textPrimary,
                           letterSpacing: 1.1,
@@ -149,7 +153,8 @@ class WikiPageHeroHeader extends StatelessWidget {
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                            fontSize: 15,
+                            fontSize:
+                                AppTypography.wikiHeroSubtitleCompactFontSize,
                             color: AppColors.textSecondary,
                             height: 1.25,
                           ),
@@ -165,14 +170,14 @@ class WikiPageHeroHeader extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Icon(icon, color: accentColor, size: 42),
-                    const SizedBox(width: 18),
+                    Icon(icon, color: accentColor, size: 30),
+                    const SizedBox(width: 14),
                     Expanded(
                       child: Text(
                         title,
                         style: TextStyle(
                           fontFamily: AppTypography.displayFontFamily,
-                          fontSize: 56,
+                          fontSize: AppTypography.wikiHeroTitleFontSize,
                           fontWeight: FontWeight.w900,
                           color: AppColors.textPrimary,
                           letterSpacing: 2.6,
@@ -182,11 +187,11 @@ class WikiPageHeroHeader extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 10),
                 Text(
                   subtitle,
                   style: const TextStyle(
-                    fontSize: 24,
+                    fontSize: AppTypography.wikiHeroSubtitleFontSize,
                     color: AppColors.textSecondary,
                     height: 1.4,
                   ),
@@ -201,7 +206,7 @@ class WikiContentScale extends StatelessWidget {
   const WikiContentScale({
     super.key,
     required this.child,
-    this.scale = 1.1,
+    this.scale = AppTypography.wikiContentTextScale,
   });
 
   final Widget child;

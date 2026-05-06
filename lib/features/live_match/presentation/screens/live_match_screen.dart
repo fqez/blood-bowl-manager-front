@@ -72,6 +72,8 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
   // ── Match-day squad selection (max 11 per team) ──
   final Set<String> _selectedHomePlayers = {};
   final Set<String> _selectedAwayPlayers = {};
+  bool _homeSquadSeeded = false;
+  bool _awaySquadSeeded = false;
 
   // ── Temporarily hired players for this match only ──
   final Set<String> _tempHiredHomePlayers = {};
@@ -150,6 +152,34 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
     setState(updater);
   }
 
+  void _seedSquadSelection({
+    required bool isHome,
+    required UserTeamDetail team,
+    required List<String> persistedSquad,
+  }) {
+    final alreadySeeded = isHome ? _homeSquadSeeded : _awaySquadSeeded;
+    if (alreadySeeded) return;
+
+    final selectedIds = isHome ? _selectedHomePlayers : _selectedAwayPlayers;
+    selectedIds.clear();
+    if (persistedSquad.isNotEmpty) {
+      selectedIds.addAll(persistedSquad);
+    } else {
+      selectedIds.addAll(
+        team.players
+            .where((player) => player.status == 'healthy')
+            .take(11)
+            .map((player) => player.id),
+      );
+    }
+
+    if (isHome) {
+      _homeSquadSeeded = true;
+    } else {
+      _awaySquadSeeded = true;
+    }
+  }
+
   Future<void> _loadRosters(Match match) async {
     if (_rosterLoading || (_homePlayers != null && _awayPlayers != null))
       return;
@@ -162,13 +192,20 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
       ]);
       if (mounted) {
         setState(() {
+          _seedSquadSelection(
+            isHome: true,
+            team: results[0],
+            persistedSquad: match.homeSquad,
+          );
+          _seedSquadSelection(
+            isHome: false,
+            team: results[1],
+            persistedSquad: match.awaySquad,
+          );
+
           // Use in-memory squad selection, fall back to persisted squad from match
-          final homeSquad = _selectedHomePlayers.isNotEmpty
-              ? _selectedHomePlayers
-              : match.homeSquad.toSet();
-          final awaySquad = _selectedAwayPlayers.isNotEmpty
-              ? _selectedAwayPlayers
-              : match.awaySquad.toSet();
+          final homeSquad = _selectedHomePlayers;
+          final awaySquad = _selectedAwayPlayers;
 
           _homePlayers = homeSquad.isNotEmpty
               ? results[0]
@@ -209,6 +246,16 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
       ]);
       if (mounted) {
         setState(() {
+          _seedSquadSelection(
+            isHome: true,
+            team: home,
+            persistedSquad: match.homeSquad,
+          );
+          _seedSquadSelection(
+            isHome: false,
+            team: away,
+            persistedSquad: match.awaySquad,
+          );
           _homeTeam = home;
           _awayTeam = away;
           _homeBaseRoster = baseResults[0];
@@ -236,6 +283,16 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
       ]);
       if (mounted) {
         setState(() {
+          _seedSquadSelection(
+            isHome: true,
+            team: results[0],
+            persistedSquad: const [],
+          );
+          _seedSquadSelection(
+            isHome: false,
+            team: results[1],
+            persistedSquad: const [],
+          );
           _homeTeam = results[0];
           _awayTeam = results[1];
         });

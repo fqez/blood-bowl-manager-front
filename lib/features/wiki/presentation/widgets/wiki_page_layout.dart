@@ -13,7 +13,7 @@ class WikiPageLayout extends StatelessWidget {
     required this.accentColor,
     required this.gradientColor,
     required this.child,
-    this.contentScale = 1.1,
+    this.contentScale = AppTypography.wikiContentTextScale,
     this.contentPadding = const EdgeInsets.all(24),
     this.headerSpacing = 28,
   });

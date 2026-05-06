@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/money_format.dart';
 
 class TeamCreatorConfirmStep extends StatelessWidget {
   const TeamCreatorConfirmStep({
@@ -109,7 +110,7 @@ class TeamCreatorConfirmStep extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '${spent ~/ 1000}k',
+                          formatBudget(spent),
                           style: const TextStyle(
                             fontSize: 28,
                             fontWeight: FontWeight.bold,
@@ -133,7 +134,7 @@ class TeamCreatorConfirmStep extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '${remaining ~/ 1000}k',
+                          formatBudget(remaining),
                           style: const TextStyle(
                             fontSize: 28,
                             fontWeight: FontWeight.bold,

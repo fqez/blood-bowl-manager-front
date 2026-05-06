@@ -81,14 +81,14 @@ class TeamRepository {
   Future<void> hirePlayer(
     String teamId, {
     required String baseType,
-    required String name,
-    required int number,
+    String? name,
+    int? number,
   }) async {
     try {
       await _dio.post('/user-teams/$teamId/players', data: {
         'base_type': baseType,
-        'name': name,
-        'number': number,
+        if (name != null && name.trim().isNotEmpty) 'name': name.trim(),
+        if (number != null) 'number': number,
       });
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
@@ -98,14 +98,14 @@ class TeamRepository {
   Future<void> hireStarPlayer(
     String teamId, {
     required String starPlayerId,
-    required String name,
-    required int number,
+    String? name,
+    int? number,
   }) async {
     try {
       await _dio.post('/user-teams/$teamId/players/star', data: {
         'star_player_id': starPlayerId,
-        'name': name,
-        'number': number,
+        if (name != null && name.trim().isNotEmpty) 'name': name.trim(),
+        if (number != null) 'number': number,
       });
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
@@ -114,6 +114,7 @@ class TeamRepository {
 
   Future<UserTeamDetail> patchTeamStaff(
     String teamId, {
+    String? name,
     int? rerolls,
     int? cheerleaders,
     int? assistantCoaches,
@@ -122,6 +123,7 @@ class TeamRepository {
   }) async {
     try {
       final response = await _dio.patch('/user-teams/$teamId', data: {
+        if (name != null) 'name': name,
         if (rerolls != null) 'rerolls': rerolls,
         if (cheerleaders != null) 'cheerleaders': cheerleaders,
         if (assistantCoaches != null) 'assistant_coaches': assistantCoaches,
@@ -177,6 +179,14 @@ class TeamRepository {
     try {
       final response = await _dio.get('/user-teams/$teamId');
       return UserTeamDetail.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  Future<void> deleteUserTeam(String teamId) async {
+    try {
+      await _dio.delete('/user-teams/$teamId');
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }

@@ -56,4 +56,15 @@ class AppTypography {
 
   static const String fontFamily = 'OpenSans';
   static String? get displayFontFamily => GoogleFonts.teko().fontFamily;
+
+  static const double wikiContentTextScale = 1.12;
+  static const double wikiTopBarBrandFontSize = 22;
+  static const double wikiTopBarBrandCompactFontSize = 18;
+  static const double wikiTopBarTitleFontSize = 18;
+  static const double wikiTopBarTitleCompactFontSize = 16;
+  static const double wikiHeroTitleFontSize = 36;
+  static const double wikiHeroTitleCompactFontSize = 24;
+  static const double wikiHeroSubtitleFontSize = 16;
+  static const double wikiHeroSubtitleCompactFontSize = 13;
+  static const double wikiSectionTitleFontSize = 19;
 }

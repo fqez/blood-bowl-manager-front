@@ -633,6 +633,38 @@ const _t = <String, Map<String, String>>{
     'en': 'Roster Management',
   },
   'team.readOnly': {'es': 'Solo lectura', 'en': 'Read-only'},
+  'team.lockedActiveLeague': {
+    'es': 'Bloqueado por liga activa',
+    'en': 'Locked by active league',
+  },
+  'team.leagueMemberships': {
+    'es': 'Ligas inscritas',
+    'en': 'Registered leagues',
+  },
+  'team.noLeagueMemberships': {
+    'es': 'Sin ligas inscritas',
+    'en': 'No registered leagues',
+  },
+  'team.editTeamName': {'es': 'Editar nombre', 'en': 'Edit name'},
+  'team.teamName': {'es': 'Nombre del equipo', 'en': 'Team name'},
+  'team.teamNameRequired': {
+    'es': 'El nombre no puede estar vacío',
+    'en': 'Name cannot be empty',
+  },
+  'team.teamNameUpdated': {
+    'es': 'Nombre actualizado',
+    'en': 'Name updated',
+  },
+  'team.deleteTeam': {'es': 'Eliminar equipo', 'en': 'Delete team'},
+  'team.deleteConfirm': {
+    'es': '¿Eliminar {name}? Esta acción no se puede deshacer.',
+    'en': 'Delete {name}? This action cannot be undone.',
+  },
+  'team.deleteDone': {'es': 'Equipo eliminado', 'en': 'Team deleted'},
+  'team.deleteBlockedByLeague': {
+    'es': 'No se puede eliminar un equipo inscrito en una liga.',
+    'en': 'Teams registered in a league cannot be deleted.',
+  },
   'team.refresh': {'es': 'Actualizar', 'en': 'Refresh'},
   'team.backToLeague': {'es': 'Volver a la Liga', 'en': 'Back to League'},
   'team.backToTeams': {
@@ -840,6 +872,23 @@ const _t = <String, Map<String, String>>{
   'wikiSkills.advancement': {
     'es': 'TABLA DE AVANCE',
     'en': 'ADVANCEMENT TABLE',
+  },
+  'wikiSkills.searchHint': {
+    'es': 'Buscar habilidad, familia o texto de reglas...',
+    'en': 'Search skill, family or rules text...',
+  },
+  'wikiSkills.clearSearch': {'es': 'Limpiar busqueda', 'en': 'Clear search'},
+  'wikiSkills.searchCount': {
+    'es': '{visible}/{total} habilidades',
+    'en': '{visible}/{total} skills',
+  },
+  'wikiSkills.noResults': {
+    'es': 'Sin habilidades con esa busqueda',
+    'en': 'No skills match that search',
+  },
+  'wikiSkills.adjustSearch': {
+    'es': 'Prueba con otro nombre, familia o palabra de la descripcion.',
+    'en': 'Try another name, family or description word.',
   },
 
   // ── Wiki: Weather ───────────────────────────────────────────────────────

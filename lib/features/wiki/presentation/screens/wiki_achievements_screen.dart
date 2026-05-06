@@ -149,7 +149,7 @@ class WikiAchievementsScreen extends ConsumerWidget {
                 tr(lang, 'wikiAchievements.sppTable'),
                 style: TextStyle(
                   fontFamily: AppTypography.displayFontFamily,
-                  fontSize: 20,
+                  fontSize: AppTypography.wikiSectionTitleFontSize,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textPrimary,
                   letterSpacing: 1,
@@ -357,7 +357,7 @@ class WikiAchievementsScreen extends ConsumerWidget {
                 tr(lang, 'wikiAchievements.advancementTable'),
                 style: TextStyle(
                   fontFamily: AppTypography.displayFontFamily,
-                  fontSize: 20,
+                  fontSize: AppTypography.wikiSectionTitleFontSize,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textPrimary,
                   letterSpacing: 1,
@@ -558,7 +558,7 @@ class WikiAchievementsScreen extends ConsumerWidget {
                 tr(lang, 'wikiAchievements.improvements'),
                 style: TextStyle(
                   fontFamily: AppTypography.displayFontFamily,
-                  fontSize: 20,
+                  fontSize: AppTypography.wikiSectionTitleFontSize,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textPrimary,
                   letterSpacing: 1,
@@ -724,7 +724,7 @@ class WikiAchievementsScreen extends ConsumerWidget {
                 tr(lang, 'wikiAchievements.specialRules'),
                 style: TextStyle(
                   fontFamily: AppTypography.displayFontFamily,
-                  fontSize: 20,
+                  fontSize: AppTypography.wikiSectionTitleFontSize,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textPrimary,
                   letterSpacing: 1,

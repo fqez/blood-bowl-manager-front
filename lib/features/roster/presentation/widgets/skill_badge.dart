@@ -6,8 +6,16 @@ import '../../domain/models/team.dart';
 class SkillBadge extends StatelessWidget {
   final Skill skill;
   final bool? isAcquired;
+  final String? displayName;
+  final String? tooltip;
 
-  const SkillBadge({super.key, required this.skill, this.isAcquired});
+  const SkillBadge({
+    super.key,
+    required this.skill,
+    this.isAcquired,
+    this.displayName,
+    this.tooltip,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -15,8 +23,10 @@ class SkillBadge extends StatelessWidget {
     final categoryColor = _getCategoryColor();
     final badgeColor = acquired ? AppColors.accent : categoryColor;
 
+    final label = displayName ?? skill.name;
+
     return Tooltip(
-      message: skill.description ?? skill.name,
+      message: tooltip ?? skill.description ?? label,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
@@ -47,7 +57,7 @@ class SkillBadge extends StatelessWidget {
             ),
             const SizedBox(width: 6),
             Text(
-              skill.name,
+              label,
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,

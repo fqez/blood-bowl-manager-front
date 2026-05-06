@@ -19,6 +19,15 @@ class WikiSkillsScreen extends ConsumerStatefulWidget {
 }
 
 class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
+  final _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final lang = ref.watch(localeProvider);
@@ -68,7 +77,7 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
                 tr(lang, 'wikiSkills.advancement'),
                 style: TextStyle(
                   fontFamily: AppTypography.displayFontFamily,
-                  fontSize: 20,
+                  fontSize: AppTypography.wikiSectionTitleFontSize,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textPrimary,
                   letterSpacing: 1,
@@ -109,6 +118,8 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
         lang == 'es' ? 'MUTACION' : 'MUTATION',
         lang == 'es' ? 'PASE' : 'PASSING',
         lang == 'es' ? 'FUERZA' : 'STRENGTH',
+        lang == 'es' ? 'RASGO' : 'TRAIT',
+        lang == 'es' ? 'JUEGO SUCIO' : 'DEVIOUS',
       ];
 
   List<Color> get _advancementHeaderColors => [
@@ -119,6 +130,8 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
         AppColors.skillMutation,
         AppColors.skillPassing,
         AppColors.skillStrength,
+        AppColors.skillExtraordinary,
+        const Color(0xFFFF6F00),
       ];
 
   List<List<String>> get _advancementRows => [
@@ -199,6 +212,41 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
         ],
         ['4-6', '6', 'Sure Feet', 'Block', 'Claws', 'Safe Pass', 'Thick Skull'],
       ];
+
+  List<List<String>> _advancementRowsFor(List<Map<String, dynamic>> perks) {
+    final traitValues = _familyColumnValues(perks, 'trait');
+    final deviousValues = _familyColumnValues(perks, 'devious');
+
+    return List.generate(_advancementRows.length, (index) {
+      return [
+        ..._advancementRows[index],
+        traitValues[index],
+        deviousValues[index],
+      ];
+    });
+  }
+
+  List<String> _familyColumnValues(
+      List<Map<String, dynamic>> perks, String family) {
+    final values = perks
+        .where((perk) => _isPerkFamily(perk, family))
+        .map((perk) => (perk['name'] as Map?)?['en'] as String? ?? '')
+        .where((name) => name.isNotEmpty)
+        .toList();
+
+    return List.generate(
+      _advancementRows.length,
+      (index) => index < values.length ? values[index] : '-',
+    );
+  }
+
+  bool _isPerkFamily(Map<String, dynamic> perk, String family) {
+    final rawFamily = (perk['family'] as String? ?? '').toLowerCase().trim();
+    if (family == 'trait') {
+      return rawFamily == 'trait' || rawFamily == 'extraordinary';
+    }
+    return rawFamily == family;
+  }
 
   String _localizedSkillName(
       String englishName, List<Map<String, dynamic>> perks, String lang) {
@@ -283,7 +331,7 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
       String lang, List<Map<String, dynamic>> perks) {
     final headers = _advancementHeaders(lang);
     final headerColors = _advancementHeaderColors;
-    final rows = _advancementRows;
+    final rows = _advancementRowsFor(perks);
     final families = [
       '',
       '',
@@ -292,6 +340,8 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
       'Mutation',
       'Passing',
       'Strength',
+      'Trait',
+      'Devious',
     ];
 
     return Column(
@@ -322,14 +372,17 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
                 ],
               ),
               const SizedBox(height: 10),
-              ...List.generate(5, (skillIdx) {
+              ...List.generate(families.length - 2, (skillIdx) {
                 final colIdx = skillIdx + 2;
                 final color = headerColors[colIdx];
+                final skillName = row[colIdx];
 
                 return InkWell(
                   borderRadius: BorderRadius.circular(6),
-                  onTap: () => showSkillPopup(context, ref,
-                      skillName: row[colIdx], family: families[colIdx]),
+                  onTap: skillName == '-'
+                      ? null
+                      : () => showSkillPopup(context, ref,
+                          skillName: skillName, family: families[colIdx]),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 4),
                     child: Row(
@@ -350,11 +403,13 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            _localizedSkillName(row[colIdx], perks, lang),
+                            _localizedSkillName(skillName, perks, lang),
                             style: TextStyle(
                               fontSize: 15,
                               color: color.withOpacity(0.9),
-                              decoration: TextDecoration.underline,
+                              decoration: skillName == '-'
+                                  ? TextDecoration.none
+                                  : TextDecoration.underline,
                               decorationColor: color.withOpacity(0.4),
                               decorationStyle: TextDecorationStyle.dotted,
                             ),
@@ -394,7 +449,7 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
   Widget _buildTable(String lang, List<Map<String, dynamic>> perks) {
     final headers = _advancementHeaders(lang);
     final headerColors = _advancementHeaderColors;
-    final rows = _advancementRows;
+    final rows = _advancementRowsFor(perks);
 
     return DataTable(
       headingRowColor: WidgetStateProperty.all(AppColors.surface),
@@ -445,24 +500,33 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
               'Mutation',
               'Passing',
               'Strength',
+              'Trait',
+              'Devious',
             ];
+            final skillName = row[colIdx];
             return DataCell(
               isSkillCell
                   ? GestureDetector(
-                      onTap: () => showSkillPopup(context, ref,
-                          skillName: row[colIdx], family: families[colIdx]),
+                      onTap: skillName == '-'
+                          ? null
+                          : () => showSkillPopup(context, ref,
+                              skillName: skillName, family: families[colIdx]),
                       child: MouseRegion(
-                        cursor: SystemMouseCursors.click,
+                        cursor: skillName == '-'
+                            ? SystemMouseCursors.basic
+                            : SystemMouseCursors.click,
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
-                              _localizedSkillName(row[colIdx], perks, lang),
+                              _localizedSkillName(skillName, perks, lang),
                               style: TextStyle(
                                 fontSize: 15,
                                 color: textColor,
                                 fontWeight: weight,
-                                decoration: TextDecoration.underline,
+                                decoration: skillName == '-'
+                                    ? TextDecoration.none
+                                    : TextDecoration.underline,
                                 decorationColor: textColor.withOpacity(0.4),
                                 decorationStyle: TextDecorationStyle.dotted,
                               ),
@@ -510,9 +574,14 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
             style: const TextStyle(color: AppColors.error)),
       ),
       data: (perks) {
+        final query = _searchQuery.trim().toLowerCase();
+        final filteredPerks = query.isEmpty
+            ? perks
+            : perks.where((perk) => _matchesSearch(perk, query)).toList();
+
         // Group by family
         final families = <String, List<Map<String, dynamic>>>{};
-        for (final perk in perks) {
+        for (final perk in filteredPerks) {
           final family = perk['family'] as String? ?? 'General';
           families.putIfAbsent(family, () => []).add(perk);
         }
@@ -536,12 +605,147 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: sortedFamilies.map((family) {
-            final familyPerks = families[family]!;
-            return _buildFamilySection(family, familyPerks, lang);
-          }).toList(),
+          children: [
+            _buildSkillSearch(lang, perks.length, filteredPerks.length),
+            const SizedBox(height: 16),
+            if (filteredPerks.isEmpty)
+              _buildNoSkillResults(lang)
+            else
+              ...sortedFamilies.map((family) {
+                final familyPerks = families[family]!;
+                return _buildFamilySection(family, familyPerks, lang);
+              }),
+          ],
         );
       },
+    );
+  }
+
+  bool _matchesSearch(Map<String, dynamic> perk, String query) {
+    final nameMap = perk['name'] as Map? ?? {};
+    final descMap = perk['description'] as Map? ?? {};
+    final searchable = [
+      perk['_id'],
+      perk['family'],
+      nameMap['es'],
+      nameMap['en'],
+      descMap['es'],
+      descMap['en'],
+    ]
+        .whereType<Object>()
+        .map((value) => value.toString().toLowerCase())
+        .join(' ');
+
+    return searchable.contains(query);
+  }
+
+  Widget _buildSkillSearch(String lang, int totalCount, int visibleCount) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.surfaceLight),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isCompact = constraints.maxWidth < 620;
+          final countLabel = trf(lang, 'wikiSkills.searchCount', {
+            'visible': '$visibleCount',
+            'total': '$totalCount',
+          });
+
+          final searchField = TextField(
+            controller: _searchController,
+            onChanged: (value) => setState(() => _searchQuery = value),
+            style: const TextStyle(color: AppColors.textPrimary),
+            decoration: InputDecoration(
+              hintText: tr(lang, 'wikiSkills.searchHint'),
+              prefixIcon: Icon(PhosphorIcons.magnifyingGlass(), size: 18),
+              suffixIcon: _searchQuery.isEmpty
+                  ? null
+                  : IconButton(
+                      icon: Icon(PhosphorIcons.x(), size: 18),
+                      tooltip: tr(lang, 'wikiSkills.clearSearch'),
+                      onPressed: () {
+                        _searchController.clear();
+                        setState(() => _searchQuery = '');
+                      },
+                    ),
+            ),
+          );
+
+          final counter = Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(PhosphorIcons.listMagnifyingGlass(),
+                  size: 16, color: AppColors.textMuted),
+              const SizedBox(width: 6),
+              Text(
+                countLabel,
+                style: const TextStyle(
+                  color: AppColors.textMuted,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          );
+
+          if (isCompact) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                searchField,
+                const SizedBox(height: 10),
+                counter,
+              ],
+            );
+          }
+
+          return Row(
+            children: [
+              Expanded(child: searchField),
+              const SizedBox(width: 16),
+              counter,
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildNoSkillResults(String lang) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.surfaceLight),
+      ),
+      child: Column(
+        children: [
+          Icon(PhosphorIcons.magnifyingGlass(),
+              size: 32, color: AppColors.textMuted),
+          const SizedBox(height: 10),
+          Text(
+            tr(lang, 'wikiSkills.noResults'),
+            style: const TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            tr(lang, 'wikiSkills.adjustSearch'),
+            style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
     );
   }
 
@@ -573,7 +777,7 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
                   family.toUpperCase(),
                   style: TextStyle(
                     fontFamily: AppTypography.displayFontFamily,
-                    fontSize: 22,
+                    fontSize: AppTypography.wikiSectionTitleFontSize,
                     fontWeight: FontWeight.bold,
                     color: color,
                     letterSpacing: 1.5,
@@ -698,7 +902,7 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontFamily: AppTypography.displayFontFamily,
-                        fontSize: 20,
+                        fontSize: AppTypography.wikiSectionTitleFontSize,
                         fontWeight: FontWeight.bold,
                         color: AppColors.textPrimary,
                       ),

@@ -26,6 +26,7 @@ class _MyTeamsScreenState extends ConsumerState<MyTeamsScreen> {
   String _searchQuery = '';
   String? _selectedRace;
   bool _isOpeningSharedTeam = false;
+  String? _deletingTeamId;
 
   @override
   void dispose() {
@@ -53,6 +54,69 @@ class _MyTeamsScreenState extends ConsumerState<MyTeamsScreen> {
       );
     } finally {
       if (mounted) setState(() => _isOpeningSharedTeam = false);
+    }
+  }
+
+  Future<void> _confirmDeleteTeam(UserTeamSummary team, String lang) async {
+    if (_deletingTeamId != null) return;
+
+    if (team.leagueMemberships.isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(tr(lang, 'team.deleteBlockedByLeague')),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: Text(
+          tr(lang, 'team.deleteTeam'),
+          style: const TextStyle(color: AppColors.textPrimary),
+        ),
+        content: Text(
+          trf(lang, 'team.deleteConfirm', {'name': team.name}),
+          style: const TextStyle(color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(tr(lang, 'common.cancel')),
+          ),
+          ElevatedButton.icon(
+            onPressed: () => Navigator.pop(ctx, true),
+            icon: Icon(PhosphorIcons.trash(PhosphorIconsStyle.bold), size: 16),
+            label: Text(tr(lang, 'common.delete')),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _deletingTeamId = team.id);
+    try {
+      await ref.read(teamRepositoryProvider).deleteUserTeam(team.id);
+      ref.invalidate(myUserTeamsProvider);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(tr(lang, 'team.deleteDone')),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('$error'), backgroundColor: AppColors.error),
+      );
+    } finally {
+      if (mounted) setState(() => _deletingTeamId = null);
     }
   }
 
@@ -344,7 +408,9 @@ class _MyTeamsScreenState extends ConsumerState<MyTeamsScreen> {
                     child: _TeamCard(
                       team: team,
                       lang: lang,
+                      isDeleting: _deletingTeamId == team.id,
                       onTap: () => context.go('/teams/${team.id}'),
+                      onDelete: () => _confirmDeleteTeam(team, lang),
                     ),
                   ))
               .toList(),
@@ -573,10 +639,17 @@ class _MyTeamsScreenState extends ConsumerState<MyTeamsScreen> {
 class _TeamCard extends StatelessWidget {
   final UserTeamSummary team;
   final String lang;
+  final bool isDeleting;
   final VoidCallback onTap;
+  final VoidCallback onDelete;
 
-  const _TeamCard(
-      {required this.team, required this.lang, required this.onTap});
+  const _TeamCard({
+    required this.team,
+    required this.lang,
+    required this.isDeleting,
+    required this.onTap,
+    required this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -627,22 +700,30 @@ class _TeamCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                  Container(
-                    width: 30,
-                    height: 30,
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceLight,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(
-                      PhosphorIcons.caretRight(PhosphorIconsStyle.bold),
-                      size: 16,
-                      color: AppColors.textMuted,
-                    ),
+                  Column(
+                    children: [
+                      _buildDeleteButton(),
+                      const SizedBox(height: 8),
+                      Container(
+                        width: 30,
+                        height: 30,
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceLight,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          PhosphorIcons.caretRight(PhosphorIconsStyle.bold),
+                          size: 16,
+                          color: AppColors.textMuted,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
               const SizedBox(height: 18),
+              _buildLeagueMemberships(),
+              const SizedBox(height: 14),
               Wrap(
                 spacing: 10,
                 runSpacing: 10,
@@ -660,6 +741,105 @@ class _TeamCard extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildDeleteButton() {
+    final canDelete = team.leagueMemberships.isEmpty && !isDeleting;
+    return Tooltip(
+      message: team.leagueMemberships.isEmpty
+          ? tr(lang, 'team.deleteTeam')
+          : tr(lang, 'team.deleteBlockedByLeague'),
+      child: IconButton(
+        onPressed: canDelete ? onDelete : null,
+        icon: isDeleting
+            ? const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : Icon(PhosphorIcons.trash(PhosphorIconsStyle.bold), size: 17),
+        color: AppColors.error,
+        disabledColor: AppColors.textMuted,
+        style: IconButton.styleFrom(
+          backgroundColor: AppColors.surfaceLight,
+          minimumSize: const Size(30, 30),
+          fixedSize: const Size(30, 30),
+          padding: EdgeInsets.zero,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLeagueMemberships() {
+    if (team.leagueMemberships.isEmpty) {
+      return Row(
+        children: [
+          Icon(PhosphorIcons.flag(PhosphorIconsStyle.regular),
+              size: 14, color: AppColors.textMuted),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              tr(lang, 'team.noLeagueMemberships'),
+              style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      children: team.leagueMemberships
+          .map((league) => _buildLeagueChip(league))
+          .toList(),
+    );
+  }
+
+  Widget _buildLeagueChip(TeamLeagueMembership league) {
+    final isActive = league.status == 'active';
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 210),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+      decoration: BoxDecoration(
+        color: isActive
+            ? AppColors.primary.withOpacity(0.18)
+            : AppColors.surfaceLight,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isActive
+              ? AppColors.primary.withOpacity(0.45)
+              : Colors.transparent,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            isActive
+                ? PhosphorIcons.flagBanner(PhosphorIconsStyle.fill)
+                : PhosphorIcons.flag(PhosphorIconsStyle.regular),
+            size: 13,
+            color: isActive ? AppColors.primary : AppColors.textMuted,
+          ),
+          const SizedBox(width: 5),
+          Flexible(
+            child: Text(
+              '${league.name} · ${league.statusLabel}',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+                color: isActive ? AppColors.primary : AppColors.textSecondary,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
       ),
     );
   }
