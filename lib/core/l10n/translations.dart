@@ -599,7 +599,7 @@ const _t = <String, Map<String, String>>{
   'liveMatch.rerolls': {'es': 'Rerolls', 'en': 'Rerolls'},
   'liveMatch.cheerleaders': {'es': 'Animadoras', 'en': 'Cheerleaders'},
   'liveMatch.coaches': {'es': 'Asistentes', 'en': 'Asst. Coaches'},
-  'liveMatch.apothecary': {'es': 'Boticario', 'en': 'Apothecary'},
+  'liveMatch.apothecary': {'es': 'Apotecario', 'en': 'Apothecary'},
   'liveMatch.fanFactor': {'es': 'Factor Fan', 'en': 'Fan Factor'},
   'liveMatch.teamValue': {'es': 'Valor de Equipo', 'en': 'Team Value'},
   'liveMatch.players': {'es': 'Jugadores', 'en': 'Players'},

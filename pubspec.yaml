@@ -106,3 +106,6 @@ flutter:
     - family: PlaywriteCU
       fonts:
         - asset: assets/fonts/PlaywriteCU-Regular.ttf
+    - family: RugbySquadOutline
+      fonts:
+        - asset: assets/fonts/RugbySquadOutline.ttf

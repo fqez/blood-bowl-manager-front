@@ -14,6 +14,12 @@ class TeamHeroHeader extends StatelessWidget {
     this.tier,
     this.trailing,
     this.height = 320,
+    this.teamNameFontFamily = 'Teko',
+    this.teamNameColor = const Color.fromARGB(255, 255, 0, 0),
+    this.teamNameFontWeight = FontWeight.w600,
+    this.teamNameGradient,
+    this.teamNameFontSize,
+    this.teamNameCompactFontSize,
   });
 
   final String rosterId;
@@ -23,6 +29,12 @@ class TeamHeroHeader extends StatelessWidget {
   final int? tier;
   final Widget? trailing;
   final double height;
+  final String teamNameFontFamily;
+  final Color teamNameColor;
+  final FontWeight teamNameFontWeight;
+  final Gradient? teamNameGradient;
+  final double? teamNameFontSize;
+  final double? teamNameCompactFontSize;
 
   @override
   Widget build(BuildContext context) {
@@ -101,25 +113,15 @@ class TeamHeroHeader extends StatelessWidget {
                 left: horizontalPadding,
                 right: compact ? horizontalPadding : 200,
                 bottom: 24,
-                child: Text(
-                  displayName.toUpperCase(),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontFamily: 'Teko',
-                    fontSize: compact ? 42 : 52,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                    letterSpacing: 2,
-                    height: 1,
-                    shadows: [
-                      Shadow(
-                        color: Colors.black.withOpacity(0.8),
-                        blurRadius: 12,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
+                child: _TeamNameText(
+                  text: displayName.toUpperCase(),
+                  fontFamily: teamNameFontFamily,
+                  color: teamNameColor,
+                  fontSize: compact
+                      ? (teamNameCompactFontSize ?? 42)
+                      : (teamNameFontSize ?? 52),
+                  fontWeight: teamNameFontWeight,
+                  gradient: teamNameGradient,
                 ),
               ),
             ],
@@ -127,6 +129,130 @@ class TeamHeroHeader extends StatelessWidget {
         );
       },
     );
+  }
+}
+
+class _TeamNameText extends StatelessWidget {
+  const _TeamNameText({
+    required this.text,
+    required this.fontFamily,
+    required this.color,
+    required this.fontSize,
+    required this.fontWeight,
+    this.gradient,
+  });
+
+  final String text;
+  final String fontFamily;
+  final Color color;
+  final double fontSize;
+  final FontWeight fontWeight;
+  final Gradient? gradient;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maxWidth = constraints.maxWidth.isFinite
+            ? constraints.maxWidth
+            : MediaQuery.of(context).size.width;
+        final responsiveFontSize = _resolveFontSize(context, maxWidth);
+        final textHeight = responsiveFontSize * 2.15;
+
+        final fillStyle = TextStyle(
+          fontFamily: fontFamily,
+          fontSize: responsiveFontSize,
+          fontWeight: fontWeight,
+          color: gradient == null ? color : null,
+          foreground: gradient == null
+              ? null
+              : (Paint()
+                ..shader = gradient!.createShader(
+                  Rect.fromLTWH(0, 0, maxWidth, textHeight),
+                )),
+          letterSpacing: 2,
+          height: 0.95,
+          shadows: [
+            Shadow(
+              color: Colors.black.withOpacity(0.9),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        );
+
+        if (gradient == null) {
+          return Text(
+            text,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: fillStyle,
+          );
+        }
+
+        final strokeStyle = fillStyle.copyWith(
+          foreground: Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = (responsiveFontSize * 0.045).clamp(2.4, 4.5)
+            ..strokeJoin = StrokeJoin.round
+            ..color = Colors.black.withOpacity(0.95),
+          shadows: null,
+        );
+
+        return Stack(
+          children: [
+            Text(
+              text,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: strokeStyle,
+            ),
+            Text(
+              text,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: fillStyle,
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  double _resolveFontSize(BuildContext context, double maxWidth) {
+    final minFontSize = (fontSize * 0.58).clamp(34.0, fontSize);
+    var low = minFontSize;
+    var high = fontSize;
+
+    for (var i = 0; i < 12; i++) {
+      final mid = (low + high) / 2;
+      if (_fits(context, maxWidth, mid)) {
+        low = mid;
+      } else {
+        high = mid;
+      }
+    }
+
+    return low;
+  }
+
+  bool _fits(BuildContext context, double maxWidth, double testFontSize) {
+    final painter = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: TextStyle(
+          fontFamily: fontFamily,
+          fontSize: testFontSize,
+          fontWeight: fontWeight,
+          letterSpacing: 2,
+          height: 0.95,
+        ),
+      ),
+      maxLines: 2,
+      textDirection: Directionality.of(context),
+    )..layout(maxWidth: maxWidth);
+
+    return !painter.didExceedMaxLines;
   }
 }
 

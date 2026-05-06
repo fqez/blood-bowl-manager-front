@@ -28,7 +28,7 @@ const _glossary = <String, String>{
   'Niggling Injury':
       'Lesión persistente: cada vez que sufra una baja, se añade +1 al resultado de Casualty.',
   'Apothecary':
-      'Boticario: puede usarse una vez por partido para repetir un resultado de Casualty o recuperar un KO.',
+      'Apotecario: puede usarse una vez por partido para repetir un resultado de Casualty o recuperar un KO.',
   'Regeneration':
       'Regeneración: habilidad que permite ignorar una Casualty con un resultado de 4+ en 1D6.',
   'Mighty Blow':
@@ -621,7 +621,7 @@ class WikiInjuriesScreen extends ConsumerWidget {
       ),
       _ModifierEntry(
         name: 'APOTHECARY',
-        nameEs: 'BOTICARIO',
+        nameEs: 'APOTECARIO',
         icon: PhosphorIcons.firstAid(PhosphorIconsStyle.fill),
         color: const Color(0xFF66BB6A),
         description:

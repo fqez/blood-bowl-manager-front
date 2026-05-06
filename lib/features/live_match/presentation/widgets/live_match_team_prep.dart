@@ -21,7 +21,9 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
   }) {
     final logoPath = _teamLogoPath(team.baseRosterId);
     final teamColor = isHome ? AppColors.info : AppColors.error;
-    final rerollCost = baseRoster?.rerollCost ?? team.rerollCost;
+    final baseRerollCost = baseRoster?.rerollCost ?? team.rerollCost;
+    final rerollCost =
+        baseRerollCost * (team.leagueMemberships.isNotEmpty ? 2 : 1);
     final activeCount = team.players.where((p) => p.status == 'healthy').length;
     final woundedCount = team.players
         .where((p) => p.status != 'healthy' && p.status != 'dead')
@@ -251,7 +253,7 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
                       ? () => _purchaseStaff(team.id,
                           cheerleaders: team.cheerleaders - 1)
                       : null,
-                  onInc: team.treasury >= 10000 && team.cheerleaders < 12
+                  onInc: team.treasury >= 10000 && team.cheerleaders < 6
                       ? () => _purchaseStaff(team.id,
                           cheerleaders: team.cheerleaders + 1)
                       : null,

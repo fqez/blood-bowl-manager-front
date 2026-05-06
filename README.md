@@ -310,6 +310,7 @@ La estructura por features, el uso de Riverpod y la intencion de modelar dominio
 - [X] Reorganizar la sección de mis tácticas - el mapa debería aparecer lo primero [DONE]
 - [X] En la parte de mis tacticas en lugar de lista que sea un grid. Ademas que sea multiidioma las labels de ataque y defensa [DONE]
 - [ ] Calculos post-partido en backend
+- [ ] Los equipos que tengan reglas especiales tienen que tener un popup cuando se clique sobre ella para explicarla
 - [X] La vista de mis equipos rediseñarla. [DONE]
 - [ ] En partido rapido rediseñar las tarjetas de selector de equipo: logo, valor equipo, nombre, raza
 - [ ] Seccion de notificaciones de mis ligas más estrecho, que quepan 2 tarjetas de liga en grid

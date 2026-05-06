@@ -112,6 +112,109 @@ class _BonusSppEntry {
   });
 }
 
+class _ScorePanel extends StatelessWidget {
+  const _ScorePanel({
+    required this.teamName,
+    required this.label,
+    required this.score,
+    required this.color,
+    required this.scoreSize,
+    required this.teamNameSize,
+  });
+
+  final String teamName;
+  final String label;
+  final int score;
+  final Color color;
+  final double scoreSize;
+  final double teamNameSize;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+      decoration: BoxDecoration(
+        color: AppColors.background.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.32)),
+      ),
+      child: Column(
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              color: color,
+              fontSize: 14,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 2,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            teamName,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: teamNameSize,
+              fontWeight: FontWeight.w900,
+              height: 1.05,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            '$score',
+            style: TextStyle(
+              fontFamily: AppTypography.displayFontFamily,
+              color: color,
+              fontSize: scoreSize,
+              fontWeight: FontWeight.w900,
+              height: 0.85,
+              shadows: [
+                Shadow(
+                  color: color.withValues(alpha: 0.25),
+                  blurRadius: 18,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ResultDivider extends StatelessWidget {
+  const _ResultDivider({required this.scoreSize});
+
+  final double scoreSize;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: scoreSize,
+      height: scoreSize,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: AppColors.surface.withValues(alpha: 0.86),
+        border: Border.all(color: AppColors.surfaceLight, width: 2),
+      ),
+      child: Text(
+        'VS',
+        style: TextStyle(
+          fontFamily: AppTypography.displayFontFamily,
+          color: AppColors.textPrimary,
+          fontSize: scoreSize * 0.36,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 1.6,
+        ),
+      ),
+    );
+  }
+}
+
 // ─── Screen ─────────────────────────────────────────────────
 
 class AftermatchScreen extends ConsumerStatefulWidget {
@@ -307,6 +410,26 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
         mvpAway: _mvpAwayId,
         gate: _gate,
       );
+
+      final teamRepo = ref.read(teamRepositoryProvider);
+      final homeFans = _nextDedicatedFans(
+        currentFans: _homeDedicatedFans,
+        roll: _homeFanRoll,
+        won: _scoreHome > _scoreAway,
+        lost: _scoreHome < _scoreAway,
+      );
+      final awayFans = _nextDedicatedFans(
+        currentFans: _awayDedicatedFans,
+        roll: _awayFanRoll,
+        won: _scoreAway > _scoreHome,
+        lost: _scoreAway < _scoreHome,
+      );
+      if (_homeTeam != null && homeFans != _homeDedicatedFans) {
+        await teamRepo.patchTeamStaff(_homeTeam!.id, dedicatedFans: homeFans);
+      }
+      if (_awayTeam != null && awayFans != _awayDedicatedFans) {
+        await teamRepo.patchTeamStaff(_awayTeam!.id, dedicatedFans: awayFans);
+      }
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -554,82 +677,14 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
   Widget _buildMatchStatsSection(Match match) {
     return _sectionCard(
       icon: PhosphorIcons.chartBar(PhosphorIconsStyle.fill),
-      title: 'MATCH STATISTICS',
+      title: 'RESULTADO DEL PARTIDO',
+      subtitle:
+          'Revisa el marcador final y ajusta las estadísticas principales.',
       color: AppColors.info,
       child: Column(
         children: [
-          // Score
-          Container(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(colors: [
-                AppColors.primary.withValues(alpha: 0.12),
-                AppColors.surface.withValues(alpha: 0.5),
-              ]),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final isCompact = constraints.maxWidth < 520;
-
-                final homeScore = Column(
-                  children: [
-                    Text(match.home.teamName,
-                        style: const TextStyle(
-                            color: AppColors.textMuted, fontSize: 12),
-                        textAlign: TextAlign.center),
-                    const SizedBox(height: 4),
-                    Text('$_scoreHome',
-                        style: _displayLarge.copyWith(
-                            fontSize: 48, color: AppColors.info)),
-                  ],
-                );
-
-                final awayScore = Column(
-                  children: [
-                    Text(match.away.teamName,
-                        style: const TextStyle(
-                            color: AppColors.textMuted, fontSize: 12),
-                        textAlign: TextAlign.center),
-                    const SizedBox(height: 4),
-                    Text('$_scoreAway',
-                        style: _displayLarge.copyWith(
-                            fontSize: 48, color: AppColors.error)),
-                  ],
-                );
-
-                if (isCompact) {
-                  return Column(
-                    children: [
-                      homeScore,
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        child: Text('–',
-                            style: _displayLarge.copyWith(
-                                fontSize: 32, color: AppColors.textMuted)),
-                      ),
-                      awayScore,
-                    ],
-                  );
-                }
-
-                return Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    homeScore,
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: Text('–',
-                          style: _displayLarge.copyWith(
-                              fontSize: 36, color: AppColors.textMuted)),
-                    ),
-                    awayScore,
-                  ],
-                );
-              },
-            ),
-          ),
-          const SizedBox(height: 16),
+          _buildResultBanner(match),
+          const SizedBox(height: 22),
 
           // Stats grid
           _statRow('Touchdowns', _tdHome, _tdAway, AppColors.accent,
@@ -664,25 +719,146 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
           const SizedBox(height: 12),
           // Gate
           Wrap(
-            spacing: 8,
-            runSpacing: 8,
+            spacing: 12,
+            runSpacing: 12,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               Icon(PhosphorIcons.ticket(PhosphorIconsStyle.fill),
-                  size: 16, color: AppColors.accent),
+                  size: 22, color: AppColors.accent),
               const Text('Gate',
                   style: TextStyle(
                       color: AppColors.textPrimary,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500)),
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700)),
               SizedBox(
-                width: 110,
+                width: 140,
                 child: _numField(_gate, (v) => setState(() => _gate = v)),
               ),
             ],
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildResultBanner(Match match) {
+    final homeWon = _scoreHome > _scoreAway;
+    final awayWon = _scoreAway > _scoreHome;
+    final resultText = homeWon
+        ? '${match.home.teamName} gana'
+        : awayWon
+            ? '${match.away.teamName} gana'
+            : 'Empate';
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isCompact = constraints.maxWidth < 680;
+        final scoreSize = isCompact ? 76.0 : 116.0;
+        final teamNameSize = isCompact ? 22.0 : 30.0;
+
+        final content = isCompact
+            ? Column(
+                children: [
+                  _ScorePanel(
+                    teamName: match.home.teamName,
+                    label: 'LOCAL',
+                    score: _scoreHome,
+                    color: AppColors.info,
+                    scoreSize: scoreSize,
+                    teamNameSize: teamNameSize,
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    child: _ResultDivider(scoreSize: 52),
+                  ),
+                  _ScorePanel(
+                    teamName: match.away.teamName,
+                    label: 'VISITANTE',
+                    score: _scoreAway,
+                    color: AppColors.error,
+                    scoreSize: scoreSize,
+                    teamNameSize: teamNameSize,
+                  ),
+                ],
+              )
+            : Row(
+                children: [
+                  Expanded(
+                    child: _ScorePanel(
+                      teamName: match.home.teamName,
+                      label: 'LOCAL',
+                      score: _scoreHome,
+                      color: AppColors.info,
+                      scoreSize: scoreSize,
+                      teamNameSize: teamNameSize,
+                    ),
+                  ),
+                  const SizedBox(width: 20),
+                  _ResultDivider(scoreSize: 72),
+                  const SizedBox(width: 20),
+                  Expanded(
+                    child: _ScorePanel(
+                      teamName: match.away.teamName,
+                      label: 'VISITANTE',
+                      score: _scoreAway,
+                      color: AppColors.error,
+                      scoreSize: scoreSize,
+                      teamNameSize: teamNameSize,
+                    ),
+                  ),
+                ],
+              );
+
+        return Container(
+          padding: EdgeInsets.all(isCompact ? 18 : 28),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppColors.primary.withValues(alpha: 0.22),
+                AppColors.info.withValues(alpha: 0.16),
+                AppColors.surface.withValues(alpha: 0.85),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(24),
+            border:
+                Border.all(color: AppColors.primary.withValues(alpha: 0.35)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.28),
+                blurRadius: 22,
+                offset: const Offset(0, 12),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                decoration: BoxDecoration(
+                  color: AppColors.background.withValues(alpha: 0.55),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: AppColors.surfaceLight),
+                ),
+                child: Text(
+                  resultText.toUpperCase(),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: isCompact ? 15 : 18,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.4,
+                  ),
+                ),
+              ),
+              SizedBox(height: isCompact ? 18 : 26),
+              content,
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -696,7 +872,7 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
     required ValueChanged<int> onAwayChanged,
   }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 7),
       child: Row(
         children: [
           _miniCounter(homeVal, onHomeChanged, AppColors.info),
@@ -704,11 +880,13 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 14, color: color),
-              const SizedBox(width: 6),
+              Icon(icon, size: 19, color: color),
+              const SizedBox(width: 9),
               Text(label,
                   style: const TextStyle(
-                      color: AppColors.textSecondary, fontSize: 12)),
+                      color: AppColors.textSecondary,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700)),
             ],
           ),
           const Spacer(),
@@ -725,12 +903,12 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
         _miniBtn(PhosphorIcons.minus(PhosphorIconsStyle.bold),
             value > 0 ? () => onChanged(value - 1) : null),
         Container(
-          width: 32,
+          width: 44,
           alignment: Alignment.center,
           child: Text('$value',
               style: TextStyle(
                   color: color,
-                  fontSize: 16,
+                  fontSize: 22,
                   fontWeight: FontWeight.bold,
                   fontFamily: AppTypography.displayFontFamily)),
         ),
@@ -745,8 +923,8 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
       onTap: onTap,
       borderRadius: BorderRadius.circular(6),
       child: Container(
-        width: 24,
-        height: 24,
+        width: 34,
+        height: 34,
         decoration: BoxDecoration(
           color: onTap != null
               ? AppColors.surfaceLight
@@ -754,7 +932,7 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
           borderRadius: BorderRadius.circular(6),
         ),
         child: Icon(icon,
-            size: 12,
+            size: 16,
             color: onTap != null ? AppColors.textPrimary : AppColors.textMuted),
       ),
     );
@@ -960,21 +1138,27 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
   }) {
     String resultLabel = 'Draw — no change';
     Color resultColor = AppColors.textMuted;
-    int delta = 0;
+    final newFans = _nextDedicatedFans(
+      currentFans: currentFans,
+      roll: roll,
+      won: won,
+      lost: lost,
+    );
+    final delta = newFans - currentFans;
 
     if (won && roll != null) {
       if (roll >= currentFans) {
-        resultLabel = '+1 Dedicated Fan';
         resultColor = AppColors.success;
-        delta = 1;
+        resultLabel =
+            currentFans >= 7 ? 'No change (max 7)' : '+1 Dedicated Fan';
       } else {
         resultLabel = 'No change (roll < fans)';
       }
     } else if (lost && roll != null) {
       if (roll < currentFans) {
-        resultLabel = '−1 Dedicated Fan';
         resultColor = AppColors.error;
-        delta = -1;
+        resultLabel =
+            currentFans <= 1 ? 'No change (min 1)' : '−1 Dedicated Fan';
       } else {
         resultLabel = 'No change (roll ≥ fans)';
       }
@@ -1012,7 +1196,7 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
                   fontSize: 12,
                   fontWeight: FontWeight.w600)),
           if (delta != 0)
-            Text('New: ${currentFans + delta}',
+            Text('New: $newFans',
                 style: TextStyle(
                     color: resultColor,
                     fontSize: 13,
@@ -1020,6 +1204,21 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
         ],
       ),
     );
+  }
+
+  int _nextDedicatedFans({
+    required int currentFans,
+    required int? roll,
+    required bool won,
+    required bool lost,
+  }) {
+    if (won && roll != null && roll >= currentFans) {
+      return (currentFans + 1).clamp(1, 7).toInt();
+    }
+    if (lost && roll != null && roll < currentFans) {
+      return (currentFans - 1).clamp(1, 7).toInt();
+    }
+    return currentFans.clamp(1, 7).toInt();
   }
 
   // ═══════════════════════════════════════════════════════════

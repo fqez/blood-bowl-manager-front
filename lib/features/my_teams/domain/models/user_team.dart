@@ -269,6 +269,7 @@ class UserTeamDetail {
   final List<UserPlayer> players;
   final int treasury;
   final int teamValue;
+  final int currentTeamValue;
   final int rerolls;
   final int rerollCost;
   final int fanFactor;
@@ -292,6 +293,7 @@ class UserTeamDetail {
     required this.players,
     required this.treasury,
     required this.teamValue,
+    required this.currentTeamValue,
     required this.rerolls,
     required this.rerollCost,
     required this.fanFactor,
@@ -318,6 +320,9 @@ class UserTeamDetail {
             .toList(),
         treasury: (json['treasury'] as num?)?.toInt() ?? 1000000,
         teamValue: (json['team_value'] as num?)?.toInt() ?? 0,
+        currentTeamValue: (json['current_team_value'] as num?)?.toInt() ??
+            (json['team_value'] as num?)?.toInt() ??
+            0,
         rerolls: (json['rerolls'] as num?)?.toInt() ?? 0,
         rerollCost: (json['reroll_cost'] as num?)?.toInt() ?? 0,
         fanFactor: (json['fan_factor'] as num?)?.toInt() ?? 0,

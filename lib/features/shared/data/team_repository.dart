@@ -61,6 +61,7 @@ class TeamRepository {
     int cheerleaders = 0,
     int assistantCoaches = 0,
     bool apothecary = false,
+    int dedicatedFans = 1,
   }) async {
     try {
       final response = await _dio.post('/user-teams/', data: {
@@ -71,6 +72,7 @@ class TeamRepository {
         'cheerleaders': cheerleaders,
         'assistant_coaches': assistantCoaches,
         'apothecary': apothecary,
+        'dedicated_fans': dedicatedFans,
       });
       return response.data['id'] as String;
     } on DioException catch (e) {
@@ -120,6 +122,7 @@ class TeamRepository {
     int? assistantCoaches,
     bool? apothecary,
     int? fanFactor,
+    int? dedicatedFans,
   }) async {
     try {
       final response = await _dio.patch('/user-teams/$teamId', data: {
@@ -129,6 +132,7 @@ class TeamRepository {
         if (assistantCoaches != null) 'assistant_coaches': assistantCoaches,
         if (apothecary != null) 'apothecary': apothecary,
         if (fanFactor != null) 'fan_factor': fanFactor,
+        if (dedicatedFans != null) 'dedicated_fans': dedicatedFans,
       });
       return UserTeamDetail.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {

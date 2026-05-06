@@ -153,12 +153,21 @@ class _AppShellState extends ConsumerState<AppShell> {
         label: tr(lang, 'nav.quickMatch'),
         route: '/quick-match',
       ),
+      AppShellNavItem(
+        icon: PhosphorIcons.bug(PhosphorIconsStyle.regular),
+        selectedIcon: PhosphorIcons.bug(PhosphorIconsStyle.fill),
+        label: 'Debug post-partido',
+        route: '/debug/league-aftermatch',
+      ),
     ];
   }
 
   int _resolveSelectedIndex(String location) {
     if (location.startsWith('/quick-match'))
       return AppShellNavIndexes.quickMatch;
+    if (location.startsWith('/debug/league-aftermatch')) {
+      return AppShellNavIndexes.debugPostMatch;
+    }
     if (location.startsWith('/my-tactics')) return AppShellNavIndexes.myTactics;
     if (location.startsWith('/tactics')) return AppShellNavIndexes.tactics;
     if (location.startsWith('/wiki/achievements')) {

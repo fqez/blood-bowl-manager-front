@@ -49,6 +49,7 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
   bool _apothecary = false;
   int _assistantCoaches = 0;
   int _cheerleaders = 0;
+  int _dedicatedFans = 1;
   bool _loadingRaceDetail = false;
   bool _isCreating = false;
   bool _starPlayersExpanded = false;
@@ -76,10 +77,13 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
     if (_apothecary) total += 50000;
     total += _assistantCoaches * 10000;
     total += _cheerleaders * 10000;
+    total += (_dedicatedFans - 1) * 5000;
     return total;
   }
 
   int get _remaining => _startingBudget - _spent;
+
+  int get _teamValue => _spent - ((_dedicatedFans - 1) * 5000);
 
   int get _rosterCount => _roster.length;
 
@@ -99,6 +103,7 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
       _loadingRaceDetail = true;
       _roster.clear();
       _rerolls = 0;
+      _dedicatedFans = 1;
     });
 
     try {
@@ -390,7 +395,8 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
           rosterCount: _rosterCount,
           rerolls: _rerolls,
           apothecary: _apothecary,
-          spent: _spent,
+          dedicatedFans: _dedicatedFans,
+          spent: _teamValue,
           remaining: _remaining,
           isValidRoster: _isValidRoster,
         );
@@ -952,7 +958,7 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
               onDec: _cheerleaders > 0
                   ? () => setState(() => _cheerleaders--)
                   : null,
-              onInc: _remaining >= 10000
+              onInc: _remaining >= 10000 && _cheerleaders < 6
                   ? () => setState(() => _cheerleaders++)
                   : null,
             ),
@@ -966,8 +972,22 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
               onDec: _assistantCoaches > 0
                   ? () => setState(() => _assistantCoaches--)
                   : null,
-              onInc: _remaining >= 10000
+              onInc: _remaining >= 10000 && _assistantCoaches < 6
                   ? () => setState(() => _assistantCoaches++)
+                  : null,
+            ),
+          );
+      Widget fansTile() => Expanded(
+            child: _buildStaffTile(
+              icon: PhosphorIcons.usersThree(PhosphorIconsStyle.fill),
+              label: 'HINCHAS',
+              subtitle: '5k c/u (máx. 3)',
+              count: _dedicatedFans,
+              onDec: _dedicatedFans > 1
+                  ? () => setState(() => _dedicatedFans--)
+                  : null,
+              onInc: _remaining >= 5000 && _dedicatedFans < 3
+                  ? () => setState(() => _dedicatedFans++)
                   : null,
             ),
           );
@@ -992,7 +1012,7 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            if (wide)
+            if (wide) ...[
               Row(children: [
                 rerollsTile(),
                 const SizedBox(width: 12),
@@ -1001,8 +1021,14 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
                 cheerTile(),
                 const SizedBox(width: 12),
                 assistTile(),
-              ])
-            else ...[
+              ]),
+              const SizedBox(height: 12),
+              Row(children: [
+                fansTile(),
+                const SizedBox(width: 12),
+                const Spacer(),
+              ]),
+            ] else ...[
               Row(children: [
                 rerollsTile(),
                 const SizedBox(width: 12),
@@ -1014,6 +1040,8 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
                 const SizedBox(width: 12),
                 assistTile()
               ]),
+              const SizedBox(height: 12),
+              Row(children: [fansTile()]),
             ],
           ],
         ),
@@ -1553,7 +1581,7 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
           ),
           const SizedBox(height: 6),
           Text(
-            'BOTICARIO',
+            'APOTECARIO',
             style: TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.bold,
@@ -1704,6 +1732,7 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
         cheerleaders: _cheerleaders,
         assistantCoaches: _assistantCoaches,
         apothecary: _apothecary,
+        dedicatedFans: _dedicatedFans,
       );
 
       if (mounted) {

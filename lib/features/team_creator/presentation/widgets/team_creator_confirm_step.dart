@@ -13,6 +13,7 @@ class TeamCreatorConfirmStep extends StatelessWidget {
     required this.rosterCount,
     required this.rerolls,
     required this.apothecary,
+    required this.dedicatedFans,
     required this.spent,
     required this.remaining,
     required this.isValidRoster,
@@ -24,6 +25,7 @@ class TeamCreatorConfirmStep extends StatelessWidget {
   final int rosterCount;
   final int rerolls;
   final bool apothecary;
+  final int dedicatedFans;
   final int spent;
   final int remaining;
   final bool isValidRoster;
@@ -87,6 +89,7 @@ class TeamCreatorConfirmStep extends StatelessWidget {
                 children: [
                   _SummaryItem(label: 'Jugadores', value: '$rosterCount'),
                   _SummaryItem(label: 'Re-rolls', value: '$rerolls'),
+                  _SummaryItem(label: 'Hinchas', value: '$dedicatedFans'),
                   _SummaryItem(
                     label: 'Apotecario',
                     value: apothecary ? 'Sí' : 'No',
