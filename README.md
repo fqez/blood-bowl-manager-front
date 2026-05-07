@@ -300,7 +300,7 @@ La estructura por features, el uso de Riverpod y la intencion de modelar dominio
 - [X] Lo mismo con bloqueos
 - [X] Los terminos clave estan en ingles la mayoria, esos tambien deberian ser multiidioma
 - [ ] Implementar Mis ligas - liga - jornada actual
-- [ ] Implementar Mis ligas - liga - estadisticas
+- [X] Implementar Mis ligas - liga - estadisticas [DONE]
 - [ ] En partido rapido hacer busqueda por usuario e implemetar toda la logica de notificaciones, conexion a partido, etc
 
 **VISUALES**
@@ -314,7 +314,7 @@ La estructura por features, el uso de Riverpod y la intencion de modelar dominio
 - [X] En la vista prepartido, en las cajas de clima y patada inicial deberia aparecer el resultado de dados que la genera. [DONE] Valores recuperados desde reglas del backend.
 - [X] La vista de mis equipos rediseñarla. [DONE]
 - [ ] En partido rapido rediseñar las tarjetas de selector de equipo: logo, valor equipo, nombre, raza
-- [ ] Seccion de notificaciones de mis ligas más estrecho, que quepan 2 tarjetas de liga en grid
+- [X] Seccion de notificaciones de mis ligas más estrecho, que quepan 2 tarjetas de liga en grid [DONE]
 - [ ] Rediseño del calendario para que sea editable e incluya mas informacion cada tarjeta21
 - [ ] Fuente mas grande en las cajitas, tablas, etc
 - [ ] Darle una vuelta a la vista de mis ligas...
@@ -339,3 +339,13 @@ La estructura por features, el uso de Riverpod y la intencion de modelar dominio
   - [ ] Lanzamientos (con mapa)
 
   //static const String apiBaseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: 'https://web-production-9aceb.up.railway.app');
+
+
+
+staticconstString apiBaseUrl =String.fromEnvironment(
+
+    'API_BASE_URL',
+
+    defaultValue:'http://localhost:8080',
+
+  );

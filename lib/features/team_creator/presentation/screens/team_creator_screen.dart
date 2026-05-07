@@ -376,13 +376,8 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
           lang: ref.watch(localeProvider),
           racesAsync: ref.watch(baseRostersProvider),
           selectedRace: _selectedRace,
-          teamName: _teamName,
           onRetry: () => ref.invalidate(baseRostersProvider),
           onSelectRace: _selectRace,
-          onTeamNameChanged: (value) => setState(() => _teamName = value),
-          teamNameLabel: tr(ref.watch(localeProvider), 'teamCreator.teamName'),
-          teamNameHint:
-              tr(ref.watch(localeProvider), 'teamCreator.teamNameHint'),
           retryLabel: tr(ref.watch(localeProvider), 'common.retry'),
         );
       case 1:
@@ -639,6 +634,9 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
               decoration: InputDecoration(
                 hintText: tr(lang, 'teamCreator.teamNameHint'),
                 hintStyle: TextStyle(color: AppColors.textMuted),
+                errorText: _teamName.trim().isEmpty
+                    ? tr(lang, 'teamCreator.teamNameRequired')
+                    : null,
                 isDense: true,
                 contentPadding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -1050,7 +1048,9 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
 
     // ── Estado del roster ─────────────────────────────────────────────────────
     Widget buildRosterStatus() {
-      final isValid = _rosterCount >= 11 && _remaining >= 0;
+      final hasTeamName = _teamName.trim().isNotEmpty;
+      final hasValidRoster = _rosterCount >= 11 && _remaining >= 0;
+      final isValid = hasTeamName && hasValidRoster;
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -1081,7 +1081,11 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        isValid ? 'Roster Válido' : 'Roster Incompleto',
+                        isValid
+                            ? 'Roster Válido'
+                            : hasTeamName
+                                ? 'Roster Incompleto'
+                                : 'Nombre Pendiente',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
@@ -1092,7 +1096,9 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
                       Text(
                         isValid
                             ? 'Cumples con el mínimo de 11 jugadores y no superas el presupuesto.'
-                            : 'Necesitas al menos 11 jugadores (tienes $_rosterCount).',
+                            : hasTeamName
+                                ? 'Necesitas al menos 11 jugadores (tienes $_rosterCount).'
+                                : 'Introduce el nombre del equipo para continuar.',
                         style: TextStyle(
                             fontSize: 12, color: AppColors.textSecondary),
                       ),
@@ -1663,11 +1669,11 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
   bool _canProceed() {
     switch (_currentStep) {
       case 0:
-        return _teamName.isNotEmpty && _selectedRace != null;
+        return _selectedRace != null;
       case 1:
-        return _rosterCount >= 11;
+        return _teamName.trim().isNotEmpty && _rosterCount >= 11;
       case 2:
-        return _isValidRoster;
+        return _teamName.trim().isNotEmpty && _isValidRoster;
       default:
         return false;
     }

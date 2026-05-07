@@ -287,33 +287,45 @@ class _LeaguesScreenState extends ConsumerState<LeaguesScreen> {
 
   Widget _buildStatsSection(
       List<LeagueSummaryModel> leagues, bool isCompact, String lang) {
+    final activeCount = leagues.where((league) => league.isActive).length;
+    final draftCount = leagues.where((league) => league.isDraft).length;
+    final ownedCount = leagues.where((league) => league.isOwner).length;
+    final totalTeams = leagues.fold<int>(
+      0,
+      (sum, league) => sum + league.teamCount,
+    );
+    final totalSlots = leagues.fold<int>(
+      0,
+      (sum, league) => sum + league.maxTeams,
+    );
+
     final cards = [
       _StatCard(
-        icon: PhosphorIcons.usersThree(PhosphorIconsStyle.fill),
-        label: tr(lang, 'dashboard.matchesPlayed'),
-        value: '0',
-        subtext: trf(lang, 'dashboard.matchesThisSeason', {'n': '0'}),
+        icon: PhosphorIcons.trophy(PhosphorIconsStyle.fill),
+        label: tr(lang, 'leagues.totalLeagues'),
+        value: '${leagues.length}',
+        subtext: trf(lang, 'leagues.activeCount', {'n': '$activeCount'}),
         subtextColor: AppColors.success,
       ),
       _StatCard(
-        icon: PhosphorIcons.trophy(PhosphorIconsStyle.fill),
-        label: tr(lang, 'dashboard.winRate'),
-        value: '0%',
-        subtext: trf(lang, 'dashboard.totalWinsCount', {'n': '0'}),
-        subtextColor: AppColors.error,
+        icon: PhosphorIcons.flagCheckered(PhosphorIconsStyle.fill),
+        label: tr(lang, 'leagues.openDrafts'),
+        value: '$draftCount',
+        subtext: tr(lang, 'leagues.pendingKickoff'),
+        subtextColor: draftCount > 0 ? AppColors.accent : null,
       ),
       _StatCard(
-        icon: PhosphorIcons.star(PhosphorIconsStyle.fill),
-        label: tr(lang, 'dashboard.totalSpp'),
-        value: '0',
-        subtext: tr(lang, 'dashboard.allActiveTeams'),
+        icon: PhosphorIcons.usersThree(PhosphorIconsStyle.fill),
+        label: tr(lang, 'leagues.registeredTeamsShort'),
+        value: '$totalTeams',
+        subtext: trf(lang, 'leagues.availableSlots', {'n': '$totalSlots'}),
       ),
       _StatCard(
-        icon: PhosphorIcons.firstAid(PhosphorIconsStyle.fill),
-        label: tr(lang, 'dashboard.casualties'),
-        value: '0',
-        subtext: tr(lang, 'dashboard.bloodForNuffle'),
-        iconColor: AppColors.error,
+        icon: PhosphorIcons.crown(PhosphorIconsStyle.fill),
+        label: tr(lang, 'leagues.commissionerLeagues'),
+        value: '$ownedCount',
+        subtext: tr(lang, 'leagues.managedByYou'),
+        iconColor: AppColors.accent,
       ),
     ];
 
@@ -472,16 +484,17 @@ class _LeaguesScreenState extends ConsumerState<LeaguesScreen> {
       BuildContext context, List<LeagueSummaryModel> leagues, String lang) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final cardWidth = constraints.maxWidth >= 900
-            ? (constraints.maxWidth - 20) / 2
-            : constraints.maxWidth;
+        const spacing = 16.0;
+        final columns = (constraints.maxWidth / 320).floor().clamp(1, 3);
+        final cardWidth =
+            (constraints.maxWidth - (columns - 1) * spacing) / columns;
 
         return Wrap(
-          spacing: 20,
-          runSpacing: 20,
+          spacing: spacing,
+          runSpacing: spacing,
           children: leagues
               .map((l) => SizedBox(
-                    width: cardWidth.clamp(280.0, 420.0),
+                    width: cardWidth,
                     child: _DashboardLeagueCard(
                       league: l,
                       lang: lang,

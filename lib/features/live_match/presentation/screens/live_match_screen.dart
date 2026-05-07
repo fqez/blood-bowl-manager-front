@@ -70,6 +70,8 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
   BaseTeam? _homeBaseRoster;
   BaseTeam? _awayBaseRoster;
   bool _prepLoading = false;
+  Match? _optimisticPreMatch;
+  int _optimisticPreMatchRequest = 0;
 
   // ── Match-day squad selection (max 11 per team) ──
   final Set<String> _selectedHomePlayers = {};
@@ -147,6 +149,12 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
     } else {
       ref.invalidate(_matchDetailProvider);
     }
+  }
+
+  Match _preMatchViewMatch(Match match) {
+    final optimistic = _optimisticPreMatch;
+    if (match.isPending && optimistic?.id == match.id) return optimistic!;
+    return match;
   }
 
   void _updateLocalState(VoidCallback updater) {
@@ -446,6 +454,52 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
     }
   }
 
+  Future<void> _updatePreMatchCeremonyState(
+    Match match, {
+    String? currentTeam,
+    String? weather,
+    String? kickoffEvent,
+  }) async {
+    final previous = _preMatchViewMatch(match);
+    final next = previous.copyWith(
+      currentTeam: currentTeam ?? previous.currentTeam,
+      weather: weather ?? previous.weather,
+      kickoffEvent: kickoffEvent ?? previous.kickoffEvent,
+    );
+    final requestId = ++_optimisticPreMatchRequest;
+
+    if (mounted) {
+      setState(() => _optimisticPreMatch = next);
+    }
+
+    try {
+      final updated = _isQM
+          ? await ref.read(quickMatchRepositoryProvider).updateMatchState(
+                widget.matchId,
+                currentTeam: currentTeam,
+                weather: weather,
+                kickoffEvent: kickoffEvent,
+              )
+          : await ref.read(leagueRepositoryProvider).updateMatchState(
+                widget.leagueId,
+                widget.matchId,
+                currentTeam: currentTeam,
+                weather: weather,
+                kickoffEvent: kickoffEvent,
+              );
+
+      if (mounted && requestId == _optimisticPreMatchRequest) {
+        setState(() => _optimisticPreMatch = updated);
+        _refresh();
+      }
+    } catch (e) {
+      if (mounted && requestId == _optimisticPreMatchRequest) {
+        setState(() => _optimisticPreMatch = previous);
+        _snack('$e');
+      }
+    }
+  }
+
   Future<void> _addEvent({
     required String type,
     required String team,
@@ -554,16 +608,25 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
   }
 
   Widget _buildMatchContent(Match match, String lang) {
-    if (match.isInProgress && match.startedAt != null) {
+    if (!match.isPending && _optimisticPreMatch != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _startClock(match.startedAt!);
+        if (mounted) setState(() => _optimisticPreMatch = null);
       });
     }
-    if (match.isInProgress || match.isPlayed) _loadRosters(match);
-    if (match.isPending) _loadPreMatchData(match);
+    final displayMatch = _preMatchViewMatch(match);
 
-    if (match.isPending) return _buildPreMatchView(match, lang);
-    if (match.isPlayed) {
+    if (displayMatch.isInProgress && displayMatch.startedAt != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _startClock(displayMatch.startedAt!);
+      });
+    }
+    if (displayMatch.isInProgress || displayMatch.isPlayed) {
+      _loadRosters(displayMatch);
+    }
+    if (displayMatch.isPending) _loadPreMatchData(displayMatch);
+
+    if (displayMatch.isPending) return _buildPreMatchView(displayMatch, lang);
+    if (displayMatch.isPlayed) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           context.go(_aftermatchRoute);
@@ -571,6 +634,6 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
       });
       return const SizedBox.shrink();
     }
-    return _buildLiveView(match, lang);
+    return _buildLiveView(displayMatch, lang);
   }
 }

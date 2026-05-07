@@ -115,6 +115,7 @@ class AppShellSideNav extends ConsumerWidget {
                   AppShellNavIndexes.postMatch,
                   AppShellNavIndexes.liveMatch,
                   AppShellNavIndexes.debugPostMatch,
+                  AppShellNavIndexes.debugLeague,
                 ]),
               ],
             ),
@@ -295,6 +296,7 @@ class AppShellDrawer extends ConsumerWidget {
                   AppShellNavIndexes.postMatch,
                   AppShellNavIndexes.liveMatch,
                   AppShellNavIndexes.debugPostMatch,
+                  AppShellNavIndexes.debugLeague,
                 ]),
               ],
             ),
@@ -659,4 +661,5 @@ abstract final class AppShellNavIndexes {
   static const int myTactics = 16;
   static const int quickMatch = 17;
   static const int debugPostMatch = 18;
+  static const int debugLeague = 19;
 }

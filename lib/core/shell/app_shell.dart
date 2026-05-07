@@ -159,6 +159,12 @@ class _AppShellState extends ConsumerState<AppShell> {
         label: 'Debug post-partido',
         route: '/debug/league-aftermatch',
       ),
+      AppShellNavItem(
+        icon: PhosphorIcons.bracketsCurly(PhosphorIconsStyle.regular),
+        selectedIcon: PhosphorIcons.bracketsCurly(PhosphorIconsStyle.fill),
+        label: 'Debug liga',
+        route: '/debug/league',
+      ),
     ];
   }
 
@@ -167,6 +173,9 @@ class _AppShellState extends ConsumerState<AppShell> {
       return AppShellNavIndexes.quickMatch;
     if (location.startsWith('/debug/league-aftermatch')) {
       return AppShellNavIndexes.debugPostMatch;
+    }
+    if (location.startsWith('/debug/league')) {
+      return AppShellNavIndexes.debugLeague;
     }
     if (location.startsWith('/my-tactics')) return AppShellNavIndexes.myTactics;
     if (location.startsWith('/tactics')) return AppShellNavIndexes.tactics;

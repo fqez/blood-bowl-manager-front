@@ -63,6 +63,8 @@ class TeamCreatorRosterStep extends StatelessWidget {
                 )
               : Column(
                   children: [
+                    identityPanel,
+                    const SizedBox(height: 16),
                     recruitmentTable,
                     const SizedBox(height: 16),
                     starPlayersSection,

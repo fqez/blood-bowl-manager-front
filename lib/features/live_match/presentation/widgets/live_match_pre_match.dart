@@ -92,7 +92,8 @@ extension _LiveMatchPreMatch on _LiveMatchScreenState {
               _buildVisualCardSelector(
                 items: weatherItems,
                 selected: match.weather,
-                onSelect: (v) => _updateState(weather: v),
+                onSelect: (v) =>
+                    _updatePreMatchCeremonyState(match, weather: v),
               ),
               const SizedBox(height: 8),
               _checkRow(tr(lang, 'liveMatch.weather'), weatherSet, lang),
@@ -105,7 +106,8 @@ extension _LiveMatchPreMatch on _LiveMatchScreenState {
               _buildVisualCardSelector(
                 items: kickoffItems,
                 selected: match.kickoffEvent,
-                onSelect: (v) => _updateState(kickoffEvent: v),
+                onSelect: (v) =>
+                    _updatePreMatchCeremonyState(match, kickoffEvent: v),
               ),
               const SizedBox(height: 8),
               _checkRow(tr(lang, 'liveMatch.kickoffEvent'), kickoffSet, lang),
@@ -251,7 +253,8 @@ extension _LiveMatchPreMatch on _LiveMatchScreenState {
             kickerName: match.away.teamName,
             selected: match.currentTeam != 'away',
             color: AppColors.info,
-            onTap: () => _updateState(currentTeam: 'home'),
+            onTap: () =>
+                _updatePreMatchCeremonyState(match, currentTeam: 'home'),
             lang: lang,
           ),
           _kickReceiveButton(
@@ -259,7 +262,8 @@ extension _LiveMatchPreMatch on _LiveMatchScreenState {
             kickerName: match.home.teamName,
             selected: match.currentTeam == 'away',
             color: AppColors.error,
-            onTap: () => _updateState(currentTeam: 'away'),
+            onTap: () =>
+                _updatePreMatchCeremonyState(match, currentTeam: 'away'),
             lang: lang,
           ),
         ],

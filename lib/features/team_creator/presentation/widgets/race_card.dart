@@ -23,6 +23,8 @@ class RaceCard extends StatelessWidget {
         return AppColors.accent;
       case 3:
         return AppColors.warning;
+      case 4:
+        return AppColors.error;
       default:
         return AppColors.textMuted;
     }

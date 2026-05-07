@@ -251,6 +251,20 @@ const _t = <String, Map<String, String>>{
   },
   'leagues.yourTeam': {'es': 'Tu equipo', 'en': 'Your team'},
   'leagues.teams': {'es': 'Equipos', 'en': 'Teams'},
+  'leagues.totalLeagues': {'es': 'LIGAS', 'en': 'LEAGUES'},
+  'leagues.activeCount': {'es': '{n} activas', 'en': '{n} active'},
+  'leagues.openDrafts': {'es': 'INSCRIPCIONES', 'en': 'REGISTRATION'},
+  'leagues.pendingKickoff': {
+    'es': 'Pendientes de inicio',
+    'en': 'Waiting to start'
+  },
+  'leagues.registeredTeamsShort': {'es': 'EQUIPOS', 'en': 'TEAMS'},
+  'leagues.availableSlots': {
+    'es': '{n} plazas totales',
+    'en': '{n} total slots'
+  },
+  'leagues.commissionerLeagues': {'es': 'COMISARIO', 'en': 'COMMISSIONER'},
+  'leagues.managedByYou': {'es': 'Gestionadas por ti', 'en': 'Managed by you'},
   'leagues.round': {'es': 'Jornada', 'en': 'Round'},
   'leagues.manage': {'es': 'GESTIONAR', 'en': 'MANAGE'},
   'leagues.commissioner': {'es': 'COMISARIO', 'en': 'COMMISSIONER'},
@@ -1424,6 +1438,10 @@ const _t = <String, Map<String, String>>{
   'teamCreator.teamNameHint': {
     'es': 'Los Destructores de Altdorf',
     'en': 'The Altdorf Destroyers',
+  },
+  'teamCreator.teamNameRequired': {
+    'es': 'El nombre del equipo es obligatorio',
+    'en': 'Team name is required',
   },
   'teamCreator.budget': {
     'es': 'Presupuesto: {budget}k',

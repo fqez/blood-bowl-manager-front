@@ -349,6 +349,7 @@ class _TierBadge extends StatelessWidget {
       1: AppColors.success,
       2: AppColors.accent,
       3: AppColors.warning,
+      4: AppColors.error,
     };
     final color = colors[tier] ?? AppColors.textMuted;
 

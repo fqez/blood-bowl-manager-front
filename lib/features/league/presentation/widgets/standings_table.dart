@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import '../../../../core/l10n/locale_provider.dart';
 import '../../../../core/l10n/translations.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -9,11 +8,13 @@ import '../../domain/models/league.dart';
 class StandingsTable extends ConsumerWidget {
   final List<LeagueStanding> standings;
   final String leagueId;
+  final ValueChanged<LeagueStanding>? onTeamTap;
 
   const StandingsTable({
     super.key,
     required this.standings,
     required this.leagueId,
+    this.onTeamTap,
   });
 
   @override
@@ -37,7 +38,8 @@ class StandingsTable extends ConsumerWidget {
         children: [
           _buildHeader(lang),
           ...sortedStandings.asMap().entries.map(
-              (entry) => _buildTeamRow(context, entry.key + 1, entry.value)),
+                (entry) => _buildTeamRow(entry.key + 1, entry.value),
+              ),
         ],
       ),
     );
@@ -104,13 +106,12 @@ class StandingsTable extends ConsumerWidget {
     );
   }
 
-  Widget _buildTeamRow(
-      BuildContext context, int position, LeagueStanding standing) {
+  Widget _buildTeamRow(int position, LeagueStanding standing) {
     final isUserTeam =
         position == 1; // Simplified - should check actual user team
 
     return InkWell(
-      onTap: () => context.go('/league/$leagueId/team/${standing.teamId}'),
+      onTap: onTeamTap == null ? null : () => onTeamTap!(standing),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
