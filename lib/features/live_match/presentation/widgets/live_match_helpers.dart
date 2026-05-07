@@ -10,8 +10,9 @@ class _CardOption {
   final IconData icon;
   final Color color;
   final String? description;
+  final String? rollLabel;
   const _CardOption(this.value, this.label, this.icon, this.color,
-      [this.description]);
+      [this.description, this.rollLabel]);
 }
 
 class _QA {
@@ -151,7 +152,8 @@ List<_CardOption> _weatherOptionsFromRules(DiceRangeRules? rules, String lang) {
             entry.localizedLabel(lang),
             _weatherIcon(entry.code),
             _weatherColor(entry.code),
-            '${entry.rollLabel}: ${entry.localizedDescription(lang)}',
+            entry.localizedDescription(lang),
+            entry.rollLabel,
           ))
       .toList();
 }
@@ -164,7 +166,8 @@ List<_CardOption> _kickoffOptionsFromRules(DiceRangeRules? rules, String lang) {
             entry.localizedLabel(lang),
             _kickoffIcon(entry.code),
             _kickoffColor(entry.code),
-            '${entry.rollLabel}: ${entry.localizedDescription(lang)}',
+            entry.localizedDescription(lang),
+            entry.rollLabel,
           ))
       .toList();
 }

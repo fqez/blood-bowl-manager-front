@@ -79,6 +79,12 @@ extension _LiveMatchPreMatch on _LiveMatchScreenState {
               ),
               const SizedBox(height: 32),
 
+              _sectionHeader(tr(lang, 'liveMatch.kickReceive'),
+                  PhosphorIcons.arrowsLeftRight(PhosphorIconsStyle.fill)),
+              const SizedBox(height: 12),
+              _buildKickReceiveSelector(match, lang),
+              const SizedBox(height: 24),
+
               // Weather selector
               _sectionHeader(tr(lang, 'liveMatch.selectWeather'),
                   PhosphorIcons.cloudSun(PhosphorIconsStyle.fill)),
@@ -233,6 +239,110 @@ extension _LiveMatchPreMatch on _LiveMatchScreenState {
 
   // ── Weather / Kickoff visual card selector ──
 
+  Widget _buildKickReceiveSelector(Match match, String lang) {
+    return Center(
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        alignment: WrapAlignment.center,
+        children: [
+          _kickReceiveButton(
+            receiverName: match.home.teamName,
+            kickerName: match.away.teamName,
+            selected: match.currentTeam != 'away',
+            color: AppColors.info,
+            onTap: () => _updateState(currentTeam: 'home'),
+            lang: lang,
+          ),
+          _kickReceiveButton(
+            receiverName: match.away.teamName,
+            kickerName: match.home.teamName,
+            selected: match.currentTeam == 'away',
+            color: AppColors.error,
+            onTap: () => _updateState(currentTeam: 'away'),
+            lang: lang,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _kickReceiveButton({
+    required String receiverName,
+    required String kickerName,
+    required bool selected,
+    required Color color,
+    required VoidCallback onTap,
+    required String lang,
+  }) {
+    return SizedBox(
+      width: 240,
+      child: Material(
+        color: selected ? color.withValues(alpha: 0.25) : AppColors.card,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 126),
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: selected ? color : AppColors.surfaceLight,
+                width: selected ? 2 : 1,
+              ),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  PhosphorIcons.soccerBall(PhosphorIconsStyle.fill),
+                  color: selected ? color : AppColors.textMuted,
+                  size: 30,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  tr(lang, 'liveMatch.receiver'),
+                  style: TextStyle(
+                    color: selected ? color : AppColors.textMuted,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  receiverName,
+                  style: TextStyle(
+                    color: selected ? color : AppColors.textPrimary,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  '${tr(lang, 'liveMatch.kicker')}: $kickerName',
+                  style: const TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildVisualCardSelector({
     required List<_CardOption> items,
     required String? selected,
@@ -243,6 +353,7 @@ extension _LiveMatchPreMatch on _LiveMatchScreenState {
     final padV = compact ? 10.0 : 14.0;
     final iconSize = compact ? 22.0 : 28.0;
     final fontSize = compact ? 10.0 : 11.0;
+    final rollFontSize = compact ? 11.0 : 13.0;
 
     return Center(
       child: Wrap(
@@ -269,6 +380,29 @@ extension _LiveMatchPreMatch on _LiveMatchScreenState {
                 ),
                 child: Column(
                   children: [
+                    if (item.rollLabel != null) ...[
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: compact ? 8 : 10,
+                          vertical: compact ? 3 : 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: sel
+                              ? item.color.withValues(alpha: 0.22)
+                              : AppColors.surfaceLight.withValues(alpha: 0.45),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          item.rollLabel!,
+                          style: TextStyle(
+                            color: sel ? item.color : AppColors.textMuted,
+                            fontSize: rollFontSize,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                    ],
                     Icon(item.icon,
                         color: sel ? item.color : AppColors.textMuted,
                         size: iconSize),

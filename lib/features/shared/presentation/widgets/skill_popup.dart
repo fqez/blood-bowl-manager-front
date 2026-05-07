@@ -5,6 +5,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../core/l10n/locale_provider.dart';
 import '../../../../core/l10n/translations.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/perk_assets.dart';
 import '../../data/repositories.dart';
 
 // ignore_for_file: deprecated_member_use
@@ -32,7 +33,7 @@ void showSkillPopup(
 
         final match = findPerkDefinition(allPerks, skillName);
 
-        final perkId = match?['_id'] as String? ?? '';
+        final perkId = perkIdFromJson(match);
         final displayName = localizedPerkName(allPerks, skillName, lang);
         final alternateName =
             alternateLocalizedPerkName(allPerks, skillName, lang);
@@ -119,7 +120,7 @@ void showSkillPopup(
                                 borderRadius: BorderRadius.circular(16),
                                 child: perkId.isNotEmpty
                                     ? Image.asset(
-                                        'assets/images/perks/upscaled/perk-${perkId.replaceAll('_', '-')}.png',
+                                        perkAssetPath(perkId),
                                         fit: BoxFit.cover,
                                         errorBuilder: (_, __, ___) => Icon(
                                           _familyIcon(perkFamily),
@@ -276,10 +277,10 @@ Map<String, dynamic>? findPerkDefinition(
   List<Map<String, dynamic>> allPerks,
   String value,
 ) {
-  final lowerValue = value.toLowerCase().trim();
+  final lowerValue = _perkLookupValue(value);
   for (final perk in allPerks) {
     final nameMap = perk['name'] as Map? ?? {};
-    final id = (perk['_id'] as String? ?? '').toLowerCase().trim();
+    final id = perkIdFromJson(perk).toLowerCase().trim();
     final en = (nameMap['en'] as String? ?? '').toLowerCase().trim();
     final es = (nameMap['es'] as String? ?? '').toLowerCase().trim();
     if (id == lowerValue || en == lowerValue || es == lowerValue) {
@@ -296,7 +297,10 @@ String localizedPerkName(
 ) {
   final match = findPerkDefinition(allPerks, skillName);
   final nameMap = match?['name'] as Map? ?? {};
-  return localizedPerkValue(nameMap, lang, fallback: skillName);
+  final parameter = _perkParameter(skillName);
+  final fallback = _stripPerkParameter(_englishHalf(skillName));
+  final localized = localizedPerkValue(nameMap, lang, fallback: fallback);
+  return parameter == null ? localized : '$localized ($parameter)';
 }
 
 String alternateLocalizedPerkName(
@@ -320,6 +324,20 @@ String localizedPerkValue(Map source, String lang, {required String fallback}) {
   if (spanish != null && spanish.trim().isNotEmpty) return spanish;
 
   return fallback;
+}
+
+String _perkLookupValue(String value) =>
+    _stripPerkParameter(_englishHalf(value)).toLowerCase().trim();
+
+String _englishHalf(String value) => value.split(' / ').first.trim();
+
+String _stripPerkParameter(String value) =>
+    value.replaceAll(RegExp(r'\s*\([^)]*\)'), '').trim();
+
+String? _perkParameter(String value) {
+  final match = RegExp(r'\(([^)]*)\)').firstMatch(_englishHalf(value));
+  final parameter = match?.group(1)?.trim();
+  return parameter == null || parameter.isEmpty ? null : parameter;
 }
 
 String _alternateLocalizedValue(Map source, String lang) {

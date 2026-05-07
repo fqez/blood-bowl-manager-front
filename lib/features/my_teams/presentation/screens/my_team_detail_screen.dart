@@ -14,6 +14,7 @@ import '../../../roster/domain/models/team.dart';
 import '../../../shared/data/repositories.dart';
 import '../../../shared/presentation/widgets/skill_popup.dart';
 import '../../../shared/presentation/widgets/team_hero_header.dart';
+import '../../../shared/utils/player_position_labels.dart';
 import '../../domain/models/user_team.dart';
 
 final userTeamDetailProvider =
@@ -340,11 +341,11 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
         begin: Alignment.centerLeft,
         end: Alignment.centerRight,
         colors: [
-          Color(0xFFFF003C),
-          Color(0xFF7A1DFF),
-          Color(0xFF009DFF),
+          Color(0xFFFDB927),
+          //Color.fromARGB(255, 255, 255, 255),
+          Color(0xFF552583),
         ],
-        stops: [0.0, 0.52, 1.0],
+        stops: [0.1, 0.4],
       ),
       trailing: isWide ? statusChip : null,
     );
@@ -553,6 +554,7 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
   }
 
   Widget _buildOverviewMetrics(UserTeamDetail team) {
+    final lang = ref.watch(localeProvider);
     return LayoutBuilder(builder: (context, constraints) {
       final compact = constraints.maxWidth < 520;
       final width = compact
@@ -563,21 +565,17 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
         runSpacing: 10,
         children: [
           _overviewMetricCard(
-            label: 'VE',
+            label: tr(lang, 'team.teamValueShort'),
             value: _fmtGold(team.teamValue),
-            subtitle: 'Valoración equipo',
-            info:
-                'VE (Valoración de Equipo): suma del valor de jugadores, rerolls, apotecario, asistentes y animadoras. No incluye tesorería ni hinchas.',
+            info: tr(lang, 'team.teamValueTooltip'),
             icon: PhosphorIcons.chartLineUp(PhosphorIconsStyle.fill),
             color: AppColors.primary,
             width: width,
           ),
           _overviewMetricCard(
-            label: 'VAE',
+            label: tr(lang, 'team.currentTeamValueShort'),
             value: _fmtGold(team.currentTeamValue),
-            subtitle: 'Valoración Actual Equipo',
-            info:
-                'VAE (Valoración Actual de Equipo): VE menos el valor de jugadores no disponibles para el próximo partido.',
+            info: tr(lang, 'team.currentTeamValueTooltip'),
             icon: PhosphorIcons.heartbeat(PhosphorIconsStyle.fill),
             color: AppColors.success,
             width: width,
@@ -585,7 +583,6 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
           _overviewMetricCard(
             label: 'TESORERÍA',
             value: _fmtGold(team.treasury),
-            subtitle: 'Oro disponible',
             icon: PhosphorIcons.coins(PhosphorIconsStyle.fill),
             color: AppColors.accent,
             width: width,
@@ -593,7 +590,6 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
           _overviewMetricCard(
             label: 'HINCHAS',
             value: '${team.dedicatedFans}',
-            subtitle: 'No cuenta en VE',
             icon: PhosphorIcons.megaphone(PhosphorIconsStyle.fill),
             color: AppColors.warning,
             width: width,
@@ -606,7 +602,6 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
   Widget _overviewMetricCard({
     required String label,
     required String value,
-    required String subtitle,
     String? info,
     required IconData icon,
     required Color color,
@@ -649,15 +644,10 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                   fontFamily: AppTypography.displayFontFamily,
-                  fontSize: 24,
+                  fontSize: 32,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textPrimary,
                   height: 1)),
-          const SizedBox(height: 5),
-          Text(subtitle,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 10, color: AppColors.textMuted)),
         ],
       ),
     );
@@ -1036,10 +1026,10 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
     bool canHirePlayers,
     String lang,
   ) {
-    final filtered = _filterPlayers(team.players);
-    final totalActive = team.players.where((p) => !p.isDead).length;
     final baseRoster =
         ref.watch(_baseRosterDetailProvider(team.baseRosterId)).valueOrNull;
+    final filtered = _filterPlayers(team.players, baseRoster, lang);
+    final totalActive = team.players.where((p) => !p.isDead).length;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1050,7 +1040,7 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
         ),
         const SizedBox(height: 12),
         if (isWide) ...[
-          _buildTableHeader(isWide),
+          _buildTableHeader(isWide, lang),
           const Divider(height: 1),
           if (filtered.isEmpty)
             Padding(
@@ -1072,10 +1062,10 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: SizedBox(
-              width: 820,
+              width: 880,
               child: Column(
                 children: [
-                  _buildTableHeader(isWide),
+                  _buildTableHeader(isWide, lang),
                   const Divider(height: 1),
                   if (filtered.isEmpty)
                     Padding(
@@ -1536,29 +1526,44 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
     );
   }
 
-  List<UserPlayer> _filterPlayers(List<UserPlayer> all) {
+  List<UserPlayer> _filterPlayers(
+      List<UserPlayer> all, BaseTeam? baseRoster, String lang) {
     return all.where((p) {
       if (p.isDead && !_showDead) return false;
       if (!p.isDead && p.status != 'healthy' && !_showInjured) return false;
       if (!p.isDead && p.status == 'healthy' && !_showActive) return false;
       if (_searchQuery.isNotEmpty) {
+        final positionLabel =
+            localizedPlayerPosition(p, roster: baseRoster, lang: lang);
         if (!p.name.toLowerCase().contains(_searchQuery) &&
-            !p.positionLabel.toLowerCase().contains(_searchQuery)) return false;
+            !positionLabel.toLowerCase().contains(_searchQuery)) return false;
       }
       return true;
     }).toList();
   }
 
-  Widget _buildTableHeader(bool isWide) {
+  Widget _buildTableHeader(bool isWide, String lang) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
           SizedBox(width: 52, child: Center(child: _th('#'))),
           SizedBox(width: 130, child: _th('NOMBRE')),
-          if (isWide) Expanded(flex: 2, child: _th('POSICIÓN')),
-          Expanded(flex: 3, child: _th('ATRIBUTOS (MA/ST/AG/PA/AV)')),
-          Expanded(flex: 3, child: _th('HABILIDADES')),
+          if (isWide)
+            SizedBox(
+              width: 116,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 12),
+                child: _th('POSICIÓN'),
+              ),
+            ),
+          _attributeHeader('MA', _attributeTooltip('MA', lang)),
+          _attributeHeader('ST', _attributeTooltip('ST', lang)),
+          _attributeHeader('AG', _attributeTooltip('AG', lang)),
+          _attributeHeader('PA', _attributeTooltip('PA', lang)),
+          _attributeHeader('AV', _attributeTooltip('AV', lang)),
+          const SizedBox(width: 10),
+          Expanded(flex: 3, child: _th(tr(lang, 'player.skills'))),
           SizedBox(width: 44, child: Center(child: _th('SPP'))),
           SizedBox(width: 80, child: Center(child: _th('ESTADO'))),
           if (isWide) SizedBox(width: 60, child: Center(child: _th('COSTE'))),
@@ -1575,26 +1580,34 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
           color: AppColors.textMuted,
           letterSpacing: 0.8));
 
-  Set<String>? _startingPerkKeys(BaseTeam? roster, UserPlayer player) {
-    if (roster == null) return null;
+  Widget _attributeHeader(String label, String tooltip) => SizedBox(
+        width: 38,
+        child: Tooltip(
+          message: tooltip,
+          child: Center(child: _th(label)),
+        ),
+      );
 
-    BasePosition? position;
-    for (final candidate in roster.positions) {
-      final candidateKeys = <String>{
-        _positionKey(candidate.id),
-        _positionKey(candidate.name),
-        if (candidate.position != null) _positionKey(candidate.position!),
-      }..remove('');
-      final playerKeys = <String>{
-        _positionKey(player.baseType),
-        _positionKey(player.positionLabel),
-      }..remove('');
-
-      if (candidateKeys.intersection(playerKeys).isNotEmpty) {
-        position = candidate;
-        break;
-      }
+  String _attributeTooltip(String label, String lang) {
+    final es = lang == 'es';
+    switch (label) {
+      case 'MA':
+        return es ? 'Movimiento' : 'Movement Allowance';
+      case 'ST':
+        return es ? 'Fuerza' : 'Strength';
+      case 'AG':
+        return es ? 'Agilidad' : 'Agility';
+      case 'PA':
+        return es ? 'Capacidad de Pase' : 'Passing Ability';
+      case 'AV':
+        return es ? 'Valor de Armadura' : 'Armour Value';
+      default:
+        return label;
     }
+  }
+
+  Set<String>? _startingPerkKeys(BaseTeam? roster, UserPlayer player) {
+    final position = findBasePositionForPlayer(roster, player);
 
     if (position == null) return null;
 
@@ -1607,11 +1620,9 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
     return keys;
   }
 
-  String _positionKey(String value) =>
-      value.toLowerCase().trim().replaceAll(RegExp(r'[^a-z0-9]+'), '');
-
   String _perkKey(String value) {
     final normalized = value
+        .replaceAll(RegExp(r'\s*\([^)]*\)'), '')
         .toLowerCase()
         .trim()
         .replaceAll(RegExp(r'[_\s]+'), '-')
@@ -1638,6 +1649,14 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
     final isDead = player.isDead;
     final canLevelUp = _canLevelUp(player);
     final startingPerkKeys = _startingPerkKeys(baseRoster, player);
+    final positionLabel =
+        localizedPlayerPosition(player, roster: baseRoster, lang: lang);
+    const maxSkillPills = 4;
+    final hasHiddenSkills = player.perks.length > maxSkillPills;
+    final visiblePerks = hasHiddenSkills
+        ? player.perks.take(maxSkillPills - 1).toList()
+        : player.perks.take(maxSkillPills).toList();
+    final hiddenSkillCount = player.perks.length - visiblePerks.length;
     return InkWell(
       onTap: () {
         final tid = widget.teamId;
@@ -1690,36 +1709,36 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
             ),
             // Position
             if (isWide)
-              Expanded(
-                flex: 2,
-                child: Text(player.positionLabel,
-                    style:
-                        TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis),
+              SizedBox(
+                width: 116,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 12),
+                  child: Text(positionLabel,
+                      style: TextStyle(
+                          fontSize: 12, color: AppColors.textSecondary),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis),
+                ),
               ),
             // Stats
-            Expanded(
-              flex: 3,
-              child: Wrap(spacing: 4, runSpacing: 4, children: [
-                _statChip('${player.stats.ma}'),
-                _statChip('${player.stats.st}'),
-                _statChip(player.stats.ag),
-                if (player.stats.pa != null) _statChip(player.stats.pa!),
-                _statChip(player.stats.av),
-              ]),
-            ),
+            _statCell('${player.stats.ma}'),
+            _statCell('${player.stats.st}'),
+            _statCell(player.stats.ag),
+            _statCell(player.stats.pa ?? '-'),
+            _statCell(player.stats.av),
+            const SizedBox(width: 10),
             // Skills
             Expanded(
               flex: 3,
               child: Wrap(
-                  spacing: 4,
-                  runSpacing: 4,
-                  children: player.perks
-                      .take(4)
-                      .map((perk) => _skillBadge(perk,
-                          isAcquired: _isAcquiredPerk(perk, startingPerkKeys)))
-                      .toList()),
+                spacing: 4,
+                runSpacing: 4,
+                children: [
+                  ...visiblePerks.map((perk) => _skillBadge(perk,
+                      isAcquired: _isAcquiredPerk(perk, startingPerkKeys))),
+                  if (hasHiddenSkills) _moreSkillsBadge(hiddenSkillCount, lang),
+                ],
+              ),
             ),
             // SPP
             SizedBox(
@@ -1886,19 +1905,20 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
     );
   }
 
-  Widget _statChip(String value) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: AppColors.surfaceLight),
-      ),
-      child: Text(value,
+  Widget _statCell(String value) {
+    return SizedBox(
+      width: 38,
+      child: Center(
+        child: Text(
+          value,
           style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary)),
+            fontSize: 14,
+            fontWeight: FontWeight.w900,
+            color: AppColors.textPrimary,
+            height: 1,
+          ),
+        ),
+      ),
     );
   }
 
@@ -1906,6 +1926,7 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
     final lang = ref.watch(localeProvider);
     final allPerks = ref.watch(allPerksProvider).valueOrNull ?? [];
     final displayName = localizedPerkName(allPerks, perk.name, lang);
+    final acquiredLabel = tr(lang, 'player.acquired').toLowerCase();
     final color = isAcquired == true ? AppColors.accent : AppColors.primary;
     final backgroundOpacity = isAcquired == true ? 0.2 : 0.15;
     final borderOpacity = isAcquired == true ? 0.65 : 0.4;
@@ -1914,43 +1935,76 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
       onTap: () => showSkillPopup(context, ref,
           skillName: perk.name, family: perk.category),
       child: Tooltip(
-        message: isAcquired == true
-            ? '$displayName (${lang == 'es' ? 'adquirida' : 'acquired'})'
-            : displayName,
+        message:
+            isAcquired == true ? '$displayName ($acquiredLabel)' : displayName,
         child: MouseRegion(
           cursor: SystemMouseCursors.click,
-          child: Container(
-            padding: EdgeInsets.only(
-              left: isAcquired == true ? 5 : 7,
-              right: 7,
-              top: 3,
-              bottom: 3,
-            ),
-            decoration: BoxDecoration(
-              color: color.withOpacity(backgroundOpacity),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: color.withOpacity(borderOpacity)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (isAcquired == true) ...[
-                  Icon(
-                    PhosphorIcons.plusCircle(PhosphorIconsStyle.fill),
-                    size: 10,
-                    color: AppColors.accentLight,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 86),
+            child: Container(
+              padding: EdgeInsets.only(
+                left: isAcquired == true ? 5 : 7,
+                right: 7,
+                top: 3,
+                bottom: 3,
+              ),
+              decoration: BoxDecoration(
+                color: color.withOpacity(backgroundOpacity),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: color.withOpacity(borderOpacity)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (isAcquired == true) ...[
+                    Icon(
+                      PhosphorIcons.plusCircle(PhosphorIconsStyle.fill),
+                      size: 10,
+                      color: AppColors.accentLight,
+                    ),
+                    const SizedBox(width: 3),
+                  ],
+                  Flexible(
+                    child: Text(displayName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: isAcquired == true
+                                ? FontWeight.w700
+                                : FontWeight.w500,
+                            color: AppColors.textPrimary)),
                   ),
-                  const SizedBox(width: 3),
                 ],
-                Text(displayName,
-                    style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: isAcquired == true
-                            ? FontWeight.w700
-                            : FontWeight.w500,
-                        color: AppColors.textPrimary)),
-              ],
+              ),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _moreSkillsBadge(int hiddenCount, String lang) {
+    final message = lang == 'es'
+        ? 'Hay $hiddenCount habilidades mas. Consultalas en la vista del jugador.'
+        : '$hiddenCount more skills. Open the player view to see them.';
+
+    return Tooltip(
+      message: message,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceLight.withOpacity(0.75),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.textMuted.withOpacity(0.35)),
+        ),
+        child: const Text(
+          '...',
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w900,
+            color: AppColors.textSecondary,
+            height: 1,
           ),
         ),
       ),
@@ -1973,29 +2027,42 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
   }
 
   Widget _levelUpBadge() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-      decoration: BoxDecoration(
-        color: AppColors.warning.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.warning.withOpacity(0.5)),
+    return Tooltip(
+      message: 'Subir nivel',
+      child: Container(
+        width: 72,
+        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
+        decoration: BoxDecoration(
+          color: AppColors.warning.withOpacity(0.2),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: AppColors.warning.withOpacity(0.5)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(PhosphorIcons.arrowFatUp(PhosphorIconsStyle.fill),
+                size: 10, color: AppColors.warning),
+            const SizedBox(width: 3),
+            Flexible(
+              child: Text('SUBIR',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.warning)),
+            ),
+          ],
+        ),
       ),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(PhosphorIcons.arrowFatUp(PhosphorIconsStyle.fill),
-            size: 10, color: AppColors.warning),
-        const SizedBox(width: 3),
-        Text('SUBIR NIVEL',
-            style: TextStyle(
-                fontSize: 9,
-                fontWeight: FontWeight.bold,
-                color: AppColors.warning)),
-      ]),
     );
   }
 
   bool _canLevelUp(UserPlayer p) {
-    const thresholds = [6, 16, 31, 51, 76, 176];
-    return thresholds.contains(p.spp);
+    const nextCosts = {1: 3, 2: 4, 3: 6, 4: 8, 5: 10, 6: 15};
+    final next = nextCosts[p.level] ?? 0;
+    return next > 0 && p.spp >= next;
   }
 
   // ── Bottom sections ──

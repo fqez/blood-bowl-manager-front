@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_client.dart';
+import '../../../core/utils/perk_assets.dart';
 import '../../my_teams/domain/models/user_team.dart';
 import '../../roster/domain/models/team.dart';
 
@@ -64,6 +65,177 @@ final kickoffEventRulesProvider = FutureProvider<DiceRangeRules>((ref) async {
   final repo = ref.watch(teamRepositoryProvider);
   return repo.getKickoffEventRules();
 });
+
+final advancementRulesProvider = FutureProvider<AdvancementRules>((ref) async {
+  final repo = ref.watch(teamRepositoryProvider);
+  return repo.getAdvancementRules();
+});
+
+class AdvancementRules {
+  final int maxAdvancements;
+  final int maxCharacteristicImprovementsPerStat;
+  final List<AdvancementCostRow> costTable;
+  final List<CharacteristicImprovementResult> characteristicTable;
+  final List<AdvancementValueIncrease> valueIncreases;
+  final List<SkillCategoryRule> skillCategories;
+  final int randomSkillRolls;
+  final String randomSkillDice;
+  final Map<String, String> description;
+
+  const AdvancementRules({
+    required this.maxAdvancements,
+    required this.maxCharacteristicImprovementsPerStat,
+    required this.costTable,
+    required this.characteristicTable,
+    required this.valueIncreases,
+    required this.skillCategories,
+    required this.randomSkillRolls,
+    required this.randomSkillDice,
+    required this.description,
+  });
+
+  factory AdvancementRules.fromJson(Map<String, dynamic> json) =>
+      AdvancementRules(
+        maxAdvancements: (json['max_advancements'] as num?)?.toInt() ?? 6,
+        maxCharacteristicImprovementsPerStat:
+            (json['max_characteristic_improvements_per_stat'] as num?)
+                    ?.toInt() ??
+                2,
+        costTable: (json['cost_table'] as List<dynamic>? ?? [])
+            .map((e) => AdvancementCostRow.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        characteristicTable:
+            (json['characteristic_table'] as List<dynamic>? ?? [])
+                .map((e) => CharacteristicImprovementResult.fromJson(
+                    e as Map<String, dynamic>))
+                .toList(),
+        valueIncreases: (json['value_increases'] as List<dynamic>? ?? [])
+            .map((e) =>
+                AdvancementValueIncrease.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        skillCategories: (json['skill_categories'] as List<dynamic>? ?? [])
+            .map((e) => SkillCategoryRule.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        randomSkillRolls: (json['random_skill_rolls'] as num?)?.toInt() ?? 2,
+        randomSkillDice: json['random_skill_dice'] as String? ?? '2D6',
+        description: ExpensiveMistakeEffect._localized(json['description']),
+      );
+
+  AdvancementCostRow? rowForAdvancement(int currentAdvancements) {
+    final next = currentAdvancements + 1;
+    for (final row in costTable) {
+      if (row.advancementNumber == next) return row;
+    }
+    return null;
+  }
+}
+
+class AdvancementCostRow {
+  final int advancementNumber;
+  final Map<String, String> levelName;
+  final int randomPrimarySkill;
+  final int choosePrimarySkill;
+  final int chooseSecondarySkill;
+  final int characteristicImprovement;
+
+  const AdvancementCostRow({
+    required this.advancementNumber,
+    required this.levelName,
+    required this.randomPrimarySkill,
+    required this.choosePrimarySkill,
+    required this.chooseSecondarySkill,
+    required this.characteristicImprovement,
+  });
+
+  factory AdvancementCostRow.fromJson(Map<String, dynamic> json) =>
+      AdvancementCostRow(
+        advancementNumber: (json['advancement_number'] as num?)?.toInt() ?? 1,
+        levelName: ExpensiveMistakeEffect._localized(json['level_name']),
+        randomPrimarySkill:
+            (json['random_primary_skill'] as num?)?.toInt() ?? 0,
+        choosePrimarySkill:
+            (json['choose_primary_skill'] as num?)?.toInt() ?? 0,
+        chooseSecondarySkill:
+            (json['choose_secondary_skill'] as num?)?.toInt() ?? 0,
+        characteristicImprovement:
+            (json['characteristic_improvement'] as num?)?.toInt() ?? 0,
+      );
+
+  int costFor(String advancementType) {
+    switch (advancementType) {
+      case 'random_primary_skill':
+        return randomPrimarySkill;
+      case 'choose_primary_skill':
+        return choosePrimarySkill;
+      case 'choose_secondary_skill':
+        return chooseSecondarySkill;
+      case 'characteristic_improvement':
+        return characteristicImprovement;
+      default:
+        return 0;
+    }
+  }
+}
+
+class CharacteristicImprovementResult {
+  final int minRoll;
+  final int maxRoll;
+  final List<String> choices;
+  final Map<String, String> description;
+
+  const CharacteristicImprovementResult({
+    required this.minRoll,
+    required this.maxRoll,
+    required this.choices,
+    required this.description,
+  });
+
+  factory CharacteristicImprovementResult.fromJson(Map<String, dynamic> json) =>
+      CharacteristicImprovementResult(
+        minRoll: (json['min_roll'] as num?)?.toInt() ?? 1,
+        maxRoll: (json['max_roll'] as num?)?.toInt() ?? 1,
+        choices:
+            (json['choices'] as List<dynamic>? ?? []).map((e) => '$e').toList(),
+        description: ExpensiveMistakeEffect._localized(json['description']),
+      );
+
+  bool allows(String stat) => choices.contains(stat);
+}
+
+class AdvancementValueIncrease {
+  final String advancementType;
+  final int value;
+
+  const AdvancementValueIncrease({
+    required this.advancementType,
+    required this.value,
+  });
+
+  factory AdvancementValueIncrease.fromJson(Map<String, dynamic> json) =>
+      AdvancementValueIncrease(
+        advancementType: json['advancement_type'] as String? ?? '',
+        value: (json['value'] as num?)?.toInt() ?? 0,
+      );
+}
+
+class SkillCategoryRule {
+  final String symbol;
+  final String family;
+  final Map<String, String> name;
+
+  const SkillCategoryRule({
+    required this.symbol,
+    required this.family,
+    required this.name,
+  });
+
+  factory SkillCategoryRule.fromJson(Map<String, dynamic> json) =>
+      SkillCategoryRule(
+        symbol: json['symbol'] as String? ?? '',
+        family: json['family'] as String? ?? '',
+        name: ExpensiveMistakeEffect._localized(json['name']),
+      );
+}
 
 class DiceRangeRules {
   final String id;
@@ -664,12 +836,16 @@ class TeamRepository {
     required String starPlayerId,
     String? name,
     int? number,
+    bool temporaryForMatch = false,
+    String? temporaryMatchId,
   }) async {
     try {
       await _dio.post('/user-teams/$teamId/players/star', data: {
         'star_player_id': starPlayerId,
         if (name != null && name.trim().isNotEmpty) 'name': name.trim(),
         if (number != null) 'number': number,
+        if (temporaryForMatch) 'temporary_for_match': true,
+        if (temporaryMatchId != null) 'temporary_match_id': temporaryMatchId,
       });
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
@@ -753,6 +929,15 @@ class TeamRepository {
     try {
       final response = await _dio.get('/rules/kickoff-events');
       return DiceRangeRules.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  Future<AdvancementRules> getAdvancementRules() async {
+    try {
+      final response = await _dio.get('/rules/advancements');
+      return AdvancementRules.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }
@@ -932,7 +1117,13 @@ class TeamRepository {
     try {
       final response = await _dio.get('/perks/');
       final data = response.data['data'] as List;
-      return data.cast<Map<String, dynamic>>();
+      return data.cast<Map<String, dynamic>>().map((perk) {
+        final normalized = Map<String, dynamic>.from(perk);
+        final canonicalId = perkIdFromJson(normalized);
+        normalized['_id'] = canonicalId;
+        normalized['id'] = canonicalId;
+        return normalized;
+      }).toList();
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }
@@ -1034,6 +1225,31 @@ class TeamRepository {
           'perk_id': perkId,
           'perk_name': perkName,
           if (category != null) 'category': category,
+        },
+      );
+      return UserTeamDetail.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  Future<UserTeamDetail> applyPlayerAdvancement(
+    String teamId,
+    String playerId, {
+    required String advancementType,
+    String? perkId,
+    String? characteristic,
+    int? characteristicRoll,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/user-teams/$teamId/players/$playerId/advancements',
+        data: {
+          'advancement_type': advancementType,
+          if (perkId != null) 'perk_id': perkId,
+          if (characteristic != null) 'characteristic': characteristic,
+          if (characteristicRoll != null)
+            'characteristic_roll': characteristicRoll,
         },
       );
       return UserTeamDetail.fromJson(response.data as Map<String, dynamic>);

@@ -5,6 +5,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../core/l10n/locale_provider.dart';
 import '../../../../core/l10n/translations.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/perk_assets.dart';
 import '../../../shared/data/repositories.dart';
 import '../../../shared/presentation/widgets/skill_popup.dart';
 import '../widgets/wiki_page_layout.dart';
@@ -114,34 +115,42 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
         '1er D6',
         '2do D6',
         lang == 'es' ? 'AGILIDAD' : 'AGILITY',
+        lang == 'es' ? 'TRIQUIÑUELA' : 'DEVIOUS',
         'GENERAL',
         lang == 'es' ? 'MUTACION' : 'MUTATION',
         lang == 'es' ? 'PASE' : 'PASSING',
         lang == 'es' ? 'FUERZA' : 'STRENGTH',
-        lang == 'es' ? 'RASGO' : 'TRAIT',
-        lang == 'es' ? 'JUEGO SUCIO' : 'DEVIOUS',
       ];
 
   List<Color> get _advancementHeaderColors => [
         AppColors.textMuted,
         AppColors.textMuted,
         AppColors.skillAgility,
+        const Color(0xFFFF6F00),
         AppColors.skillGeneral,
         AppColors.skillMutation,
         AppColors.skillPassing,
         AppColors.skillStrength,
-        AppColors.skillExtraordinary,
-        const Color(0xFFFF6F00),
       ];
 
   List<List<String>> get _advancementRows => [
-        ['1-3', '1', 'Catch', 'Dauntless', 'Big Hand', 'Accurate', 'Arm Bar'],
+        [
+          '1-3',
+          '1',
+          'Catch',
+          'Dirty Player',
+          'Block',
+          'Big Hand',
+          'Accurate',
+          'Arm Bar'
+        ],
         [
           '1-3',
           '2',
           'Diving Catch',
-          'Dirty Player',
-          'Disturbing Presence',
+          'Eye Gouge',
+          'Dauntless',
+          'Claws',
           'Cannoneer',
           'Brawler'
         ],
@@ -149,55 +158,79 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
           '1-3',
           '3',
           'Diving Tackle',
+          'Fumblerooski',
           'Fend',
-          'Foul Appearance',
+          'Disturbing Presence',
           'Cloud Burster',
           'Break Tackle'
         ],
-        ['1-3', '4', 'Dodge', 'Frenzy', 'Horns', 'Dump-Off', 'Grab'],
+        [
+          '1-3',
+          '4',
+          'Dodge',
+          'Lethal Flight',
+          'Frenzy',
+          'Extra Arms',
+          'Dump-Off',
+          'Bullseye'
+        ],
         [
           '1-3',
           '5',
           'Defensive',
+          'Lone Fouler',
           'Kick',
-          'Iron Hard Skin',
-          'Fumblerooskie',
-          'Guard'
+          'Foul Appearance',
+          'Give and Go',
+          'Grab'
         ],
         [
           '1-3',
           '6',
-          'Jump Up',
+          'Hit and Run',
+          'Pile Driver',
           'Pro',
-          'Tentacles',
+          'Horns',
           'Hail Mary Pass',
+          'Guard'
+        ],
+        [
+          '4-6',
+          '1',
+          'Jump Up',
+          'Put the Boot In',
+          'Steady Footing',
+          'Iron Hard Skin',
+          'Leader',
           'Juggernaut'
         ],
-        ['4-6', '1', 'Leap', 'Shadowing', 'Two Heads', 'Leader', 'Mighty Blow'],
         [
           '4-6',
           '2',
-          'Safe Pair of Hands',
+          'Leap',
+          'Quick Foul',
           'Strip Ball',
-          'Very Long Legs',
+          'Monstrous Mouth',
           'Nerves of Steel',
-          'Multiple Block'
+          'Mighty Blow'
         ],
         [
           '4-6',
           '3',
-          'Sidestep',
+          'Safe Pair of Hands',
+          'Saboteur',
           'Sure Hands',
-          'Monstrous Mouth',
+          'Prehensile Tail',
           'On the Ball',
-          'Pile Driver'
+          'Multiple Block'
         ],
         [
           '4-6',
           '4',
-          'Sneaky Git',
+          'Sidestep',
+          'Shadowing',
           'Tackle',
-          'Prehensile Tail',
+          'Tentacles',
           'Pass',
           'Stand Firm'
         ],
@@ -205,48 +238,23 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
           '4-6',
           '5',
           'Sprint',
-          'Wrestle',
-          'Extra Arms',
-          'Running Pass',
+          'Sneaky Git',
+          'Taunt',
+          'Two Heads',
+          'Punt',
           'Strong Arm'
         ],
-        ['4-6', '6', 'Sure Feet', 'Block', 'Claws', 'Safe Pass', 'Thick Skull'],
+        [
+          '4-6',
+          '6',
+          'Sure Feet',
+          'Violent Innovator',
+          'Wrestle',
+          'Very Long Legs',
+          'Safe Pass',
+          'Thick Skull'
+        ],
       ];
-
-  List<List<String>> _advancementRowsFor(List<Map<String, dynamic>> perks) {
-    final traitValues = _familyColumnValues(perks, 'trait');
-    final deviousValues = _familyColumnValues(perks, 'devious');
-
-    return List.generate(_advancementRows.length, (index) {
-      return [
-        ..._advancementRows[index],
-        traitValues[index],
-        deviousValues[index],
-      ];
-    });
-  }
-
-  List<String> _familyColumnValues(
-      List<Map<String, dynamic>> perks, String family) {
-    final values = perks
-        .where((perk) => _isPerkFamily(perk, family))
-        .map((perk) => (perk['name'] as Map?)?['en'] as String? ?? '')
-        .where((name) => name.isNotEmpty)
-        .toList();
-
-    return List.generate(
-      _advancementRows.length,
-      (index) => index < values.length ? values[index] : '-',
-    );
-  }
-
-  bool _isPerkFamily(Map<String, dynamic> perk, String family) {
-    final rawFamily = (perk['family'] as String? ?? '').toLowerCase().trim();
-    if (family == 'trait') {
-      return rawFamily == 'trait' || rawFamily == 'extraordinary';
-    }
-    return rawFamily == family;
-  }
 
   String _localizedSkillName(
       String englishName, List<Map<String, dynamic>> perks, String lang) {
@@ -331,17 +339,16 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
       String lang, List<Map<String, dynamic>> perks) {
     final headers = _advancementHeaders(lang);
     final headerColors = _advancementHeaderColors;
-    final rows = _advancementRowsFor(perks);
+    final rows = _advancementRows;
     final families = [
       '',
       '',
-      'Agility',
-      'General',
-      'Mutation',
-      'Passing',
-      'Strength',
-      'Trait',
-      'Devious',
+      'agility',
+      'devious',
+      'general',
+      'mutation',
+      'passing',
+      'strength',
     ];
 
     return Column(
@@ -449,7 +456,7 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
   Widget _buildTable(String lang, List<Map<String, dynamic>> perks) {
     final headers = _advancementHeaders(lang);
     final headerColors = _advancementHeaderColors;
-    final rows = _advancementRowsFor(perks);
+    final rows = _advancementRows;
 
     return DataTable(
       headingRowColor: WidgetStateProperty.all(AppColors.surface),
@@ -495,13 +502,12 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
             final families = [
               '',
               '',
-              'Agility',
-              'General',
-              'Mutation',
-              'Passing',
-              'Strength',
-              'Trait',
-              'Devious',
+              'agility',
+              'devious',
+              'general',
+              'mutation',
+              'passing',
+              'strength',
             ];
             final skillName = row[colIdx];
             return DataCell(
@@ -579,27 +585,28 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
             ? perks
             : perks.where((perk) => _matchesSearch(perk, query)).toList();
 
-        // Group by family
-        final families = <String, List<Map<String, dynamic>>>{};
+        final skillFamilies = <String, List<Map<String, dynamic>>>{};
+        final traitPerks = <Map<String, dynamic>>[];
         for (final perk in filteredPerks) {
+          if (_isTraitPerk(perk)) {
+            traitPerks.add(perk);
+            continue;
+          }
           final family = perk['family'] as String? ?? 'General';
-          families.putIfAbsent(family, () => []).add(perk);
+          skillFamilies.putIfAbsent(family, () => []).add(perk);
         }
 
-        // Sort families in a specific order
         final familyOrder = [
           'general',
           'agility',
+          'devious',
           'strength',
           'passing',
           'mutation',
-          'trait',
-          'devious',
         ];
         final sortedFamilies =
-            familyOrder.where((f) => families.containsKey(f)).toList();
-        // Add any remaining families not in our list
-        for (final f in families.keys) {
+            familyOrder.where((f) => skillFamilies.containsKey(f)).toList();
+        for (final f in skillFamilies.keys) {
           if (!sortedFamilies.contains(f)) sortedFamilies.add(f);
         }
 
@@ -610,14 +617,41 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
             const SizedBox(height: 16),
             if (filteredPerks.isEmpty)
               _buildNoSkillResults(lang)
-            else
+            else ...[
+              if (sortedFamilies.isNotEmpty) _buildCatalogHeading('SKILLS'),
               ...sortedFamilies.map((family) {
-                final familyPerks = families[family]!;
+                final familyPerks = skillFamilies[family]!;
                 return _buildFamilySection(family, familyPerks, lang);
               }),
+              if (traitPerks.isNotEmpty) _buildCatalogHeading('TRAITS'),
+              if (traitPerks.isNotEmpty)
+                _buildFamilySection('trait', traitPerks, lang),
+            ],
           ],
         );
       },
+    );
+  }
+
+  bool _isTraitPerk(Map<String, dynamic> perk) {
+    final kind = (perk['kind'] as String? ?? '').toLowerCase().trim();
+    final family = (perk['family'] as String? ?? '').toLowerCase().trim();
+    return kind == 'trait' || family == 'trait' || family == 'extraordinary';
+  }
+
+  Widget _buildCatalogHeading(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontFamily: AppTypography.displayFontFamily,
+          fontSize: AppTypography.wikiSectionTitleFontSize,
+          fontWeight: FontWeight.bold,
+          color: AppColors.textPrimary,
+          letterSpacing: 1,
+        ),
+      ),
     );
   }
 
@@ -625,8 +659,10 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
     final nameMap = perk['name'] as Map? ?? {};
     final descMap = perk['description'] as Map? ?? {};
     final searchable = [
-      perk['_id'],
+      perkIdFromJson(perk),
       perk['family'],
+      perk['kind'],
+      perk['elite'] == true ? 'elite' : null,
       nameMap['es'],
       nameMap['en'],
       descMap['es'],
@@ -834,7 +870,7 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
 
   Widget _buildSkillCard(
       Map<String, dynamic> perk, String family, String lang) {
-    final perkId = perk['_id'] as String? ?? '';
+    final perkId = perkIdFromJson(perk);
     final nameMap = perk['name'] as Map? ?? {};
     final nameEs = nameMap['es'] as String? ?? '';
     final nameEn = nameMap['en'] as String? ?? '';
@@ -851,6 +887,7 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
         ? (descEs.isNotEmpty ? descEs : descEn)
         : (descEn.isNotEmpty ? descEn : descEs);
     final color = _familyColor(family);
+    final isElite = perk['elite'] == true;
 
     return GestureDetector(
       onTap: () => showSkillPopup(context, ref,
@@ -880,7 +917,7 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(7),
                   child: Image.asset(
-                    'assets/images/perks/upscaled/perk-${perkId.replaceAll('_', '-')}.png',
+                    perkAssetPath(perkId),
                     fit: BoxFit.cover,
                     errorBuilder: (_, __, ___) => Icon(
                       _familyIcon(family),
@@ -896,16 +933,43 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      primaryName.toUpperCase(),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontFamily: AppTypography.displayFontFamily,
-                        fontSize: AppTypography.wikiSectionTitleFontSize,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
-                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            primaryName.toUpperCase(),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontFamily: AppTypography.displayFontFamily,
+                              fontSize: AppTypography.wikiSectionTitleFontSize,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                        ),
+                        if (isElite) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: color.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(6),
+                              border:
+                                  Border.all(color: color.withOpacity(0.35)),
+                            ),
+                            child: Text(
+                              'ELITE',
+                              style: TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                                color: color,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                     if (secondaryName.isNotEmpty &&
                         secondaryName != primaryName)

@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -15,6 +15,7 @@ import '../../../auth/data/providers/auth_provider.dart';
 import '../../../shared/data/repositories.dart';
 import '../../../shared/presentation/widgets/match_event_dialog.dart';
 import '../../../shared/presentation/widgets/skill_popup.dart';
+import '../../../shared/utils/player_position_labels.dart';
 import '../../data/active_match_provider.dart';
 
 part '../widgets/live_match_helpers.dart';
@@ -163,8 +164,12 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
 
     final selectedIds = isHome ? _selectedHomePlayers : _selectedAwayPlayers;
     selectedIds.clear();
+    final eligibleIds = team.players
+        .where((player) => player.status == 'healthy')
+        .map((player) => player.id)
+        .toSet();
     if (persistedSquad.isNotEmpty) {
-      selectedIds.addAll(persistedSquad);
+      selectedIds.addAll(persistedSquad.where(eligibleIds.contains));
     } else {
       selectedIds.addAll(
         team.players
@@ -211,15 +216,17 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
           _homePlayers = homeSquad.isNotEmpty
               ? results[0]
                   .players
-                  .where((p) => homeSquad.contains(p.id))
+                  .where(
+                      (p) => homeSquad.contains(p.id) && p.status == 'healthy')
                   .toList()
-              : results[0].players;
+              : results[0].players.where((p) => p.status == 'healthy').toList();
           _awayPlayers = awaySquad.isNotEmpty
               ? results[1]
                   .players
-                  .where((p) => awaySquad.contains(p.id))
+                  .where(
+                      (p) => awaySquad.contains(p.id) && p.status == 'healthy')
                   .toList()
-              : results[1].players;
+              : results[1].players.where((p) => p.status == 'healthy').toList();
           // Keep team details for reroll budget in live view
           _homeTeam ??= results[0];
           _awayTeam ??= results[1];

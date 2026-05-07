@@ -2632,14 +2632,14 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
 
   List<UserPlayer> _playedPlayers(
       List<UserPlayer> players, List<String> squad) {
-    final alive = players.where((p) => p.status != 'dead').toList();
-    if (squad.isEmpty) return alive.take(11).toList();
+    final available = players.where((p) => p.status == 'healthy').toList();
+    if (squad.isEmpty) return available.take(11).toList();
 
     final squadSet = squad.toSet();
-    final selected = alive.where((p) => squadSet.contains(p.id)).toList();
+    final selected = available.where((p) => squadSet.contains(p.id)).toList();
     if (selected.length >= 11) return selected.take(11).toList();
 
-    final missing = alive.where((p) => !squadSet.contains(p.id));
+    final missing = available.where((p) => !squadSet.contains(p.id));
     return [...selected, ...missing].take(11).toList();
   }
 

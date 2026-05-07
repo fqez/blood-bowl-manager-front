@@ -379,7 +379,7 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
                   ),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: _buildRosterTable(team, lang,
+                  child: _buildRosterTable(team, baseRoster, lang,
                       isHome: isHome, canEdit: canEdit),
                 ),
               ],
@@ -820,7 +820,8 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
     );
   }
 
-  Widget _buildRosterTable(UserTeamDetail team, String lang,
+  Widget _buildRosterTable(
+      UserTeamDetail team, BaseTeam? baseRoster, String lang,
       {required bool isHome, required bool canEdit}) {
     final allPerks = ref.watch(allPerksProvider).valueOrNull ?? [];
     final selectedIds = isHome ? _selectedHomePlayers : _selectedAwayPlayers;
@@ -944,7 +945,9 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
                           color: AppColors.textPrimary,
                           fontSize: 12,
                           fontWeight: FontWeight.w500))),
-                  DataCell(Text(p.baseType.toUpperCase(),
+                  DataCell(Text(
+                      localizedPlayerPosition(p,
+                          roster: baseRoster, lang: lang),
                       style: const TextStyle(
                           color: AppColors.textSecondary, fontSize: 10))),
                   DataCell(Text('${p.stats.ma}',

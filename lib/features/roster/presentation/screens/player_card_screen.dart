@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -6,11 +8,12 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../core/l10n/locale_provider.dart';
 import '../../../../core/l10n/translations.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/perk_assets.dart';
 import '../../../auth/data/providers/auth_provider.dart';
 import '../../../shared/data/repositories.dart';
+import '../../../shared/utils/player_position_labels.dart';
 import '../../domain/models/team.dart';
 import '../screens/roster_screen.dart';
-import '../widgets/skill_badge.dart';
 import '../../../shared/presentation/widgets/skill_popup.dart';
 
 // ignore_for_file: deprecated_member_use
@@ -19,6 +22,40 @@ final _playerBaseRosterProvider =
     FutureProvider.family<BaseTeam, String>((ref, rosterId) async {
   return ref.watch(teamRepositoryProvider).getBaseTeamDetail(rosterId);
 });
+
+class _SkillAdvancementChoice {
+  final Map<String, dynamic>? perk;
+  final String advancementType;
+  final String? characteristic;
+  final int? characteristicRoll;
+  final String? resultLabel;
+
+  const _SkillAdvancementChoice({
+    this.perk,
+    required this.advancementType,
+    this.characteristic,
+    this.characteristicRoll,
+    this.resultLabel,
+  });
+}
+
+class _SkillCategoryAccess {
+  final String symbol;
+  final String family;
+  final String label;
+  final String? access;
+
+  const _SkillCategoryAccess({
+    required this.symbol,
+    required this.family,
+    required this.label,
+    required this.access,
+  });
+
+  bool get enabled => access != null;
+  String get advancementType =>
+      access == 'PRIMARY' ? 'choose_primary_skill' : 'choose_secondary_skill';
+}
 
 class PlayerCardScreen extends ConsumerStatefulWidget {
   final String leagueId;
@@ -40,6 +77,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
   String get leagueId => widget.leagueId;
   String get teamId => widget.teamId;
   String get playerId => widget.playerId;
+  bool _isMutating = false;
 
   void _refresh() => ref.invalidate(teamProvider(teamId));
 
@@ -195,10 +233,9 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
 
   // -- Add Skill Dialog ------------------------------------------------------
 
-  Future<void> _showAddSkillDialog(
-      BuildContext context, Character player, String lang) async {
-    final perksAsync = ref.read(allPerksProvider);
-    final perks = perksAsync.valueOrNull;
+  Future<void> _showAddSkillDialog(BuildContext context, Character player,
+      String lang, BaseTeam? baseRoster) async {
+    final perks = ref.read(allPerksProvider).valueOrNull;
     if (perks == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -208,331 +245,584 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
       return;
     }
 
+    final accessRows = _skillCategoryAccess(baseRoster, player);
+    final primaryRows =
+        accessRows.where((row) => row.access == 'PRIMARY').toList();
+    final secondaryRows =
+        accessRows.where((row) => row.access == 'SECONDARY').toList();
+    if (primaryRows.isEmpty && secondaryRows.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('No skill access found for this player'),
+            backgroundColor: AppColors.warning),
+      );
+      return;
+    }
+
     final families = <String, List<Map<String, dynamic>>>{};
     for (final perk in perks) {
-      final family = perk['family'] as String? ?? 'General';
-      families.putIfAbsent(family, () => []).add(perk);
+      final symbol = _perkFamilySymbol(perk);
+      if (symbol != null) families.putIfAbsent(symbol, () => []).add(perk);
     }
-    final ownedIds = player.skills.map((s) => s.id).toSet();
-    String selectedFamily = families.keys.first;
-    String? searchQuery;
 
-    final selectedPerk = await showDialog<Map<String, dynamic>>(
+    final ownedIds = player.skills.map((skill) => _skillKey(skill.id)).toSet();
+    String selectedMode = primaryRows.isNotEmpty
+        ? 'choose_primary_skill'
+        : secondaryRows.isNotEmpty
+            ? 'choose_secondary_skill'
+            : 'characteristic_improvement';
+    String? selectedSymbol = primaryRows.isNotEmpty
+        ? primaryRows.first.symbol
+        : secondaryRows.isNotEmpty
+            ? secondaryRows.first.symbol
+            : null;
+    String searchQuery = '';
+    int? selectedCharacteristicRoll;
+    String? selectedCharacteristic;
+
+    final selectedChoice = await showDialog<_SkillAdvancementChoice>(
       context: context,
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (ctx, setDialogState) {
-            final familyPerks = families[selectedFamily] ?? [];
-            final filtered = searchQuery != null && searchQuery!.isNotEmpty
-                ? familyPerks.where((p) {
-                    final nameEs = ((p['name'] as Map?)?['es'] ?? '')
-                        .toString()
-                        .toLowerCase();
-                    final nameEn = ((p['name'] as Map?)?['en'] ?? '')
-                        .toString()
-                        .toLowerCase();
-                    return nameEs.contains(searchQuery!.toLowerCase()) ||
-                        nameEn.contains(searchQuery!.toLowerCase());
-                  }).toList()
-                : familyPerks;
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          final rules = ref.read(advancementRulesProvider).valueOrNull;
+          final randomPrimaryCost =
+              _advancementCost(player, 'random_primary_skill');
+          final choosePrimaryCost =
+              _advancementCost(player, 'choose_primary_skill');
+          final chooseSecondaryCost =
+              _advancementCost(player, 'choose_secondary_skill');
+          final characteristicCost =
+              _advancementCost(player, 'characteristic_improvement');
+          final modeCost = _advancementCost(player, selectedMode);
+          final selectedModeHasAccess = switch (selectedMode) {
+            'random_primary_skill' => primaryRows.isNotEmpty,
+            'choose_primary_skill' => primaryRows.isNotEmpty,
+            'choose_secondary_skill' => secondaryRows.isNotEmpty,
+            'characteristic_improvement' => true,
+            _ => false,
+          };
+          final selectedModeEnabled =
+              selectedModeHasAccess && modeCost > 0 && player.spp >= modeCost;
+          final requiredAccess = selectedMode == 'choose_secondary_skill'
+              ? 'SECONDARY'
+              : 'PRIMARY';
+          final selectableRows =
+              accessRows.where((row) => row.access == requiredAccess).toList();
+          final selectedAccess = selectableRows.isEmpty
+              ? null
+              : selectableRows.firstWhere(
+                  (row) => row.symbol == selectedSymbol,
+                  orElse: () => selectableRows.first,
+                );
+          final primarySymbols = primaryRows.map((row) => row.symbol).toSet();
+          final randomEligible = perks.where((perk) {
+            final symbol = _perkFamilySymbol(perk);
+            final perkId = perkIdFromJson(perk);
+            return symbol != null &&
+                primarySymbols.contains(symbol) &&
+                !ownedIds.contains(_skillKey(perkId));
+          }).toList();
+          final familyPerks = selectedAccess == null
+              ? <Map<String, dynamic>>[]
+              : families[selectedAccess.symbol] ?? [];
+          final query = searchQuery.toLowerCase();
+          final filtered = query.isEmpty
+              ? familyPerks
+              : familyPerks.where((perk) {
+                  final nameEs = ((perk['name'] as Map?)?['es'] ?? '')
+                      .toString()
+                      .toLowerCase();
+                  final nameEn = ((perk['name'] as Map?)?['en'] ?? '')
+                      .toString()
+                      .toLowerCase();
+                  return nameEs.contains(query) || nameEn.contains(query);
+                }).toList();
+          final screenSize = MediaQuery.of(ctx).size;
+          final dialogWidth = min(1080.0, screenSize.width - 48);
+          final dialogHeight = min(760.0, max(520.0, screenSize.height - 72));
 
-            return Dialog(
-              backgroundColor: AppColors.surface,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-              child: ConstrainedBox(
-                constraints:
-                    const BoxConstraints(maxWidth: 700, maxHeight: 600),
+          return Dialog(
+            backgroundColor: Colors.transparent,
+            child: SizedBox(
+              width: dialogWidth,
+              height: dialogHeight,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: AppColors.surface.withOpacity(0.96),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppColors.primary, width: 2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.55),
+                      blurRadius: 34,
+                      offset: const Offset(0, 18),
+                    ),
+                  ],
+                ),
+                clipBehavior: Clip.antiAlias,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            AppColors.primary.withOpacity(0.3),
-                            AppColors.surface
-                          ],
+                      padding: const EdgeInsets.fromLTRB(18, 14, 12, 14),
+                      decoration: const BoxDecoration(
+                        color: AppColors.primary,
+                        border: Border(
+                          bottom: BorderSide(color: AppColors.accent, width: 2),
                         ),
-                        borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(12)),
                       ),
                       child: Row(
                         children: [
-                          Icon(PhosphorIcons.lightning(PhosphorIconsStyle.fill),
-                              color: AppColors.accent, size: 24),
-                          const SizedBox(width: 12),
-                          Text(tr(lang, 'player.addSkill'),
-                              style: TextStyle(
-                                fontFamily: AppTypography.displayFontFamily,
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.textPrimary,
-                                letterSpacing: 1,
-                              )),
-                          const Spacer(),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text('ADQUIRIR MEJORA',
+                                    style: TextStyle(
+                                      color: AppColors.accentLight,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w900,
+                                    )),
+                                const SizedBox(height: 3),
+                                Text(player.name.toUpperCase(),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontFamily:
+                                          AppTypography.displayFontFamily,
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.w900,
+                                      color: AppColors.textPrimary,
+                                    )),
+                              ],
+                            ),
+                          ),
+                          _sppPill('${player.spp} SPP disponibles', true),
+                          const SizedBox(width: 10),
                           IconButton(
                             onPressed: () => Navigator.pop(ctx),
                             icon:
-                                const Icon(Icons.close, color: Colors.white54),
+                                const Icon(Icons.close, color: Colors.white70),
                           ),
                         ],
                       ),
                     ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      child: TextField(
-                        style: const TextStyle(color: AppColors.textPrimary),
-                        decoration: InputDecoration(
-                          hintText: tr(lang, 'player.searchSkill'),
-                          hintStyle: TextStyle(color: AppColors.textMuted),
-                          filled: true,
-                          fillColor: AppColors.background,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide.none,
-                          ),
-                          prefixIcon: Icon(
-                              PhosphorIcons.magnifyingGlass(
-                                  PhosphorIconsStyle.regular),
-                              color: AppColors.textMuted,
-                              size: 18),
-                          contentPadding:
-                              const EdgeInsets.symmetric(vertical: 12),
-                        ),
-                        onChanged: (v) => setDialogState(() => searchQuery = v),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: families.keys.map((family) {
-                            final isActive = family == selectedFamily;
-                            return Padding(
-                              padding: const EdgeInsets.only(right: 8),
-                              child: FilterChip(
-                                label: Text(family.toUpperCase(),
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                      color: isActive
-                                          ? Colors.white
-                                          : AppColors.textMuted,
-                                      letterSpacing: 0.5,
-                                    )),
-                                selected: isActive,
-                                onSelected: (_) => setDialogState(
-                                    () => selectedFamily = family),
-                                backgroundColor: AppColors.background,
-                                selectedColor: _familyColor(family),
-                                checkmarkColor: Colors.white,
-                                side: BorderSide(
-                                  color: isActive
-                                      ? _familyColor(family)
-                                      : AppColors.surfaceLight,
-                                ),
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 4),
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
                     Expanded(
-                      child: filtered.isEmpty
-                          ? Center(
-                              child: Text(tr(lang, 'player.noResults'),
-                                  style: TextStyle(color: AppColors.textMuted)))
-                          : ListView.builder(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 16),
-                              itemCount: filtered.length,
-                              itemBuilder: (ctx, i) {
-                                final perk = filtered[i];
-                                final perkId = perk['_id'] as String? ?? '';
-                                final nameMap = perk['name'] as Map? ?? {};
-                                final nameEs = nameMap['es'] as String? ??
-                                    nameMap['en'] as String? ??
-                                    '';
-                                final nameEn = nameMap['en'] as String? ?? '';
-                                final descMap =
-                                    perk['description'] as Map? ?? {};
-                                final descEs = descMap['es'] as String? ??
-                                    descMap['en'] as String? ??
-                                    '';
-                                final isOwned = ownedIds.contains(perkId);
-
-                                return Opacity(
-                                  opacity: isOwned ? 0.4 : 1.0,
-                                  child: Card(
-                                    color: AppColors.card,
-                                    margin: const EdgeInsets.only(bottom: 8),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                      side: BorderSide(
-                                        color: isOwned
-                                            ? AppColors.success.withOpacity(0.5)
-                                            : AppColors.surfaceLight,
-                                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          SizedBox(
+                            width: 330,
+                            child: Container(
+                              color: AppColors.background.withOpacity(0.55),
+                              padding: const EdgeInsets.all(14),
+                              child: ListView(
+                                padding: EdgeInsets.zero,
+                                children: [
+                                  _dialogSectionLabel('TIPO DE MEJORA'),
+                                  const SizedBox(height: 10),
+                                  _advancementModeCard(
+                                    title: 'Primaria al azar',
+                                    subtitle:
+                                        '${rules?.randomSkillDice ?? '2D6'} · ${primaryRows.length} categorias primarias',
+                                    icon: PhosphorIcons.diceFive(
+                                        PhosphorIconsStyle.fill),
+                                    cost: randomPrimaryCost,
+                                    enabled: primaryRows.isNotEmpty &&
+                                        player.spp >= randomPrimaryCost &&
+                                        randomPrimaryCost > 0,
+                                    selected:
+                                        selectedMode == 'random_primary_skill',
+                                    color: AppColors.warning,
+                                    onTap: () => setDialogState(() {
+                                      selectedMode = 'random_primary_skill';
+                                      selectedSymbol = primaryRows.isNotEmpty
+                                          ? primaryRows.first.symbol
+                                          : null;
+                                      searchQuery = '';
+                                    }),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  _advancementModeCard(
+                                    title: 'Elegir primaria',
+                                    subtitle:
+                                        '${primaryRows.length} categorias disponibles',
+                                    icon: PhosphorIcons.crosshair(
+                                        PhosphorIconsStyle.fill),
+                                    cost: choosePrimaryCost,
+                                    enabled: primaryRows.isNotEmpty &&
+                                        player.spp >= choosePrimaryCost &&
+                                        choosePrimaryCost > 0,
+                                    selected:
+                                        selectedMode == 'choose_primary_skill',
+                                    color: AppColors.success,
+                                    onTap: () => setDialogState(() {
+                                      selectedMode = 'choose_primary_skill';
+                                      selectedSymbol = primaryRows.isNotEmpty
+                                          ? primaryRows.first.symbol
+                                          : null;
+                                      searchQuery = '';
+                                    }),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  _advancementModeCard(
+                                    title: 'Elegir secundaria',
+                                    subtitle:
+                                        '${secondaryRows.length} categorias disponibles',
+                                    icon: PhosphorIcons.starFour(
+                                        PhosphorIconsStyle.fill),
+                                    cost: chooseSecondaryCost,
+                                    enabled: secondaryRows.isNotEmpty &&
+                                        player.spp >= chooseSecondaryCost &&
+                                        chooseSecondaryCost > 0,
+                                    selected: selectedMode ==
+                                        'choose_secondary_skill',
+                                    color: AppColors.accent,
+                                    onTap: () => setDialogState(() {
+                                      selectedMode = 'choose_secondary_skill';
+                                      selectedSymbol = secondaryRows.isNotEmpty
+                                          ? secondaryRows.first.symbol
+                                          : null;
+                                      searchQuery = '';
+                                    }),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  _advancementModeCard(
+                                    title: 'Mejora de atributo',
+                                    subtitle: 'Tirada D8 y atributo permitido',
+                                    icon: PhosphorIcons.chartLineUp(
+                                        PhosphorIconsStyle.fill),
+                                    cost: characteristicCost,
+                                    enabled: player.spp >= characteristicCost &&
+                                        characteristicCost > 0,
+                                    selected: selectedMode ==
+                                        'characteristic_improvement',
+                                    color: AppColors.primaryLight,
+                                    onTap: () => setDialogState(() {
+                                      selectedMode =
+                                          'characteristic_improvement';
+                                      searchQuery = '';
+                                    }),
+                                  ),
+                                  const SizedBox(height: 18),
+                                  _dialogSectionLabel('CATEGORIAS'),
+                                  const SizedBox(height: 10),
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: [
+                                      for (final row in accessRows)
+                                        _skillCategoryChip(
+                                          row: row,
+                                          selected: row.symbol ==
+                                                  selectedSymbol &&
+                                              selectedMode !=
+                                                  'characteristic_improvement',
+                                          onTap: selectedModeEnabled &&
+                                                  row.access ==
+                                                      requiredAccess &&
+                                                  selectedMode !=
+                                                      'characteristic_improvement'
+                                              ? () => setDialogState(() {
+                                                    selectedSymbol = row.symbol;
+                                                    searchQuery = '';
+                                                  })
+                                              : null,
+                                        ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: Column(
+                              children: [
+                                Container(
+                                  padding:
+                                      const EdgeInsets.fromLTRB(18, 14, 18, 12),
+                                  decoration: BoxDecoration(
+                                    color:
+                                        AppColors.background.withOpacity(0.5),
+                                    border: Border(
+                                      bottom: BorderSide(
+                                          color: AppColors.surfaceLight),
                                     ),
-                                    child: InkWell(
-                                      borderRadius: BorderRadius.circular(8),
-                                      onTap: isOwned
-                                          ? null
-                                          : () => Navigator.pop(ctx, perk),
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(12),
-                                        child: Row(
-                                          children: [
-                                            Container(
-                                              width: 44,
-                                              height: 44,
-                                              decoration: BoxDecoration(
-                                                color:
-                                                    _familyColor(selectedFamily)
-                                                        .withOpacity(0.15),
-                                                borderRadius:
-                                                    BorderRadius.circular(8),
-                                              ),
-                                              child: ClipRRect(
-                                                borderRadius:
-                                                    BorderRadius.circular(8),
-                                                child: Image.asset(
-                                                  'assets/images/perks/upscaled/perk-${perkId.replaceAll('_', '-')}.png',
-                                                  fit: BoxFit.cover,
-                                                  errorBuilder: (_, __, ___) =>
-                                                      Icon(
-                                                    PhosphorIcons.lightning(
-                                                        PhosphorIconsStyle
-                                                            .fill),
-                                                    size: 22,
-                                                    color: _familyColor(
-                                                        selectedFamily),
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                            const SizedBox(width: 12),
-                                            Expanded(
-                                              child: Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  Row(
-                                                    children: [
-                                                      Expanded(
-                                                        child: Text(
-                                                            nameEs
-                                                                .toUpperCase(),
-                                                            style: TextStyle(
-                                                              fontFamily:
-                                                                  AppTypography
-                                                                      .displayFontFamily,
-                                                              fontSize: 16,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .bold,
-                                                              color: AppColors
-                                                                  .textPrimary,
-                                                            )),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          _advancementModeTitle(selectedMode),
+                                          style: TextStyle(
+                                            fontFamily:
+                                                AppTypography.displayFontFamily,
+                                            color: AppColors.textPrimary,
+                                            fontSize: 22,
+                                            fontWeight: FontWeight.w900,
+                                          ),
+                                        ),
+                                      ),
+                                      _sppPill(
+                                          '$modeCost SPP', selectedModeEnabled),
+                                    ],
+                                  ),
+                                ),
+                                Expanded(
+                                  child:
+                                      selectedMode ==
+                                              'characteristic_improvement'
+                                          ? _characteristicImprovementPanel(
+                                              rules: rules,
+                                              player: player,
+                                              lang: lang,
+                                              selectedRoll:
+                                                  selectedCharacteristicRoll,
+                                              selectedCharacteristic:
+                                                  selectedCharacteristic,
+                                              enabled: selectedModeEnabled,
+                                              onRollSelected: (roll) =>
+                                                  setDialogState(() {
+                                                selectedCharacteristicRoll =
+                                                    roll;
+                                                selectedCharacteristic = null;
+                                              }),
+                                              onCharacteristicSelected:
+                                                  (characteristic) =>
+                                                      setDialogState(() {
+                                                selectedCharacteristic =
+                                                    characteristic;
+                                              }),
+                                              onApply: selectedModeEnabled &&
+                                                      selectedCharacteristicRoll !=
+                                                          null &&
+                                                      selectedCharacteristic !=
+                                                          null
+                                                  ? () => Navigator.pop(
+                                                        ctx,
+                                                        _SkillAdvancementChoice(
+                                                          advancementType:
+                                                              'characteristic_improvement',
+                                                          characteristic:
+                                                              selectedCharacteristic,
+                                                          characteristicRoll:
+                                                              selectedCharacteristicRoll,
+                                                          resultLabel:
+                                                              selectedCharacteristic,
+                                                        ),
+                                                      )
+                                                  : null,
+                                            )
+                                          : selectedMode ==
+                                                  'random_primary_skill'
+                                              ? _randomPrimaryPanel(
+                                                  rules: rules,
+                                                  eligibleCount:
+                                                      randomEligible.length,
+                                                  cost: randomPrimaryCost,
+                                                  enabled:
+                                                      selectedModeEnabled &&
+                                                          randomEligible
+                                                              .isNotEmpty,
+                                                  onApply: () {
+                                                    final perk = randomEligible[
+                                                        Random().nextInt(
+                                                            randomEligible
+                                                                .length)];
+                                                    final nameMap =
+                                                        perk['name'] as Map? ??
+                                                            {};
+                                                    final name = nameMap['es']
+                                                            as String? ??
+                                                        nameMap['en']
+                                                            as String? ??
+                                                        '';
+                                                    Navigator.pop(
+                                                      ctx,
+                                                      _SkillAdvancementChoice(
+                                                        perk: perk,
+                                                        advancementType:
+                                                            'random_primary_skill',
+                                                        resultLabel: name,
                                                       ),
-                                                      if (isOwned)
-                                                        Container(
-                                                          padding:
-                                                              const EdgeInsets
-                                                                  .symmetric(
-                                                                  horizontal: 8,
-                                                                  vertical: 2),
-                                                          decoration:
-                                                              BoxDecoration(
+                                                    );
+                                                  },
+                                                )
+                                              : Column(
+                                                  children: [
+                                                    Padding(
+                                                      padding: const EdgeInsets
+                                                          .fromLTRB(
+                                                          16, 14, 16, 10),
+                                                      child: TextField(
+                                                        enabled:
+                                                            selectedModeEnabled,
+                                                        style: const TextStyle(
                                                             color: AppColors
-                                                                .success
-                                                                .withOpacity(
-                                                                    0.2),
+                                                                .textPrimary),
+                                                        decoration:
+                                                            InputDecoration(
+                                                          hintText: tr(lang,
+                                                              'player.searchSkill'),
+                                                          hintStyle:
+                                                              const TextStyle(
+                                                                  color: AppColors
+                                                                      .textMuted),
+                                                          filled: true,
+                                                          fillColor: AppColors
+                                                              .background,
+                                                          border:
+                                                              OutlineInputBorder(
                                                             borderRadius:
                                                                 BorderRadius
                                                                     .circular(
-                                                                        4),
+                                                                        6),
+                                                            borderSide:
+                                                                BorderSide.none,
                                                           ),
-                                                          child: Text(
-                                                              tr(lang,
-                                                                  'player.acquired'),
-                                                              style: TextStyle(
-                                                                  fontSize: 9,
-                                                                  color: AppColors
-                                                                      .success,
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .bold)),
+                                                          prefixIcon: Icon(
+                                                              PhosphorIcons
+                                                                  .magnifyingGlass(
+                                                                      PhosphorIconsStyle
+                                                                          .regular),
+                                                              color: AppColors
+                                                                  .textMuted,
+                                                              size: 18),
+                                                          contentPadding:
+                                                              const EdgeInsets
+                                                                  .symmetric(
+                                                                  vertical: 12),
                                                         ),
-                                                    ],
-                                                  ),
-                                                  Text(nameEn,
-                                                      style: const TextStyle(
-                                                          fontSize: 11,
-                                                          color: AppColors
-                                                              .textMuted)),
-                                                  const SizedBox(height: 4),
-                                                  Text(descEs,
-                                                      maxLines: 2,
-                                                      overflow:
-                                                          TextOverflow.ellipsis,
-                                                      style: const TextStyle(
-                                                          fontSize: 11,
-                                                          color: AppColors
-                                                              .textSecondary)),
-                                                ],
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              },
+                                                        onChanged: (value) =>
+                                                            setDialogState(() =>
+                                                                searchQuery =
+                                                                    value
+                                                                        .trim()),
+                                                      ),
+                                                    ),
+                                                    Expanded(
+                                                      child:
+                                                          !selectedModeEnabled
+                                                              ? _disabledAdvancementState(
+                                                                  player.spp,
+                                                                  modeCost,
+                                                                  selectedModeHasAccess,
+                                                                )
+                                                              : filtered.isEmpty
+                                                                  ? Center(
+                                                                      child: Text(
+                                                                          tr(lang,
+                                                                              'player.noResults'),
+                                                                          style: const TextStyle(
+                                                                              color: AppColors
+                                                                                  .textMuted)))
+                                                                  : GridView
+                                                                      .builder(
+                                                                      padding: const EdgeInsets
+                                                                          .fromLTRB(
+                                                                          16,
+                                                                          0,
+                                                                          16,
+                                                                          16),
+                                                                      gridDelegate:
+                                                                          const SliverGridDelegateWithMaxCrossAxisExtent(
+                                                                        maxCrossAxisExtent:
+                                                                            260,
+                                                                        mainAxisExtent:
+                                                                            74,
+                                                                        crossAxisSpacing:
+                                                                            12,
+                                                                        mainAxisSpacing:
+                                                                            12,
+                                                                      ),
+                                                                      itemCount:
+                                                                          filtered
+                                                                              .length,
+                                                                      itemBuilder:
+                                                                          (ctx,
+                                                                              index) {
+                                                                        final perk =
+                                                                            filtered[index];
+                                                                        final perkId =
+                                                                            perkIdFromJson(perk);
+                                                                        final nameMap =
+                                                                            perk['name'] as Map? ??
+                                                                                {};
+                                                                        final name = nameMap['es']
+                                                                                as String? ??
+                                                                            nameMap['en']
+                                                                                as String? ??
+                                                                            '';
+                                                                        final isOwned =
+                                                                            ownedIds.contains(_skillKey(perkId));
+
+                                                                        return _skillChoiceTile(
+                                                                          perkId:
+                                                                              perkId,
+                                                                          name:
+                                                                              name,
+                                                                          color:
+                                                                              _familyColor(selectedAccess?.family ?? ''),
+                                                                          isOwned:
+                                                                              isOwned,
+                                                                          onTap: isOwned
+                                                                              ? null
+                                                                              : () => Navigator.pop(
+                                                                                    ctx,
+                                                                                    _SkillAdvancementChoice(
+                                                                                      perk: perk,
+                                                                                      advancementType: selectedMode,
+                                                                                      resultLabel: name,
+                                                                                    ),
+                                                                                  ),
+                                                                        );
+                                                                      },
+                                                                    ),
+                                                    ),
+                                                  ],
+                                                ),
+                                ),
+                              ],
                             ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
               ),
-            );
-          },
-        );
-      },
+            ),
+          );
+        },
+      ),
     );
-    if (!mounted) return;
+    if (!mounted || selectedChoice == null) return;
 
-    if (selectedPerk == null) return;
-
-    final perkId = selectedPerk['_id'] as String;
-    final nameMap = selectedPerk['name'] as Map;
-    final perkName = nameMap['es'] as String? ?? nameMap['en'] as String? ?? '';
-    final family = selectedPerk['family'] as String?;
+    final selectedPerk = selectedChoice.perk;
+    final perkId = selectedPerk == null ? null : perkIdFromJson(selectedPerk);
+    final resultName = selectedChoice.resultLabel ?? '';
 
     try {
-      await ref.read(teamRepositoryProvider).addPerkToPlayer(
+      setState(() => _isMutating = true);
+      await ref.read(teamRepositoryProvider).applyPlayerAdvancement(
             teamId,
             playerId,
+            advancementType: selectedChoice.advancementType,
             perkId: perkId,
-            perkName: perkName,
-            category: family,
+            characteristic: selectedChoice.characteristic,
+            characteristicRoll: selectedChoice.characteristicRoll,
           );
       if (!mounted) return;
       _refresh();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text(trf(lang, 'common.perkAdded', {'name': perkName})),
-              backgroundColor: AppColors.success),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text(
+                selectedChoice.advancementType == 'characteristic_improvement'
+                    ? '${selectedChoice.characteristic} mejorado'
+                    : trf(lang, 'common.perkAdded', {'name': resultName})),
+            backgroundColor: AppColors.success),
+      );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -541,24 +831,695 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
               backgroundColor: AppColors.error),
         );
       }
+    } finally {
+      if (mounted) setState(() => _isMutating = false);
+    }
+  }
+
+  Widget _levelDialogTab(String label, bool selected) {
+    return Container(
+      height: 34,
+      padding: const EdgeInsets.symmetric(horizontal: 18),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: selected ? AppColors.primary : AppColors.card,
+        border: Border.all(
+          color: selected ? AppColors.primaryLight : AppColors.surfaceLight,
+        ),
+      ),
+      child: Text(label,
+          style: TextStyle(
+            fontFamily: AppTypography.displayFontFamily,
+            color: AppColors.textPrimary,
+            fontSize: 17,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 0.5,
+          )),
+    );
+  }
+
+  Widget _dialogSectionLabel(String label) {
+    return Text(label,
+        style: TextStyle(
+          color: AppColors.textMuted,
+          fontSize: 10,
+          fontWeight: FontWeight.w900,
+        ));
+  }
+
+  Widget _sppPill(String label, bool available) {
+    final color = available ? AppColors.success : AppColors.error;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.16),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withOpacity(0.45)),
+      ),
+      child: Text(label,
+          style: TextStyle(
+            color: color,
+            fontSize: 12,
+            fontWeight: FontWeight.w900,
+          )),
+    );
+  }
+
+  String _advancementModeTitle(String mode) {
+    return switch (mode) {
+      'random_primary_skill' => 'Primaria al azar',
+      'choose_primary_skill' => 'Elegir habilidad primaria',
+      'choose_secondary_skill' => 'Elegir habilidad secundaria',
+      'characteristic_improvement' => 'Mejora de atributo',
+      _ => 'Mejora',
+    };
+  }
+
+  Widget _advancementModeCard({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required int cost,
+    required bool enabled,
+    required bool selected,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    final borderColor = selected ? color : AppColors.surfaceLight;
+    return Opacity(
+      opacity: enabled ? 1 : 0.46,
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        borderRadius: BorderRadius.circular(6),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 8),
+          decoration: BoxDecoration(
+            color: selected ? color.withOpacity(0.15) : AppColors.card,
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(color: borderColor, width: selected ? 2 : 1),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 30,
+                height: 30,
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.18),
+                  borderRadius: BorderRadius.circular(5),
+                ),
+                child: Icon(icon, color: color, size: 16),
+              ),
+              const SizedBox(width: 9),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title.toUpperCase(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: AppTypography.displayFontFamily,
+                          color: AppColors.textPrimary,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w900,
+                        )),
+                    const SizedBox(height: 2),
+                    Text(subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: AppColors.textMuted,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w700,
+                        )),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              _sppPill('$cost SPP', enabled),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _disabledAdvancementState(int playerSpp, int cost, bool hasAccess) {
+    final message = hasAccess
+        ? 'Faltan ${cost - playerSpp} SPP para esta mejora.'
+        : 'Esta mejora no aplica a este jugador.';
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(PhosphorIcons.lock(PhosphorIconsStyle.fill),
+              size: 34, color: AppColors.textMuted.withOpacity(0.55)),
+          const SizedBox(height: 10),
+          Text(message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: AppColors.textMuted,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              )),
+        ],
+      ),
+    );
+  }
+
+  Widget _randomPrimaryPanel({
+    required AdvancementRules? rules,
+    required int eligibleCount,
+    required int cost,
+    required bool enabled,
+    required VoidCallback onApply,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.all(22),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: AppColors.card,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppColors.warning.withOpacity(0.45)),
+            ),
+            child: Row(
+              children: [
+                Icon(PhosphorIcons.diceFive(PhosphorIconsStyle.fill),
+                    color: AppColors.warning, size: 38),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('HABILIDAD PRIMARIA AL AZAR',
+                          style: TextStyle(
+                            fontFamily: AppTypography.displayFontFamily,
+                            color: AppColors.textPrimary,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                          )),
+                      const SizedBox(height: 6),
+                      Text(
+                        '${rules?.randomSkillRolls ?? 2} tiradas ${rules?.randomSkillDice ?? '2D6'} · $eligibleCount habilidades posibles · $cost SPP',
+                        style: const TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Spacer(),
+          Align(
+            alignment: Alignment.centerRight,
+            child: ElevatedButton.icon(
+              onPressed: enabled ? onApply : null,
+              icon: Icon(PhosphorIcons.diceFive(PhosphorIconsStyle.fill)),
+              label: const Text('TIRAR Y APLICAR'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.warning,
+                foregroundColor: AppColors.background,
+                disabledBackgroundColor: AppColors.surfaceLight,
+                disabledForegroundColor: AppColors.textMuted,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _characteristicImprovementPanel({
+    required AdvancementRules? rules,
+    required Character player,
+    required String lang,
+    required int? selectedRoll,
+    required String? selectedCharacteristic,
+    required bool enabled,
+    required ValueChanged<int> onRollSelected,
+    required ValueChanged<String> onCharacteristicSelected,
+    required VoidCallback? onApply,
+  }) {
+    final entries = rules?.characteristicTable ?? [];
+    CharacteristicImprovementResult? selectedEntry;
+    if (selectedRoll != null) {
+      for (final entry in entries) {
+        if (selectedRoll >= entry.minRoll && selectedRoll <= entry.maxRoll) {
+          selectedEntry = entry;
+          break;
+        }
+      }
+    }
+    const stats = ['MA', 'ST', 'AG', 'PA', 'AV'];
+
+    return Padding(
+      padding: const EdgeInsets.all(22),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Resultado D8',
+              style: TextStyle(
+                fontFamily: AppTypography.displayFontFamily,
+                color: AppColors.textPrimary,
+                fontSize: 20,
+                fontWeight: FontWeight.w900,
+              )),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: List.generate(8, (index) {
+              final roll = index + 1;
+              final selected = roll == selectedRoll;
+              return ChoiceChip(
+                label: Text('$roll'),
+                selected: selected,
+                onSelected: enabled ? (_) => onRollSelected(roll) : null,
+                selectedColor: AppColors.primary.withOpacity(0.35),
+                backgroundColor: AppColors.card,
+                disabledColor: AppColors.surfaceLight,
+                labelStyle: TextStyle(
+                  color: selected ? AppColors.textPrimary : AppColors.textMuted,
+                  fontWeight: FontWeight.w900,
+                ),
+              );
+            }),
+          ),
+          const SizedBox(height: 22),
+          Text('Atributo permitido',
+              style: TextStyle(
+                fontFamily: AppTypography.displayFontFamily,
+                color: AppColors.textPrimary,
+                fontSize: 20,
+                fontWeight: FontWeight.w900,
+              )),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: stats.map((stat) {
+              final statAllowedByRoll = selectedEntry?.allows(stat) == true &&
+                  (stat != 'PA' || player.stats.pa > 0);
+              return _characteristicChip(
+                stat: stat,
+                selected: stat == selectedCharacteristic,
+                enabled: enabled && statAllowedByRoll,
+                onTap: () => onCharacteristicSelected(stat),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 18),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppColors.background.withOpacity(0.5),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppColors.surfaceLight),
+            ),
+            child: Text(
+              selectedEntry == null
+                  ? 'Selecciona la tirada D8 para ver que atributos aplica.'
+                  : selectedEntry.description[lang] ??
+                      selectedEntry.description['en'] ??
+                      '',
+              style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          const Spacer(),
+          Align(
+            alignment: Alignment.centerRight,
+            child: ElevatedButton.icon(
+              onPressed: onApply,
+              icon: Icon(PhosphorIcons.chartLineUp(PhosphorIconsStyle.fill)),
+              label: const Text('APLICAR ATRIBUTO'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: AppColors.textPrimary,
+                disabledBackgroundColor: AppColors.surfaceLight,
+                disabledForegroundColor: AppColors.textMuted,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _characteristicChip({
+    required String stat,
+    required bool selected,
+    required bool enabled,
+    required VoidCallback onTap,
+  }) {
+    return Opacity(
+      opacity: enabled ? 1 : 0.45,
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          width: 88,
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          decoration: BoxDecoration(
+            color:
+                selected ? AppColors.primary.withOpacity(0.25) : AppColors.card,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: selected ? AppColors.primaryLight : AppColors.surfaceLight,
+              width: selected ? 2 : 1,
+            ),
+          ),
+          alignment: Alignment.center,
+          child: Text('+$stat',
+              style: TextStyle(
+                fontFamily: AppTypography.displayFontFamily,
+                color: AppColors.textPrimary,
+                fontSize: 24,
+                fontWeight: FontWeight.w900,
+              )),
+        ),
+      ),
+    );
+  }
+
+  Widget _skillCategoryRow({
+    required _SkillCategoryAccess row,
+    required bool selected,
+    required VoidCallback? onTap,
+    String? trailing,
+  }) {
+    final enabled = row.enabled && onTap != null;
+    final color = _familyColor(row.family);
+    final accessText = trailing ?? row.access ?? '—';
+
+    return Opacity(
+      opacity: enabled ? 1 : 0.48,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(4),
+        child: Container(
+          height: 38,
+          decoration: BoxDecoration(
+            color: selected ? color.withOpacity(0.2) : AppColors.card,
+            border: Border.all(
+              color: selected ? color : AppColors.surfaceLight,
+              width: selected ? 2 : 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(width: 5, color: enabled ? color : AppColors.textMuted),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: Text(row.label.toUpperCase(),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: AppTypography.displayFontFamily,
+                        color: AppColors.textPrimary,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w900,
+                      )),
+                ),
+              ),
+              Container(
+                width: 96,
+                height: double.infinity,
+                alignment: Alignment.center,
+                color: enabled ? color.withOpacity(0.18) : AppColors.background,
+                child: Text(accessText,
+                    style: TextStyle(
+                      color:
+                          enabled ? AppColors.textPrimary : AppColors.textMuted,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                    )),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _skillCategoryChip({
+    required _SkillCategoryAccess row,
+    required bool selected,
+    required VoidCallback? onTap,
+  }) {
+    final enabled = row.enabled && onTap != null;
+    final color = _familyColor(row.family);
+    final accessText = row.access ?? 'NO';
+
+    return Opacity(
+      opacity: enabled ? 1 : 0.42,
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        borderRadius: BorderRadius.circular(6),
+        child: Container(
+          width: 147,
+          height: 48,
+          padding: const EdgeInsets.symmetric(horizontal: 9),
+          decoration: BoxDecoration(
+            color: selected ? color.withOpacity(0.18) : AppColors.card,
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(
+              color: selected ? color : AppColors.surfaceLight,
+              width: selected ? 2 : 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: color.withOpacity(enabled ? 0.18 : 0.08),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                alignment: Alignment.center,
+                child: Text(row.symbol,
+                    style: TextStyle(
+                      color: enabled ? color : AppColors.textMuted,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w900,
+                    )),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(row.label.toUpperCase(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: AppTypography.displayFontFamily,
+                          color: AppColors.textPrimary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w900,
+                        )),
+                    const SizedBox(height: 2),
+                    Text(accessText,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: enabled
+                              ? AppColors.textSecondary
+                              : AppColors.textMuted,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w800,
+                        )),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _skillChoiceTile({
+    required String perkId,
+    required String name,
+    required Color color,
+    required bool isOwned,
+    required VoidCallback? onTap,
+  }) {
+    return Opacity(
+      opacity: isOwned ? 0.42 : 1,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(6),
+        child: Container(
+          decoration: BoxDecoration(
+            color: AppColors.card,
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(
+              color: isOwned ? AppColors.success.withOpacity(0.6) : color,
+              width: 1.5,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 58,
+                height: double.infinity,
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.16),
+                  border:
+                      Border(right: BorderSide(color: color.withOpacity(0.45))),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(6),
+                  child: Image.asset(
+                    perkAssetPath(perkId),
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => Icon(
+                      PhosphorIcons.lightning(PhosphorIconsStyle.fill),
+                      size: 24,
+                      color: color,
+                    ),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: Text(name.toUpperCase(),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: AppTypography.displayFontFamily,
+                        color: AppColors.textPrimary,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                        height: 1.0,
+                      )),
+                ),
+              ),
+              if (isOwned)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: Icon(
+                      PhosphorIcons.checkCircle(PhosphorIconsStyle.fill),
+                      color: AppColors.success,
+                      size: 18),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showCharacteristicRollDialog(
+      BuildContext context, Character player, String stat) async {
+    final lang = ref.read(localeProvider);
+    final controller = TextEditingController();
+    final roll = await showDialog<int>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: Text('D8 CHARACTERISTIC ROLL',
+            style: TextStyle(color: AppColors.textPrimary)),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          keyboardType: TextInputType.number,
+          style: TextStyle(color: AppColors.textPrimary),
+          decoration: InputDecoration(
+            labelText: 'Roll for +1 $stat',
+            labelStyle: TextStyle(color: AppColors.textMuted),
+            filled: true,
+            fillColor: AppColors.background,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('CANCEL'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, int.tryParse(controller.text)),
+            child: const Text('APPLY'),
+          ),
+        ],
+      ),
+    );
+    if (roll == null) return;
+
+    try {
+      setState(() => _isMutating = true);
+      await ref.read(teamRepositoryProvider).applyPlayerAdvancement(
+            teamId,
+            playerId,
+            advancementType: 'characteristic_improvement',
+            characteristic: stat,
+            characteristicRoll: roll,
+          );
+      if (!mounted) return;
+      _refresh();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text('$stat improved'),
+            backgroundColor: AppColors.success),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text(trf(lang, 'common.error', {'e': '$e'})),
+              backgroundColor: AppColors.error),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isMutating = false);
     }
   }
 
   Color _familyColor(String family) {
     switch (family.toLowerCase()) {
+      case 'g':
       case 'general':
         return AppColors.skillGeneral;
+      case 'a':
       case 'agility':
         return AppColors.skillAgility;
+      case 's':
       case 'strength':
         return AppColors.skillStrength;
+      case 'p':
       case 'passing':
         return AppColors.skillPassing;
+      case 'm':
       case 'mutation':
         return AppColors.skillMutation;
       case 'extraordinary':
+      case 't':
       case 'trait':
         return AppColors.skillExtraordinary;
+      case 'd':
       case 'devious':
         return const Color(0xFFFF6F00);
       default:
@@ -569,7 +1530,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
   // -- SPP helpers -----------------------------------------------------------
 
   int _nextSpp(int level) {
-    const map = {1: 6, 2: 16, 3: 31, 4: 51, 5: 76, 6: 176};
+    const map = {1: 3, 2: 4, 3: 6, 4: 8, 5: 10, 6: 15};
     return map[level] ?? 0;
   }
 
@@ -578,10 +1539,64 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
     return next > 0 && player.spp >= next;
   }
 
-  Set<String>? _startingSkillKeys(BaseTeam? roster, Character player) {
+  int _advancementCost(Character player, String advancementType) {
+    final row = ref
+        .read(advancementRulesProvider)
+        .valueOrNull
+        ?.rowForAdvancement(player.level - 1);
+    if (row != null) {
+      switch (advancementType) {
+        case 'choose_primary_skill':
+          return row.choosePrimarySkill;
+        case 'choose_secondary_skill':
+          return row.chooseSecondarySkill;
+        case 'characteristic_improvement':
+          return row.characteristicImprovement;
+        default:
+          return row.randomPrimarySkill;
+      }
+    }
+
+    const chosenPrimary = {1: 6, 2: 8, 3: 12, 4: 16, 5: 20, 6: 30};
+    const chosenSecondary = {1: 12, 2: 14, 3: 18, 4: 22, 5: 26, 6: 40};
+    const characteristic = {1: 18, 2: 20, 3: 24, 4: 28, 5: 32, 6: 50};
+    return switch (advancementType) {
+      'choose_primary_skill' => chosenPrimary[player.level] ?? 0,
+      'choose_secondary_skill' => chosenSecondary[player.level] ?? 0,
+      'characteristic_improvement' => characteristic[player.level] ?? 0,
+      _ => _nextSpp(player.level),
+    };
+  }
+
+  bool _canBuySkillAdvancement(Character player, BaseTeam? roster) {
+    final accessRows = _skillCategoryAccess(roster, player);
+    final hasPrimary = accessRows.any((row) => row.access == 'PRIMARY');
+    final hasSecondary = accessRows.any((row) => row.access == 'SECONDARY');
+    final randomPrimaryCost = _advancementCost(player, 'random_primary_skill');
+    final chosenPrimaryCost = _advancementCost(player, 'choose_primary_skill');
+    final chosenSecondaryCost =
+        _advancementCost(player, 'choose_secondary_skill');
+    final characteristicCost =
+        _advancementCost(player, 'characteristic_improvement');
+    final canBuyRandomPrimary =
+        hasPrimary && randomPrimaryCost > 0 && player.spp >= randomPrimaryCost;
+    final canBuyChosenPrimary =
+        hasPrimary && chosenPrimaryCost > 0 && player.spp >= chosenPrimaryCost;
+    final canBuyChosenSecondary = hasSecondary &&
+        chosenSecondaryCost > 0 &&
+        player.spp >= chosenSecondaryCost;
+    final canBuyCharacteristic =
+        characteristicCost > 0 && player.spp >= characteristicCost;
+
+    return canBuyRandomPrimary ||
+        canBuyChosenPrimary ||
+        canBuyChosenSecondary ||
+        canBuyCharacteristic;
+  }
+
+  BasePosition? _basePositionFor(BaseTeam? roster, Character player) {
     if (roster == null) return null;
 
-    BasePosition? position;
     for (final candidate in roster.positions) {
       final candidateKeys = <String>{
         _positionKey(candidate.id),
@@ -594,11 +1609,101 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
       }..remove('');
 
       if (candidateKeys.intersection(playerKeys).isNotEmpty) {
-        position = candidate;
-        break;
+        return candidate;
       }
     }
+    return null;
+  }
 
+  List<_SkillCategoryAccess> _skillCategoryAccess(
+      BaseTeam? roster, Character player) {
+    final position = _basePositionFor(roster, player);
+    final primary = (position?.normalSkills.isNotEmpty ?? false)
+        ? position!.normalSkills
+        : player.normalSkills;
+    final secondary = (position?.doubleSkills.isNotEmpty ?? false)
+        ? position!.doubleSkills
+        : player.doubleSkills;
+    final primarySymbols =
+        primary.map(_accessSymbol).whereType<String>().toSet();
+    final secondarySymbols =
+        secondary.map(_accessSymbol).whereType<String>().toSet();
+
+    const categories = [
+      _SkillCategoryAccess(
+          symbol: 'G', family: 'general', label: 'General', access: null),
+      _SkillCategoryAccess(
+          symbol: 'S', family: 'strength', label: 'Fuerza', access: null),
+      _SkillCategoryAccess(
+          symbol: 'A', family: 'agility', label: 'Agilidad', access: null),
+      _SkillCategoryAccess(
+          symbol: 'P', family: 'passing', label: 'Pase', access: null),
+      _SkillCategoryAccess(
+          symbol: 'M', family: 'mutation', label: 'Mutación', access: null),
+      _SkillCategoryAccess(
+          symbol: 'D', family: 'devious', label: 'Triquiñuela', access: null),
+    ];
+
+    return categories.map((row) {
+      final access = primarySymbols.contains(row.symbol)
+          ? 'PRIMARY'
+          : secondarySymbols.contains(row.symbol)
+              ? 'SECONDARY'
+              : null;
+      return _SkillCategoryAccess(
+        symbol: row.symbol,
+        family: row.family,
+        label: row.label,
+        access: access,
+      );
+    }).toList();
+  }
+
+  String? _accessSymbol(String value) {
+    final normalized = value.toLowerCase().trim();
+    switch (normalized) {
+      case 'g':
+      case 'general':
+        return 'G';
+      case 's':
+      case 'strength':
+      case 'fuerza':
+        return 'S';
+      case 'a':
+      case 'agility':
+      case 'agilidad':
+        return 'A';
+      case 'p':
+      case 'passing':
+      case 'pase':
+        return 'P';
+      case 'm':
+      case 'mutation':
+      case 'mutacion':
+      case 'mutación':
+        return 'M';
+      case 'd':
+      case 'devious':
+      case 'trickery':
+      case 'triquinuela':
+      case 'triquiñuela':
+        return 'D';
+      default:
+        return null;
+    }
+  }
+
+  String? _perkFamilySymbol(Map<String, dynamic> perk) {
+    final kind = (perk['kind'] as String? ?? '').toLowerCase().trim();
+    if (kind == 'trait') return null;
+
+    final raw = perk['family'] ?? perk['category'];
+    if (raw is! String) return null;
+    return _accessSymbol(raw);
+  }
+
+  Set<String>? _startingSkillKeys(BaseTeam? roster, Character player) {
+    final position = _basePositionFor(roster, player);
     if (position == null) return null;
 
     final keys = <String>{};
@@ -615,6 +1720,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
 
   String _skillKey(String value) {
     final normalized = value
+        .replaceAll(RegExp(r'\s*\([^)]*\)'), '')
         .toLowerCase()
         .trim()
         .replaceAll(RegExp(r'[_\s]+'), '-')
@@ -641,6 +1747,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
 
     // Pre-load perks for the add skill dialog
     ref.watch(allPerksProvider);
+    ref.watch(advancementRulesProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -668,14 +1775,15 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildHeroSection(context, team, player, isOwner, lang),
+                      _buildHeroSection(
+                          context, team, player, isOwner, lang, baseRoster),
                       const SizedBox(height: 24),
                       if (isWide)
                         _buildWideLayout(context, team, player, isOwner, lang,
-                            startingSkillKeys)
+                            startingSkillKeys, baseRoster)
                       else
                         _buildNarrowLayout(context, team, player, isOwner, lang,
-                            startingSkillKeys),
+                            startingSkillKeys, baseRoster),
                     ],
                   ),
                 ),
@@ -781,21 +1889,30 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
   // -- Hero Section with Portrait --------------------------------------------
 
   Widget _buildHeroSection(BuildContext context, Team team, Character player,
-      bool isOwner, String lang) {
+      bool isOwner, String lang, BaseTeam? baseRoster) {
+    final positionLabel = _localizedCharacterPosition(player, baseRoster, lang);
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(26),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
           colors: [
-            AppColors.primary.withOpacity(0.3),
-            AppColors.surface.withOpacity(0.9),
+            AppColors.primary.withOpacity(0.58),
+            AppColors.error.withOpacity(0.24),
             AppColors.surface,
           ],
+          stops: const [0, 0.42, 1],
         ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.primary.withOpacity(0.4)),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.primary.withOpacity(0.52)),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withOpacity(0.18),
+            blurRadius: 28,
+            offset: const Offset(0, 16),
+          ),
+        ],
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -806,25 +1923,26 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                 ? () => _showEditPlayerDialog(context, player, lang)
                 : null,
             child: Container(
-              width: 140,
-              height: 160,
+              width: 150,
+              height: 174,
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    AppColors.primary.withOpacity(0.6),
-                    AppColors.primary.withOpacity(0.2),
+                    AppColors.error.withOpacity(0.72),
+                    AppColors.primary.withOpacity(0.42),
+                    AppColors.accent.withOpacity(0.18),
                   ],
                 ),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(18),
                 border: Border.all(
-                    color: AppColors.primary.withOpacity(0.6), width: 2),
+                    color: AppColors.accent.withOpacity(0.55), width: 2),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.primary.withOpacity(0.3),
-                    blurRadius: 20,
-                    spreadRadius: 2,
+                    color: AppColors.error.withOpacity(0.3),
+                    blurRadius: 24,
+                    offset: const Offset(0, 12),
                   ),
                 ],
               ),
@@ -838,7 +1956,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                       '${player.number}',
                       style: TextStyle(
                         fontFamily: AppTypography.displayFontFamily,
-                        fontSize: 140,
+                        fontSize: 152,
                         fontWeight: FontWeight.w900,
                         color: Colors.white.withOpacity(0.08),
                         height: 1,
@@ -860,7 +1978,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                       Text('${player.number}',
                           style: TextStyle(
                             fontFamily: AppTypography.displayFontFamily,
-                            fontSize: 80,
+                            fontSize: 90,
                             fontWeight: FontWeight.w900,
                             color: Colors.white,
                             height: 0.85,
@@ -902,19 +2020,19 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Status & position badges
-                Row(
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
                   children: [
                     _statusBadge(player),
-                    const SizedBox(width: 8),
-                    _positionBadge(player.position),
+                    _positionBadge(positionLabel),
                     if (_canLevelUp(player)) ...[
-                      const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4),
+                            horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
                           color: AppColors.warning.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(4),
+                          borderRadius: BorderRadius.circular(8),
                           border: Border.all(
                               color: AppColors.warning.withOpacity(0.5)),
                         ),
@@ -927,7 +2045,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                                 size: 12,
                                 color: AppColors.warning),
                             const SizedBox(width: 4),
-                            const Text('LEVEL UP!',
+                            Text(tr(lang, 'team.levelUp'),
                                 style: TextStyle(
                                     fontSize: 10,
                                     fontWeight: FontWeight.bold,
@@ -948,11 +2066,11 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                         player.name.toUpperCase(),
                         style: TextStyle(
                           fontFamily: AppTypography.displayFontFamily,
-                          fontSize: 56,
+                          fontSize: 62,
                           fontWeight: FontWeight.w900,
                           color: AppColors.textPrimary,
                           height: 1.0,
-                          letterSpacing: 2,
+                          letterSpacing: 1.2,
                         ),
                       ),
                     ),
@@ -981,17 +2099,17 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                   runSpacing: 8,
                   children: [
                     _heroInfoChip(PhosphorIcons.shield(PhosphorIconsStyle.fill),
-                        'EQUIPO', team.name, AppColors.textSecondary),
+                        tr(lang, 'player.team'), team.name, AppColors.info),
                     _heroInfoChip(
                         PhosphorIcons.coinVertical(PhosphorIconsStyle.fill),
-                        'VALOR',
+                        tr(lang, 'player.value'),
                         '${_formatNumber(player.value)} GP',
                         AppColors.accent),
                     _heroInfoChip(PhosphorIcons.star(PhosphorIconsStyle.fill),
                         'SPP', '${player.spp}', AppColors.info),
                     _heroInfoChip(
                         PhosphorIcons.trendUp(PhosphorIconsStyle.fill),
-                        'NIVEL',
+                        tr(lang, 'player.level'),
                         '${player.level}',
                         AppColors.warning),
                   ],
@@ -1034,8 +2152,14 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
 
   // -- Layouts ---------------------------------------------------------------
 
-  Widget _buildWideLayout(BuildContext context, Team team, Character player,
-      bool isOwner, String lang, Set<String>? startingSkillKeys) {
+  Widget _buildWideLayout(
+      BuildContext context,
+      Team team,
+      Character player,
+      bool isOwner,
+      String lang,
+      Set<String>? startingSkillKeys,
+      BaseTeam? baseRoster) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1044,12 +2168,8 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
           flex: 3,
           child: Column(
             children: [
-              _buildCoreAttributesCard(context, player, isOwner),
-              const SizedBox(height: 20),
-              _buildAbilitiesCard(
+              _buildAttributesAndSkillsCard(
                   context, player, isOwner, lang, startingSkillKeys),
-              const SizedBox(height: 20),
-              _buildCareerChronicleCard(player, lang),
             ],
           ),
         ),
@@ -1059,11 +2179,10 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
           flex: 2,
           child: Column(
             children: [
-              _buildLevelTrackerCard(player),
+              _buildLevelTrackerCard(
+                  context, player, isOwner, lang, baseRoster),
               const SizedBox(height: 20),
-              _buildPerformanceRecordsCard(player),
-              const SizedBox(height: 20),
-              _buildActionButtons(context, isOwner, lang),
+              _buildPerformanceRecordsCard(player, lang),
             ],
           ),
         ),
@@ -1071,32 +2190,33 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
     );
   }
 
-  Widget _buildNarrowLayout(BuildContext context, Team team, Character player,
-      bool isOwner, String lang, Set<String>? startingSkillKeys) {
+  Widget _buildNarrowLayout(
+      BuildContext context,
+      Team team,
+      Character player,
+      bool isOwner,
+      String lang,
+      Set<String>? startingSkillKeys,
+      BaseTeam? baseRoster) {
     return Column(
       children: [
-        _buildLevelTrackerCard(player),
+        _buildLevelTrackerCard(context, player, isOwner, lang, baseRoster),
         const SizedBox(height: 20),
-        _buildCoreAttributesCard(context, player, isOwner),
+        _buildAttributesAndSkillsCard(
+            context, player, isOwner, lang, startingSkillKeys),
         const SizedBox(height: 20),
-        _buildAbilitiesCard(context, player, isOwner, lang, startingSkillKeys),
-        const SizedBox(height: 20),
-        _buildPerformanceRecordsCard(player),
-        const SizedBox(height: 20),
-        _buildCareerChronicleCard(player, lang),
-        const SizedBox(height: 20),
-        _buildActionButtons(context, isOwner, lang),
+        _buildPerformanceRecordsCard(player, lang),
         const SizedBox(height: 40),
       ],
     );
   }
 
-  // -- Core Attributes Card --------------------------------------------------
+  // -- Attributes & Skills Card ---------------------------------------------
 
-  Widget _buildCoreAttributesCard(
-      BuildContext context, Character player, bool isOwner) {
+  Widget _buildAttributesAndSkillsCard(BuildContext context, Character player,
+      bool isOwner, String lang, Set<String>? startingSkillKeys) {
     final s = player.stats;
-    final canEdit = isOwner && _canLevelUp(player);
+    const canEdit = false;
 
     return _card(
       child: Column(
@@ -1104,7 +2224,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
         children: [
           Row(
             children: [
-              _sectionTitle('CORE ATTRIBUTES'),
+              _sectionTitle(tr(lang, 'player.coreAttributes')),
               const Spacer(),
               if (canEdit)
                 TextButton.icon(
@@ -1119,82 +2239,114 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                 ),
             ],
           ),
-          const SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _statColumn('MOV', '${s.ma}', canEdit, context),
-              _statColumn('FUE', '${s.st}', canEdit, context),
-              _statColumn('AGI', '${s.ag}+', canEdit, context),
-              _statColumn('PAS', s.pa > 0 ? '${s.pa}+' : '-',
-                  canEdit && s.pa > 0, context),
-              _statColumn('ARM', '${s.av}+', canEdit, context),
-            ],
-          ),
+          const SizedBox(height: 18),
+          LayoutBuilder(builder: (context, constraints) {
+            final compact = constraints.maxWidth < 620;
+            final tileWidth = compact
+                ? (constraints.maxWidth - 12) / 2
+                : (constraints.maxWidth - 48) / 5;
+            return Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                _statColumn('MA', '${s.ma}', canEdit, context, player, 'MA',
+                    AppColors.textSecondary,
+                    width: tileWidth),
+                _statColumn('ST', '${s.st}', canEdit, context, player, 'ST',
+                    AppColors.textSecondary,
+                    width: tileWidth),
+                _statColumn('AG', '${s.ag}+', canEdit, context, player, 'AG',
+                    AppColors.textSecondary,
+                    width: tileWidth),
+                _statColumn(
+                    'PA',
+                    s.pa > 0 ? '${s.pa}+' : '-',
+                    canEdit && s.pa > 0,
+                    context,
+                    player,
+                    'PA',
+                    AppColors.textSecondary,
+                    width: tileWidth),
+                _statColumn('AV', '${s.av}+', canEdit, context, player, 'AV',
+                    AppColors.textSecondary,
+                    width: tileWidth),
+              ],
+            );
+          }),
+          const SizedBox(height: 22),
+          Divider(color: AppColors.surfaceLight.withOpacity(0.7), height: 1),
+          const SizedBox(height: 18),
+          _buildSkillsPanel(context, player, isOwner, lang, startingSkillKeys),
         ],
       ),
     );
   }
 
-  Widget _statColumn(
-      String label, String value, bool canEdit, BuildContext context) {
-    return Column(
-      children: [
-        // Plus button
-        if (canEdit)
-          _statButton(
-              '+',
-              () => ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Proximamente: $label +1')))),
-        if (!canEdit) const SizedBox(height: 28),
-        const SizedBox(height: 4),
-        // Value
-        Container(
-          width: 56,
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          decoration: BoxDecoration(
-            color: AppColors.background,
-            borderRadius: BorderRadius.circular(4),
-            border: Border.all(color: AppColors.surfaceLight),
-          ),
-          child: Column(
-            children: [
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 9,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textMuted,
-                  letterSpacing: 1,
+  Widget _statColumn(String label, String value, bool canEdit,
+      BuildContext context, Character player, String stat, Color color,
+      {required double width}) {
+    return SizedBox(
+      width: width,
+      child: Column(
+        children: [
+          // Plus button
+          if (canEdit)
+            _statButton(
+                '+',
+                _isMutating
+                    ? null
+                    : () =>
+                        _showCharacteristicRollDialog(context, player, stat)),
+          if (!canEdit) const SizedBox(height: 28),
+          const SizedBox(height: 4),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
+            decoration: BoxDecoration(
+              color: AppColors.background.withOpacity(0.45),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppColors.surfaceLight),
+            ),
+            child: Column(
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontFamily: AppTypography.displayFontFamily,
+                    fontSize: 30,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.textMuted,
+                    letterSpacing: 0.6,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                value,
-                style: TextStyle(
-                  fontFamily: AppTypography.displayFontFamily,
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                  height: 1,
+                const SizedBox(height: 8),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontFamily: AppTypography.displayFontFamily,
+                    fontSize: 46,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.textPrimary,
+                    height: 1,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 4),
-        // Minus button
-        if (canEdit)
-          _statButton(
-              '-',
-              () => ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Proximamente: $label -1')))),
-        if (!canEdit) const SizedBox(height: 28),
-      ],
+          const SizedBox(height: 4),
+          // Minus button
+          if (canEdit)
+            _statButton(
+                '-',
+                () => ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Proximamente: $label -1')))),
+          if (!canEdit) const SizedBox(height: 28),
+        ],
+      ),
     );
   }
 
-  Widget _statButton(String label, VoidCallback onTap) {
+  Widget _statButton(String label, VoidCallback? onTap) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(4),
@@ -1220,114 +2372,129 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
     );
   }
 
-  // -- Abilities & Traits Card -----------------------------------------------
+  // -- Skills Panel ----------------------------------------------------------
 
-  Widget _buildAbilitiesCard(BuildContext context, Character player,
-      bool isOwner, String lang, Set<String>? startingSkillKeys) {
+  Widget _buildSkillsPanel(BuildContext context, Character player, bool isOwner,
+      String lang, Set<String>? startingSkillKeys) {
     final allPerks = ref.watch(allPerksProvider).valueOrNull ?? [];
 
-    return _card(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              _sectionTitle('ABILITIES & TRAITS'),
-              const Spacer(),
-              if (isOwner)
-                ElevatedButton.icon(
-                  onPressed: () => _showAddSkillDialog(context, player, lang),
-                  icon: Icon(PhosphorIcons.plus(PhosphorIconsStyle.bold),
-                      size: 14),
-                  label: Text('ADD SKILL',
-                      style: TextStyle(
-                        fontFamily: AppTypography.displayFontFamily,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 0.5,
-                      )),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.info.withOpacity(0.15),
-                    foregroundColor: AppColors.info,
-                    elevation: 0,
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(6),
-                      side: BorderSide(color: AppColors.info.withOpacity(0.3)),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            _sectionTitle(tr(lang, 'player.skills')),
+            const Spacer(),
+          ],
+        ),
+        const SizedBox(height: 16),
+        if (player.skills.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 24),
+            decoration: BoxDecoration(
+              color: AppColors.background.withOpacity(0.5),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppColors.surfaceLight),
+            ),
+            child: Column(
+              children: [
+                Icon(PhosphorIcons.lightning(PhosphorIconsStyle.regular),
+                    size: 32, color: AppColors.textMuted.withOpacity(0.3)),
+                const SizedBox(height: 8),
+                Text(tr(lang, 'player.noSkills'),
+                    style: TextStyle(
+                      fontFamily: AppTypography.displayFontFamily,
+                      fontSize: 16,
+                      color: AppColors.textMuted.withOpacity(0.5),
+                    )),
+                const SizedBox(height: 4),
+                Text(
+                  isOwner
+                      ? tr(lang, 'player.addSkillHint')
+                      : tr(lang, 'player.noSkillsYet'),
+                  style: TextStyle(
+                      fontSize: 11,
+                      color: AppColors.textMuted.withOpacity(0.4)),
+                ),
+              ],
+            ),
+          )
+        else
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: player.skills.map((s) {
+              final displayName = localizedPerkName(allPerks, s.name, lang);
+              final isAcquired = _isAcquiredSkill(s, startingSkillKeys) == true;
+              final color = _skillColor(s.family, isAcquired: isAcquired);
+              return GestureDetector(
+                onTap: () => showSkillPopup(context, ref,
+                    skillName: s.name,
+                    family: s.family,
+                    description: s.description),
+                child: MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: Tooltip(
+                    message: displayName,
+                    child: Container(
+                      constraints: const BoxConstraints(maxWidth: 190),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: color.withOpacity(0.18),
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(color: color.withOpacity(0.58)),
+                      ),
+                      child: Text(
+                        displayName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w900,
+                          color: color,
+                        ),
+                      ),
                     ),
                   ),
                 ),
-            ],
+              );
+            }).toList(),
           ),
-          const SizedBox(height: 16),
-          if (player.skills.isEmpty)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 24),
-              decoration: BoxDecoration(
-                color: AppColors.background.withOpacity(0.5),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.surfaceLight),
-              ),
-              child: Column(
-                children: [
-                  Icon(PhosphorIcons.lightning(PhosphorIconsStyle.regular),
-                      size: 32, color: AppColors.textMuted.withOpacity(0.3)),
-                  const SizedBox(height: 8),
-                  Text(tr(lang, 'player.noSkills'),
-                      style: TextStyle(
-                        fontFamily: AppTypography.displayFontFamily,
-                        fontSize: 16,
-                        color: AppColors.textMuted.withOpacity(0.5),
-                      )),
-                  const SizedBox(height: 4),
-                  Text(
-                    isOwner
-                        ? tr(lang, 'player.addSkillHint')
-                        : tr(lang, 'player.noSkillsYet'),
-                    style: TextStyle(
-                        fontSize: 11,
-                        color: AppColors.textMuted.withOpacity(0.4)),
-                  ),
-                ],
-              ),
-            )
-          else
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: player.skills.map((s) {
-                final displayName = localizedPerkName(allPerks, s.name, lang);
-                return GestureDetector(
-                  onTap: () => showSkillPopup(context, ref,
-                      skillName: s.name,
-                      family: s.family,
-                      description: s.description),
-                  child: MouseRegion(
-                    cursor: SystemMouseCursors.click,
-                    child: SkillBadge(
-                      skill: s,
-                      isAcquired: _isAcquiredSkill(s, startingSkillKeys),
-                      displayName: displayName,
-                      tooltip: displayName,
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-        ],
-      ),
+      ],
     );
+  }
+
+  Color _skillColor(String? family, {required bool isAcquired}) {
+    if (isAcquired) return AppColors.accent;
+    switch ((family ?? '').toLowerCase()) {
+      case 'strength':
+      case 's':
+        return AppColors.error;
+      case 'agility':
+      case 'a':
+        return AppColors.success;
+      case 'passing':
+      case 'p':
+        return AppColors.info;
+      case 'mutation':
+      case 'm':
+        return AppColors.primaryLight;
+      default:
+        return AppColors.primary;
+    }
   }
 
   // -- Level Tracker Card ----------------------------------------------------
 
-  Widget _buildLevelTrackerCard(Character player) {
+  Widget _buildLevelTrackerCard(BuildContext context, Character player,
+      bool isOwner, String lang, BaseTeam? baseRoster) {
     final next = _nextSpp(player.level);
     final isMax = next == 0;
     final progress = isMax ? 1.0 : (player.spp / next).clamp(0.0, 1.0);
     final canLevel = _canLevelUp(player);
+    final canBuySkill = isOwner && _canBuySkillAdvancement(player, baseRoster);
     final remaining = isMax ? 0 : next - player.spp;
 
     return _card(
@@ -1337,112 +2504,96 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
         children: [
           Row(
             children: [
-              _sectionTitle('LEVEL TRACKER'),
+              _sectionTitle(tr(lang, 'player.levelTracker')),
               const Spacer(),
-              // Decorative arrow up
-              Icon(PhosphorIcons.arrowFatLinesUp(PhosphorIconsStyle.fill),
-                  size: 20, color: AppColors.accent.withOpacity(0.5)),
-            ],
-          ),
-          const SizedBox(height: 20),
-          // Level progress indicator
-          Row(
-            children: [
-              _levelBadge('NIVEL ${player.level}', true),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: Column(
-                    children: [
-                      // Progress bar
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
-                        child: LinearProgressIndicator(
-                          value: progress,
-                          backgroundColor: AppColors.surfaceLight,
-                          valueColor: AlwaysStoppedAnimation(
-                              canLevel ? AppColors.warning : AppColors.accent),
-                          minHeight: 8,
-                        ),
+              if (isOwner)
+                ElevatedButton.icon(
+                  onPressed: canBuySkill && !_isMutating
+                      ? () =>
+                          _showAddSkillDialog(context, player, lang, baseRoster)
+                      : null,
+                  icon: Icon(
+                      PhosphorIcons.arrowFatLinesUp(PhosphorIconsStyle.fill),
+                      size: 15),
+                  label: Text(tr(lang, 'player.addSkill'),
+                      style: TextStyle(
+                        fontFamily: AppTypography.displayFontFamily,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.5,
+                      )),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.warning.withOpacity(0.18),
+                    disabledBackgroundColor: AppColors.surfaceLight,
+                    foregroundColor: AppColors.warning,
+                    disabledForegroundColor: AppColors.textMuted,
+                    elevation: 0,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(6),
+                      side: BorderSide(
+                        color: canBuySkill
+                            ? AppColors.warning.withOpacity(0.45)
+                            : AppColors.surfaceLight,
                       ),
-                    ],
-                  ),
-                ),
-              ),
-              if (!isMax) _levelBadge('NIVEL ${player.level + 1}', false),
-            ],
-          ),
-          const SizedBox(height: 24),
-          // SPP Display
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'STAR PLAYER POINTS',
-                    style: TextStyle(
-                      fontSize: 9,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textMuted,
-                      letterSpacing: 1,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.baseline,
-                    textBaseline: TextBaseline.alphabetic,
-                    children: [
-                      Text(
-                        '${player.spp.toString().padLeft(2, '0')}',
-                        style: TextStyle(
-                          fontFamily: AppTypography.displayFontFamily,
-                          fontSize: 52,
-                          fontWeight: FontWeight.bold,
-                          color: canLevel
-                              ? AppColors.warning
-                              : AppColors.textPrimary,
-                          height: 1,
-                        ),
-                      ),
-                      Text(
-                        ' / ${next.toString().padLeft(2, '0')}',
-                        style: TextStyle(
-                          fontFamily: AppTypography.displayFontFamily,
-                          fontSize: 20,
-                          color: AppColors.textMuted,
-                        ),
-                      ),
-                    ],
+                )
+              else
+                Icon(PhosphorIcons.arrowFatLinesUp(PhosphorIconsStyle.fill),
+                    size: 20, color: AppColors.accent.withOpacity(0.5)),
+            ],
+          ),
+          const SizedBox(height: 22),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  _levelBadge(
+                      '${tr(lang, 'player.level')} ${player.level}', true),
+                  const Spacer(),
+                  Text(
+                    '${player.spp} / ${isMax ? 'MAX' : next} SPP',
+                    style: TextStyle(
+                      fontFamily: AppTypography.displayFontFamily,
+                      fontSize: 24,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.textPrimary,
+                      height: 1,
+                    ),
                   ),
                 ],
               ),
-              const Spacer(),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
+              const SizedBox(height: 14),
+              _seriousProgressBar(
+                value: progress,
+                color: canLevel ? AppColors.warning : AppColors.accent,
+              ),
+              const SizedBox(height: 10),
+              Row(
                 children: [
-                  const Text(
-                    'TO NEXT LEVEL',
-                    style: TextStyle(
-                      fontSize: 9,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textMuted,
-                      letterSpacing: 1,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
                   Text(
                     isMax
-                        ? 'MAX'
-                        : '${remaining.toString().padLeft(2, '0')} SPP',
-                    style: TextStyle(
-                      fontFamily: AppTypography.displayFontFamily,
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.accent,
+                        ? tr(lang, 'player.nextLevel')
+                        : '${tr(lang, 'player.toNextLevel')}: $remaining SPP',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textMuted,
                     ),
                   ),
+                  const Spacer(),
+                  if (!isMax)
+                    Text(
+                      '${tr(lang, 'player.nextLevel')}: ${player.level + 1}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
                 ],
               ),
             ],
@@ -1450,6 +2601,46 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
         ],
       ),
     );
+  }
+
+  Widget _seriousProgressBar({required double value, required Color color}) {
+    return LayoutBuilder(builder: (context, constraints) {
+      return Container(
+        height: 18,
+        decoration: BoxDecoration(
+          color: AppColors.background.withOpacity(0.7),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: AppColors.surfaceLight),
+        ),
+        child: Stack(
+          children: [
+            FractionallySizedBox(
+              widthFactor: value,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.82),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+            ),
+            Align(
+              alignment: Alignment.centerRight,
+              child: Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: Text(
+                  '${(value * 100).round()}%',
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    });
   }
 
   Widget _levelBadge(String text, bool isCurrent) {
@@ -1480,239 +2671,198 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
 
   // -- Performance Records Card ----------------------------------------------
 
-  Widget _buildPerformanceRecordsCard(Character player) {
-    // Placeholder stats - these would come from backend in real implementation
+  Widget _buildPerformanceRecordsCard(Character player, String lang) {
+    final career = player.career;
+    final dashboardStats = [
+      _GraphValue(
+          tr(lang, 'aftermatch.touchdowns'), career.touchdowns.toDouble(), 5),
+      _GraphValue(
+          tr(lang, 'aftermatch.completions'), career.completions.toDouble(), 8),
+      _GraphValue(
+          tr(lang, 'aftermatch.casualties'), career.casualties.toDouble(), 5),
+      _GraphValue(tr(lang, 'aftermatch.interceptions'),
+          career.interceptions.toDouble(), 4),
+      _GraphValue(tr(lang, 'aftermatch.kos'), career.kos.toDouble(), 6),
+      _GraphValue(tr(lang, 'aftermatch.mvp'), career.mvpAwards.toDouble(), 3),
+    ];
+
     return _card(
+      borderColor: AppColors.accent.withOpacity(0.28),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _sectionTitle('PERFORMANCE RECORDS'),
+          _sectionTitle(tr(lang, 'player.performanceDashboard')),
+          const SizedBox(height: 18),
+          _statGraph(dashboardStats),
           const SizedBox(height: 16),
-          _performanceRow('Matches Played', '00'),
-          _performanceRow('Touchdowns', '00', valueColor: AppColors.info),
-          _performanceRow('Casualties Caused', '00',
-              valueColor: AppColors.error),
-          _performanceRow('MVP Awards', '00', valueColor: AppColors.accent),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final compact = constraints.maxWidth < 420;
+              final metricWidth = compact
+                  ? constraints.maxWidth
+                  : (constraints.maxWidth - 12) / 2;
+              return Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: dashboardStats
+                    .map((item) => _dashboardMetric(
+                          label: item.label,
+                          value: item.displayValue,
+                          progress: _graphRatio(item),
+                          width: metricWidth,
+                        ))
+                    .toList(),
+              );
+            },
+          ),
         ],
       ),
     );
   }
 
-  Widget _performanceRow(String label, String value, {Color? valueColor}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        children: [
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 13,
-              color: AppColors.textSecondary,
-            ),
-          ),
-          const Spacer(),
-          Text(
-            value,
-            style: TextStyle(
-              fontFamily: AppTypography.displayFontFamily,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: valueColor ?? AppColors.textPrimary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // -- Career Chronicle Card -------------------------------------------------
-
-  Widget _buildCareerChronicleCard(Character player, String lang) {
-    return _card(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _sectionTitle('CAREER CHRONICLE'),
-          const SizedBox(height: 16),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Latest Match
-              Expanded(
-                child: _chronicleColumn(
-                  'LATEST MATCH',
-                  AppColors.primary,
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        tr(lang, 'player.noMatches'),
-                        style: TextStyle(
-                          fontFamily: AppTypography.displayFontFamily,
-                          fontSize: 14,
+  Widget _dashboardMetric({
+    required String label,
+    required String value,
+    required double progress,
+    required double width,
+  }) {
+    return SizedBox(
+      width: width,
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppColors.background.withOpacity(0.42),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: AppColors.surfaceLight),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          fontSize: 11,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        tr(lang, 'player.noMatchesDesc'),
-                        style:
-                            TextStyle(fontSize: 11, color: AppColors.textMuted),
-                      ),
-                    ],
-                  ),
+                          color: AppColors.textMuted,
+                          letterSpacing: 0.6)),
                 ),
-              ),
-              _vertDivider(),
-              // Achievement
-              Expanded(
-                child: _chronicleColumn(
-                  'ACHIEVEMENT',
-                  AppColors.accent,
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        tr(lang, 'player.noAchievements'),
-                        style: TextStyle(
-                          fontFamily: AppTypography.displayFontFamily,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        tr(lang, 'player.noAchievementsDesc'),
-                        style:
-                            TextStyle(fontSize: 11, color: AppColors.textMuted),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              _vertDivider(),
-              // Notes
-              Expanded(
-                child: _chronicleColumn(
-                  'NOTES',
-                  AppColors.info,
-                  Text(
-                    tr(lang, 'player.noNotes'),
+                Text(value,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontSize: 12,
-                      fontStyle: FontStyle.italic,
-                      color: AppColors.textSecondary,
+                        fontFamily: AppTypography.displayFontFamily,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.textPrimary,
+                        height: 1)),
+              ],
+            ),
+            const SizedBox(height: 10),
+            _miniBar(progress),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _statGraph(List<_GraphValue> values) {
+    return Container(
+      height: 170,
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
+      decoration: BoxDecoration(
+        color: AppColors.background.withOpacity(0.38),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.surfaceLight),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: values.map((item) {
+          final ratio = (item.value / item.max).clamp(0.0, 1.0);
+          return Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 5),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Text(
+                    item.displayValue,
+                    style: TextStyle(
+                      fontFamily: AppTypography.displayFontFamily,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.textPrimary,
                     ),
                   ),
-                ),
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.bottomCenter,
+                      child: FractionallySizedBox(
+                        heightFactor: ratio,
+                        widthFactor: 1,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: AppColors.accent.withOpacity(0.72),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    item.label,
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textMuted,
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
-        ],
+            ),
+          );
+        }).toList(),
       ),
     );
   }
 
-  Widget _chronicleColumn(String title, Color color, Widget content) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.15),
-            borderRadius: BorderRadius.circular(3),
-          ),
-          child: Text(
-            title,
-            style: TextStyle(
-              fontSize: 9,
-              fontWeight: FontWeight.bold,
-              color: color,
-              letterSpacing: 0.5,
-            ),
-          ),
-        ),
-        const SizedBox(height: 10),
-        content,
-      ],
+  Widget _miniBar(double progress) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(999),
+      child: LinearProgressIndicator(
+        value: progress,
+        minHeight: 7,
+        backgroundColor: AppColors.surfaceLight.withOpacity(0.7),
+        valueColor: AlwaysStoppedAnimation(AppColors.accent.withOpacity(0.75)),
+      ),
     );
   }
 
-  Widget _vertDivider() => Container(
-        height: 80,
-        width: 1,
-        color: AppColors.surfaceLight,
-        margin: const EdgeInsets.symmetric(horizontal: 16),
-      );
-
-  // -- Action Buttons --------------------------------------------------------
-
-  Widget _buildActionButtons(BuildContext context, bool isOwner, String lang) {
-    if (!isOwner) return const SizedBox.shrink();
-
-    return Row(
-      children: [
-        Expanded(
-          child: ElevatedButton(
-            onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(tr(lang, 'player.changesSaved')))),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(6)),
-            ),
-            child: Text(
-              tr(lang, 'player.saveChanges'),
-              style: TextStyle(
-                fontFamily: AppTypography.displayFontFamily,
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: OutlinedButton(
-            onPressed: () {},
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.textSecondary,
-              side: const BorderSide(color: AppColors.surfaceLight),
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(6)),
-            ),
-            child: Text(
-              tr(lang, 'player.dismiss'),
-              style: TextStyle(
-                fontFamily: AppTypography.displayFontFamily,
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
+  double _graphRatio(_GraphValue item) =>
+      item.max <= 0 ? 0 : (item.value / item.max).clamp(0.0, 1.0);
 
   // -- Shared Helpers --------------------------------------------------------
 
   Widget _card({required Widget child, Color? borderColor}) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
         color: AppColors.card,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: borderColor ?? AppColors.surfaceLight),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.16),
+            blurRadius: 18,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: child,
     );
@@ -1791,10 +2941,29 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
     );
   }
 
+  String _localizedCharacterPosition(
+      Character player, BaseTeam? roster, String lang) {
+    final position = _basePositionFor(roster, player);
+    final raw = position?.position ?? position?.name ?? player.position;
+    return localizedPositionText(raw, lang);
+  }
+
   String _formatNumber(int number) {
     if (number >= 1000) {
       return '${(number / 1000).toStringAsFixed(0)},000';
     }
     return number.toString();
   }
+}
+
+class _GraphValue {
+  _GraphValue(this.label, this.value, this.max, {String? displayValue})
+      : displayValue = displayValue ?? _defaultDisplay(value);
+
+  final String label;
+  final double value;
+  final double max;
+  final String displayValue;
+
+  static String _defaultDisplay(double value) => value.toStringAsFixed(0);
 }

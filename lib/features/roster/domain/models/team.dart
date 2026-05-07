@@ -57,6 +57,7 @@ class Character with _$Character {
     @Default([]) List<String> normalSkills,
     @Default([]) List<String> doubleSkills,
     @Default(PlayerStatus.healthy) PlayerStatus status,
+    @Default(PlayerCareerStats()) PlayerCareerStats career,
     String? injuryDetails,
     @Default(false) bool missNextGame,
   }) = _Character;
@@ -87,6 +88,22 @@ class Character with _$Character {
 }
 
 @freezed
+class PlayerCareerStats with _$PlayerCareerStats {
+  const factory PlayerCareerStats({
+    @Default(0) int games,
+    @Default(0) int touchdowns,
+    @Default(0) int casualties,
+    @Default(0) int interceptions,
+    @Default(0) int completions,
+    @Default(0) int kos,
+    @Default(0) int mvpAwards,
+  }) = _PlayerCareerStats;
+
+  factory PlayerCareerStats.fromJson(Map<String, dynamic> json) =>
+      _$PlayerCareerStatsFromJson(_normalizeCareerStatsJson(json));
+}
+
+@freezed
 class Stats with _$Stats {
   const factory Stats({
     @Default(6) int ma,
@@ -106,6 +123,7 @@ class Skill with _$Skill {
     required String id,
     required String name,
     @Default('') String family,
+    String? parameter,
     String? description,
     int? cost,
     @Default(false) bool isStarting,
@@ -169,11 +187,12 @@ class BasePerk with _$BasePerk {
   const factory BasePerk({
     required String id,
     required String name,
+    String? parameter,
     required String category,
   }) = _BasePerk;
 
   factory BasePerk.fromJson(Map<String, dynamic> json) =>
-      _$BasePerkFromJson(json);
+      _$BasePerkFromJson(_normalizeParameterizedPerkJson(json));
 }
 
 Map<String, dynamic> _normalizeTeamJson(Map<String, dynamic> json) => {
@@ -208,8 +227,14 @@ Map<String, dynamic> _normalizeCharacterJson(Map<String, dynamic> json) => {
       'cost': json['cost'] ?? json['current_value'],
       'normalSkills': json['normalSkills'] ?? json['normal_skills'],
       'doubleSkills': json['doubleSkills'] ?? json['double_skills'],
+      'career': json['career'],
       'injuryDetails': json['injuryDetails'] ?? json['injury_details'],
       'missNextGame': json['missNextGame'] ?? json['miss_next_game'],
+    };
+
+Map<String, dynamic> _normalizeCareerStatsJson(Map<String, dynamic> json) => {
+      ...json,
+      'mvpAwards': json['mvpAwards'] ?? json['mvp_awards'],
     };
 
 Map<String, dynamic> _normalizeStatsJson(Map<String, dynamic> json) => {
@@ -223,9 +248,29 @@ Map<String, dynamic> _normalizeStatsJson(Map<String, dynamic> json) => {
 
 Map<String, dynamic> _normalizeSkillJson(Map<String, dynamic> json) => {
       ...json,
+      ..._normalizeParameterizedPerkJson(json),
       'family': json['family'] ?? json['category'] ?? '',
       'isStarting': json['isStarting'] ?? json['is_starting'] ?? false,
     };
+
+Map<String, dynamic> _normalizeParameterizedPerkJson(
+    Map<String, dynamic> json) {
+  final parameter = json['parameter'] ?? json['value'];
+  final name = json['name'];
+  final parameterText = parameter is String ? parameter.trim() : '';
+  final nameText = name is String ? name.trim() : '';
+  final hasInlineParameter = RegExp(r'\([^)]*\)').hasMatch(nameText);
+  final displayName =
+      parameterText.isNotEmpty && nameText.isNotEmpty && !hasInlineParameter
+          ? '$nameText ($parameterText)'
+          : nameText;
+
+  return {
+    ...json,
+    'name': displayName,
+    'parameter': parameterText.isEmpty ? null : parameterText,
+  };
+}
 
 Map<String, dynamic> _normalizeBaseTeamJson(Map<String, dynamic> json) => {
       ...json,

@@ -11,6 +11,16 @@ extension _LiveMatchDialogs on _LiveMatchScreenState {
   TextStyle get _displaySmall =>
       Theme.of(context).textTheme.displaySmall ?? const TextStyle();
 
+  bool _isLinemanPosition(BasePosition position) {
+    final haystack = [position.position, position.name, position.id]
+        .whereType<String>()
+        .join(' ')
+        .toLowerCase();
+    return haystack.contains('lineman') ||
+        haystack.contains('linea') ||
+        haystack.contains('línea');
+  }
+
   // ── Add Event Dialog ──
 
   void _showAddEventDialog(Match match, String lang, String eventType,
@@ -48,6 +58,8 @@ extension _LiveMatchDialogs on _LiveMatchScreenState {
     for (final p in activePlayers) {
       countByType[p.baseType] = (countByType[p.baseType] ?? 0) + 1;
     }
+    final journeymanPositions =
+        baseRoster.positions.where(_isLinemanPosition).toList();
 
     // Fetch star players available for this team
     List<Map<String, dynamic>> starPlayers = [];
@@ -188,7 +200,7 @@ extension _LiveMatchDialogs on _LiveMatchScreenState {
                                   DataColumn(label: Text('')),
                                 ],
                                 rows: [
-                                  ...baseRoster.positions.map((pos) {
+                                  ...journeymanPositions.map((pos) {
                                     final currentCount =
                                         countByType[pos.id] ?? 0;
                                     final available =
@@ -857,7 +869,11 @@ extension _LiveMatchDialogs on _LiveMatchScreenState {
     try {
       final teamRepo = ref.read(teamRepositoryProvider);
       await teamRepo.hireStarPlayer(teamId,
-          starPlayerId: starPlayerId, name: name, number: number);
+          starPlayerId: starPlayerId,
+          name: name,
+          number: number,
+          temporaryForMatch: true,
+          temporaryMatchId: widget.matchId);
       // After refresh, find the newly added star and mark as temp
       await _doRefreshPreMatch();
       _refresh();

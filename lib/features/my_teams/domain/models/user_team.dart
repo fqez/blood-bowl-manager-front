@@ -34,19 +34,35 @@ class UserPlayerStats {
 class UserPlayerPerk {
   final String id;
   final String name;
+  final String? parameter;
   final String? category;
 
   const UserPlayerPerk({
     required this.id,
     required this.name,
+    this.parameter,
     this.category,
   });
 
-  factory UserPlayerPerk.fromJson(Map<String, dynamic> json) => UserPlayerPerk(
-        id: json['id'] as String? ?? '',
-        name: json['name'] as String? ?? '',
-        category: json['category'] as String?,
-      );
+  factory UserPlayerPerk.fromJson(Map<String, dynamic> json) {
+    final rawName = (json['name'] as String? ?? '').trim();
+    final rawParameter = (json['parameter'] ?? json['value']) as String?;
+    final parameter = rawParameter?.trim();
+    final hasInlineParameter = RegExp(r'\([^)]*\)').hasMatch(rawName);
+    final name = parameter != null &&
+            parameter.isNotEmpty &&
+            rawName.isNotEmpty &&
+            !hasInlineParameter
+        ? '$rawName ($parameter)'
+        : rawName;
+
+    return UserPlayerPerk(
+      id: json['id'] as String? ?? '',
+      name: name,
+      parameter: parameter?.isEmpty ?? true ? null : parameter,
+      category: json['category'] as String?,
+    );
+  }
 }
 
 // ─────────────────────────── Career ──────────────────────────
@@ -89,6 +105,8 @@ class UserPlayer {
   final int currentValue;
   final UserPlayerStats stats;
   final List<UserPlayerPerk> perks;
+  final int advancements;
+  final int level;
   final int spp;
   final String status;
   final String? image;
@@ -105,6 +123,8 @@ class UserPlayer {
     required this.currentValue,
     required this.stats,
     required this.perks,
+    required this.advancements,
+    required this.level,
     required this.spp,
     required this.status,
     this.image,
@@ -125,6 +145,8 @@ class UserPlayer {
         perks: (json['perks'] as List<dynamic>? ?? [])
             .map((e) => UserPlayerPerk.fromJson(e as Map<String, dynamic>))
             .toList(),
+        advancements: (json['advancements'] as num?)?.toInt() ?? 0,
+        level: (json['level'] as num?)?.toInt() ?? 1,
         spp: (json['spp'] as num?)?.toInt() ?? 0,
         status: json['status'] as String? ?? 'healthy',
         image: json['image'] as String?,
@@ -222,6 +244,7 @@ class UserTeamSummary {
   final String name;
   final String baseRosterId;
   final int teamValue;
+  final int currentTeamValue;
   final int treasury;
   final int playerCount;
   final bool canManageRoster;
@@ -234,6 +257,7 @@ class UserTeamSummary {
     required this.name,
     required this.baseRosterId,
     required this.teamValue,
+    required this.currentTeamValue,
     required this.treasury,
     required this.playerCount,
     required this.canManageRoster,
@@ -248,6 +272,9 @@ class UserTeamSummary {
         name: json['name'] as String,
         baseRosterId: json['base_roster_id'] as String,
         teamValue: (json['team_value'] as num?)?.toInt() ?? 0,
+        currentTeamValue: (json['current_team_value'] as num?)?.toInt() ??
+            (json['team_value'] as num?)?.toInt() ??
+            0,
         treasury: (json['treasury'] as num?)?.toInt() ?? 1000000,
         playerCount: (json['player_count'] as num?)?.toInt() ?? 0,
         canManageRoster: json['can_manage_roster'] as bool? ?? true,
@@ -279,6 +306,7 @@ class UserTeamDetail {
   final int treasury;
   final int teamValue;
   final int currentTeamValue;
+  final TeamValueBreakdown teamValueBreakdown;
   final int rerolls;
   final int rerollCost;
   final int fanFactor;
@@ -303,6 +331,7 @@ class UserTeamDetail {
     required this.treasury,
     required this.teamValue,
     required this.currentTeamValue,
+    required this.teamValueBreakdown,
     required this.rerolls,
     required this.rerollCost,
     required this.fanFactor,
@@ -332,6 +361,14 @@ class UserTeamDetail {
         currentTeamValue: (json['current_team_value'] as num?)?.toInt() ??
             (json['team_value'] as num?)?.toInt() ??
             0,
+        teamValueBreakdown: TeamValueBreakdown.fromJson(
+          json['team_value_breakdown'] as Map<String, dynamic>? ?? const {},
+          fallbackTeamValue: (json['team_value'] as num?)?.toInt() ?? 0,
+          fallbackCurrentTeamValue:
+              (json['current_team_value'] as num?)?.toInt() ??
+                  (json['team_value'] as num?)?.toInt() ??
+                  0,
+        ),
         rerolls: (json['rerolls'] as num?)?.toInt() ?? 0,
         rerollCost: (json['reroll_cost'] as num?)?.toInt() ?? 0,
         fanFactor: (json['fan_factor'] as num?)?.toInt() ?? 0,
@@ -362,4 +399,56 @@ class UserTeamDetail {
 
   int get activePlayerCount =>
       players.where((p) => p.status == 'healthy').length;
+}
+
+class TeamValueBreakdown {
+  final int playerValue;
+  final int unavailablePlayerValue;
+  final int rerollValue;
+  final int assistantCoachValue;
+  final int cheerleaderValue;
+  final int apothecaryValue;
+  final int sidelineStaffValue;
+  final int treasuryValue;
+  final int dedicatedFansValue;
+  final int teamValue;
+  final int currentTeamValue;
+
+  const TeamValueBreakdown({
+    required this.playerValue,
+    required this.unavailablePlayerValue,
+    required this.rerollValue,
+    required this.assistantCoachValue,
+    required this.cheerleaderValue,
+    required this.apothecaryValue,
+    required this.sidelineStaffValue,
+    required this.treasuryValue,
+    required this.dedicatedFansValue,
+    required this.teamValue,
+    required this.currentTeamValue,
+  });
+
+  factory TeamValueBreakdown.fromJson(
+    Map<String, dynamic> json, {
+    int fallbackTeamValue = 0,
+    int fallbackCurrentTeamValue = 0,
+  }) =>
+      TeamValueBreakdown(
+        playerValue: (json['player_value'] as num?)?.toInt() ?? 0,
+        unavailablePlayerValue:
+            (json['unavailable_player_value'] as num?)?.toInt() ?? 0,
+        rerollValue: (json['reroll_value'] as num?)?.toInt() ?? 0,
+        assistantCoachValue:
+            (json['assistant_coach_value'] as num?)?.toInt() ?? 0,
+        cheerleaderValue: (json['cheerleader_value'] as num?)?.toInt() ?? 0,
+        apothecaryValue: (json['apothecary_value'] as num?)?.toInt() ?? 0,
+        sidelineStaffValue:
+            (json['sideline_staff_value'] as num?)?.toInt() ?? 0,
+        treasuryValue: (json['treasury_value'] as num?)?.toInt() ?? 0,
+        dedicatedFansValue:
+            (json['dedicated_fans_value'] as num?)?.toInt() ?? 0,
+        teamValue: (json['team_value'] as num?)?.toInt() ?? fallbackTeamValue,
+        currentTeamValue: (json['current_team_value'] as num?)?.toInt() ??
+            fallbackCurrentTeamValue,
+      );
 }

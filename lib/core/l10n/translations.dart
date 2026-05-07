@@ -575,6 +575,12 @@ const _t = <String, Map<String, String>>{
     'es': 'Seleccionar Patada Inicial',
     'en': 'Select Kickoff'
   },
+  'liveMatch.kickReceive': {
+    'es': 'Patada y Recepción',
+    'en': 'Kick and Receive'
+  },
+  'liveMatch.receiver': {'es': 'Recibe', 'en': 'Receives'},
+  'liveMatch.kicker': {'es': 'Patea', 'en': 'Kicks'},
   'liveMatch.ceremonyRequired': {
     'es':
         'Debes seleccionar clima y evento de patada antes de iniciar el partido.',
@@ -686,6 +692,20 @@ const _t = <String, Map<String, String>>{
   'team.hire50k': {'es': 'Contratar  50k', 'en': 'Hire  50k'},
   'team.noApothecary': {'es': 'Sin apotecario', 'en': 'No apothecary'},
   'team.playersCount': {'es': 'Jugadores: {n}/16', 'en': 'Players: {n}/16'},
+  'team.teamValueShort': {'es': 'VE', 'en': 'TV'},
+  'team.currentTeamValueShort': {'es': 'VAE', 'en': 'CTV'},
+  'team.teamValueTooltip': {
+    'es':
+        'VE (Valoración de Equipo): suma del valor de jugadores, rerolls, apotecario, asistentes y animadoras. No incluye tesorería ni hinchas.',
+    'en':
+        'TV (Team Value): total value of players, rerolls, apothecary, assistant coaches and cheerleaders. Treasury and dedicated fans are not included.',
+  },
+  'team.currentTeamValueTooltip': {
+    'es':
+        'VAE (Valoración Actual de Equipo): VE menos el valor de jugadores no disponibles para el próximo partido.',
+    'en':
+        'CTV (Current Team Value): TV minus the value of players unavailable for the next match.',
+  },
   'team.exportRoster': {'es': 'Exportar Roster', 'en': 'Export Roster'},
   'team.noPlayers': {
     'es': 'Sin jugadores que mostrar',
@@ -1283,6 +1303,26 @@ const _t = <String, Map<String, String>>{
 
   // ── Player Card ─────────────────────────────────────────────────────────
   'player.skills': {'es': 'HABILIDADES', 'en': 'SKILLS'},
+  'player.playerDetails': {'es': 'Ficha de jugador', 'en': 'Player details'},
+  'player.coreAttributes': {
+    'es': 'ATRIBUTOS PRINCIPALES',
+    'en': 'CORE ATTRIBUTES',
+  },
+  'player.levelTracker': {'es': 'PROGRESO DE NIVEL', 'en': 'LEVEL PROGRESS'},
+  'player.performanceDashboard': {
+    'es': 'DASHBOARD DE RENDIMIENTO',
+    'en': 'PERFORMANCE DASHBOARD',
+  },
+  'player.nextLevel': {'es': 'Siguiente nivel', 'en': 'Next level'},
+  'player.currentLevel': {'es': 'Nivel actual', 'en': 'Current level'},
+  'player.toNextLevel': {'es': 'Para subir', 'en': 'To next level'},
+  'player.starPlayerPoints': {
+    'es': 'Puntos de Jugador Estrella',
+    'en': 'Star Player Points',
+  },
+  'player.team': {'es': 'Equipo', 'en': 'Team'},
+  'player.level': {'es': 'Nivel', 'en': 'Level'},
+  'player.skillCount': {'es': 'Habilidades', 'en': 'Skills'},
   'player.traits': {'es': 'RASGOS', 'en': 'TRAITS'},
   'player.history': {'es': 'HISTORIAL', 'en': 'HISTORY'},
   'player.levelUp': {'es': 'SUBIR DE NIVEL', 'en': 'LEVEL UP'},
