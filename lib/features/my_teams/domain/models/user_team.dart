@@ -93,6 +93,9 @@ class UserPlayer {
   final String status;
   final String? image;
   final UserPlayerCareer career;
+  final bool temporaryForMatch;
+  final String? temporaryMatchId;
+  final bool journeyman;
 
   const UserPlayer({
     required this.id,
@@ -106,6 +109,9 @@ class UserPlayer {
     required this.status,
     this.image,
     required this.career,
+    this.temporaryForMatch = false,
+    this.temporaryMatchId,
+    this.journeyman = false,
   });
 
   factory UserPlayer.fromJson(Map<String, dynamic> json) => UserPlayer(
@@ -125,6 +131,9 @@ class UserPlayer {
         career: json['career'] != null
             ? UserPlayerCareer.fromJson(json['career'] as Map<String, dynamic>)
             : const UserPlayerCareer(),
+        temporaryForMatch: json['temporary_for_match'] as bool? ?? false,
+        temporaryMatchId: json['temporary_match_id'] as String?,
+        journeyman: json['journeyman'] as bool? ?? false,
       );
 
   /// Convert base_type "skeleton-lineman" → "Skeleton Lineman"

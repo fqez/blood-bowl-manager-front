@@ -34,6 +34,330 @@ final expensiveMistakesRulesProvider =
   return repo.getExpensiveMistakesRules();
 });
 
+final injuryRulesProvider = FutureProvider<InjuryRules>((ref) async {
+  final repo = ref.watch(teamRepositoryProvider);
+  return repo.getInjuryRules();
+});
+
+final winningsRulesProvider = FutureProvider<WinningsRules>((ref) async {
+  final repo = ref.watch(teamRepositoryProvider);
+  return repo.getWinningsRules();
+});
+
+final dedicatedFansRulesProvider =
+    FutureProvider<DedicatedFansRules>((ref) async {
+  final repo = ref.watch(teamRepositoryProvider);
+  return repo.getDedicatedFansRules();
+});
+
+final inducementRulesProvider = FutureProvider<InducementRules>((ref) async {
+  final repo = ref.watch(teamRepositoryProvider);
+  return repo.getInducementRules();
+});
+
+final weatherRulesProvider = FutureProvider<DiceRangeRules>((ref) async {
+  final repo = ref.watch(teamRepositoryProvider);
+  return repo.getWeatherRules();
+});
+
+final kickoffEventRulesProvider = FutureProvider<DiceRangeRules>((ref) async {
+  final repo = ref.watch(teamRepositoryProvider);
+  return repo.getKickoffEventRules();
+});
+
+class DiceRangeRules {
+  final String id;
+  final String rollDice;
+  final Map<String, String> description;
+  final List<DiceRangeRuleEntry> table;
+
+  const DiceRangeRules({
+    required this.id,
+    required this.rollDice,
+    required this.description,
+    required this.table,
+  });
+
+  factory DiceRangeRules.fromJson(Map<String, dynamic> json) => DiceRangeRules(
+        id: json['id'] as String? ?? '',
+        rollDice: json['roll_dice'] as String? ?? '2D6',
+        description: ExpensiveMistakeEffect._localized(json['description']),
+        table: (json['table'] as List<dynamic>? ?? [])
+            .map((e) => DiceRangeRuleEntry.fromJson(e as Map<String, dynamic>))
+            .toList(),
+      );
+
+  DiceRangeRuleEntry? resultFor(int roll) {
+    for (final entry in table) {
+      if (roll >= entry.minRoll && roll <= entry.maxRoll) return entry;
+    }
+    return null;
+  }
+}
+
+class DiceRangeRuleEntry {
+  final int minRoll;
+  final int maxRoll;
+  final String code;
+  final Map<String, String> label;
+  final Map<String, String> description;
+
+  const DiceRangeRuleEntry({
+    required this.minRoll,
+    required this.maxRoll,
+    required this.code,
+    required this.label,
+    required this.description,
+  });
+
+  factory DiceRangeRuleEntry.fromJson(Map<String, dynamic> json) =>
+      DiceRangeRuleEntry(
+        minRoll: (json['min_roll'] as num?)?.toInt() ?? 0,
+        maxRoll: (json['max_roll'] as num?)?.toInt() ?? 0,
+        code: json['code'] as String? ?? '',
+        label: ExpensiveMistakeEffect._localized(json['label']),
+        description: ExpensiveMistakeEffect._localized(json['description']),
+      );
+
+  String localizedLabel(String lang) => label[lang] ?? label['en'] ?? code;
+  String localizedDescription(String lang) =>
+      description[lang] ?? description['en'] ?? '';
+  String get rollLabel => minRoll == maxRoll ? '$minRoll' : '$minRoll-$maxRoll';
+}
+
+class InducementRules {
+  final InducementBudgetRules budget;
+  final List<InducementRule> inducements;
+  final List<PrayerToNuffleResult> prayersToNuffle;
+
+  const InducementRules({
+    required this.budget,
+    required this.inducements,
+    required this.prayersToNuffle,
+  });
+
+  factory InducementRules.fromJson(Map<String, dynamic> json) =>
+      InducementRules(
+        budget: InducementBudgetRules.fromJson(
+            json['budget'] as Map<String, dynamic>? ?? {}),
+        inducements: (json['inducements'] as List<dynamic>? ?? [])
+            .map((e) => InducementRule.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        prayersToNuffle: (json['prayers_to_nuffle'] as List<dynamic>? ?? [])
+            .map(
+                (e) => PrayerToNuffleResult.fromJson(e as Map<String, dynamic>))
+            .toList(),
+      );
+}
+
+class InducementBudgetRules {
+  final int pettyCashTopUpLimit;
+  final bool lowerCtvReceivesDifference;
+  final bool lowerCtvReceivesOpponentTreasurySpend;
+  final bool unspentPettyCashLost;
+  final bool equalCtvTreasurySpendAllowed;
+  final Map<String, String> description;
+
+  const InducementBudgetRules({
+    required this.pettyCashTopUpLimit,
+    required this.lowerCtvReceivesDifference,
+    required this.lowerCtvReceivesOpponentTreasurySpend,
+    required this.unspentPettyCashLost,
+    required this.equalCtvTreasurySpendAllowed,
+    required this.description,
+  });
+
+  factory InducementBudgetRules.fromJson(Map<String, dynamic> json) =>
+      InducementBudgetRules(
+        pettyCashTopUpLimit:
+            (json['petty_cash_top_up_limit'] as num?)?.toInt() ?? 50000,
+        lowerCtvReceivesDifference:
+            json['lower_ctv_receives_difference'] as bool? ?? true,
+        lowerCtvReceivesOpponentTreasurySpend:
+            json['lower_ctv_receives_opponent_treasury_spend'] as bool? ?? true,
+        unspentPettyCashLost: json['unspent_petty_cash_lost'] as bool? ?? true,
+        equalCtvTreasurySpendAllowed:
+            json['equal_ctv_treasury_spend_allowed'] as bool? ?? false,
+        description: ExpensiveMistakeEffect._localized(json['description']),
+      );
+}
+
+class InducementRule {
+  final String id;
+  final Map<String, String> name;
+  final String category;
+  final int maxPerTeam;
+  final int? cost;
+  final List<InducementCostOption> costOptions;
+  final String availability;
+  final List<String> requiredSpecialRules;
+  final String duration;
+  final Map<String, String> description;
+  final List<Map<String, String>> notes;
+
+  const InducementRule({
+    required this.id,
+    required this.name,
+    required this.category,
+    required this.maxPerTeam,
+    required this.cost,
+    required this.costOptions,
+    required this.availability,
+    required this.requiredSpecialRules,
+    required this.duration,
+    required this.description,
+    required this.notes,
+  });
+
+  factory InducementRule.fromJson(Map<String, dynamic> json) => InducementRule(
+        id: json['id'] as String? ?? '',
+        name: ExpensiveMistakeEffect._localized(json['name']),
+        category: json['category'] as String? ?? 'common',
+        maxPerTeam: (json['max_per_team'] as num?)?.toInt() ?? 1,
+        cost: (json['cost'] as num?)?.toInt(),
+        costOptions: (json['cost_options'] as List<dynamic>? ?? [])
+            .map(
+                (e) => InducementCostOption.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        availability: json['availability'] as String? ?? 'any',
+        requiredSpecialRules:
+            (json['required_special_rules'] as List<dynamic>? ?? [])
+                .map((e) => '$e')
+                .toList(),
+        duration: json['duration'] as String? ?? 'game',
+        description: ExpensiveMistakeEffect._localized(json['description']),
+        notes: (json['notes'] as List<dynamic>? ?? [])
+            .map((e) => ExpensiveMistakeEffect._localized(e))
+            .toList(),
+      );
+
+  String localizedName(String lang) => name[lang] ?? name['en'] ?? id;
+  String localizedDescription(String lang) =>
+      description[lang] ?? description['en'] ?? '';
+}
+
+class InducementCostOption {
+  final Map<String, String> label;
+  final int cost;
+  final String appliesTo;
+  final int? maxPerTeam;
+
+  const InducementCostOption({
+    required this.label,
+    required this.cost,
+    required this.appliesTo,
+    this.maxPerTeam,
+  });
+
+  factory InducementCostOption.fromJson(Map<String, dynamic> json) =>
+      InducementCostOption(
+        label: ExpensiveMistakeEffect._localized(json['label']),
+        cost: (json['cost'] as num?)?.toInt() ?? 0,
+        appliesTo: json['applies_to'] as String? ?? 'any',
+        maxPerTeam: (json['max_per_team'] as num?)?.toInt(),
+      );
+}
+
+class PrayerToNuffleResult {
+  final int roll;
+  final String code;
+  final Map<String, String> description;
+
+  const PrayerToNuffleResult({
+    required this.roll,
+    required this.code,
+    required this.description,
+  });
+
+  factory PrayerToNuffleResult.fromJson(Map<String, dynamic> json) =>
+      PrayerToNuffleResult(
+        roll: (json['roll'] as num?)?.toInt() ?? 0,
+        code: json['code'] as String? ?? '',
+        description: ExpensiveMistakeEffect._localized(json['description']),
+      );
+}
+
+class DedicatedFansRules {
+  final int minValue;
+  final int maxValue;
+  final String winRollOperator;
+  final String lossRollOperator;
+  final Map<String, String> description;
+
+  const DedicatedFansRules({
+    required this.minValue,
+    required this.maxValue,
+    required this.winRollOperator,
+    required this.lossRollOperator,
+    required this.description,
+  });
+
+  factory DedicatedFansRules.fromJson(Map<String, dynamic> json) =>
+      DedicatedFansRules(
+        minValue: (json['min_value'] as num?)?.toInt() ?? 1,
+        maxValue: (json['max_value'] as num?)?.toInt() ?? 7,
+        winRollOperator: json['win_roll_operator'] as String? ?? '>=',
+        lossRollOperator: json['loss_roll_operator'] as String? ?? '<',
+        description: ExpensiveMistakeEffect._localized(json['description']),
+      );
+
+  int nextValue({
+    required int current,
+    required int? roll,
+    required bool won,
+    required bool lost,
+  }) {
+    final clamped = current.clamp(minValue, maxValue).toInt();
+    if (won && roll != null && roll >= clamped) {
+      return (clamped + 1).clamp(minValue, maxValue).toInt();
+    }
+    if (lost && roll != null && roll < clamped) {
+      return (clamped - 1).clamp(minValue, maxValue).toInt();
+    }
+    return clamped;
+  }
+}
+
+class WinningsRules {
+  final int fanAttendanceDivisor;
+  final int noStallingBonus;
+  final int goldMultiplier;
+  final Map<String, String> description;
+
+  const WinningsRules({
+    required this.fanAttendanceDivisor,
+    required this.noStallingBonus,
+    required this.goldMultiplier,
+    required this.description,
+  });
+
+  factory WinningsRules.fromJson(Map<String, dynamic> json) => WinningsRules(
+        fanAttendanceDivisor:
+            (json['fan_attendance_divisor'] as num?)?.toInt() ?? 2,
+        noStallingBonus: (json['no_stalling_bonus'] as num?)?.toInt() ?? 1,
+        goldMultiplier: (json['gold_multiplier'] as num?)?.toInt() ?? 10000,
+        description: ExpensiveMistakeEffect._localized(json['description']),
+      );
+
+  double fanBase(int teamFanFactor, int opponentFanFactor) {
+    return (teamFanFactor + opponentFanFactor) / fanAttendanceDivisor;
+  }
+
+  int calculate({
+    required int teamFanFactor,
+    required int opponentFanFactor,
+    required int touchdowns,
+    required bool stalling,
+  }) {
+    final stallBonus = stalling ? 0 : noStallingBonus;
+    return ((fanBase(teamFanFactor, opponentFanFactor) +
+                touchdowns +
+                stallBonus) *
+            goldMultiplier)
+        .round();
+  }
+}
+
 class ExpensiveMistakesRules {
   final int minTreasury;
   final List<ExpensiveMistakeBand> bands;
@@ -129,6 +453,139 @@ class ExpensiveMistakeEffect {
   }
 }
 
+class InjuryRules {
+  final List<DiceTableEntry> injuryTable;
+  final List<DiceTableEntry> stuntyInjuryTable;
+  final List<CasualtyTableEntry> casualtyTable;
+  final List<LastingInjuryTableEntry> lastingInjuryTable;
+
+  const InjuryRules({
+    required this.injuryTable,
+    required this.stuntyInjuryTable,
+    required this.casualtyTable,
+    required this.lastingInjuryTable,
+  });
+
+  factory InjuryRules.fromJson(Map<String, dynamic> json) => InjuryRules(
+        injuryTable: (json['injury_table'] as List<dynamic>? ?? [])
+            .map((e) => DiceTableEntry.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        stuntyInjuryTable: (json['stunty_injury_table'] as List<dynamic>? ?? [])
+            .map((e) => DiceTableEntry.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        casualtyTable: (json['casualty_table'] as List<dynamic>? ?? [])
+            .map((e) => CasualtyTableEntry.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        lastingInjuryTable:
+            (json['lasting_injury_table'] as List<dynamic>? ?? [])
+                .map((e) =>
+                    LastingInjuryTableEntry.fromJson(e as Map<String, dynamic>))
+                .toList(),
+      );
+
+  CasualtyTableEntry? casualtyResultFor(int roll) {
+    for (final entry in casualtyTable) {
+      if (roll >= entry.minRoll && roll <= entry.maxRoll) return entry;
+    }
+    return null;
+  }
+
+  LastingInjuryTableEntry? lastingResultFor(int roll) {
+    for (final entry in lastingInjuryTable) {
+      if (roll >= entry.minRoll && roll <= entry.maxRoll) return entry;
+    }
+    return null;
+  }
+}
+
+class DiceTableEntry {
+  final int minRoll;
+  final int maxRoll;
+  final String code;
+  final Map<String, String> label;
+  final Map<String, String> description;
+
+  const DiceTableEntry({
+    required this.minRoll,
+    required this.maxRoll,
+    required this.code,
+    required this.label,
+    required this.description,
+  });
+
+  factory DiceTableEntry.fromJson(Map<String, dynamic> json) => DiceTableEntry(
+        minRoll: (json['min_roll'] as num?)?.toInt() ?? 0,
+        maxRoll: (json['max_roll'] as num?)?.toInt() ?? 0,
+        code: json['code'] as String? ?? '',
+        label: ExpensiveMistakeEffect._localized(json['label']),
+        description: ExpensiveMistakeEffect._localized(json['description']),
+      );
+
+  String localizedLabel(String lang) => label[lang] ?? label['en'] ?? code;
+  String localizedDescription(String lang) =>
+      description[lang] ?? description['en'] ?? '';
+  String get rangeLabel =>
+      minRoll == maxRoll ? '$minRoll' : '$minRoll-$maxRoll';
+}
+
+class CasualtyTableEntry extends DiceTableEntry {
+  final String playerStatus;
+  final List<String> injuryCodes;
+  final bool requiresLastingInjuryRoll;
+
+  const CasualtyTableEntry({
+    required super.minRoll,
+    required super.maxRoll,
+    required super.code,
+    required super.label,
+    required super.description,
+    required this.playerStatus,
+    required this.injuryCodes,
+    required this.requiresLastingInjuryRoll,
+  });
+
+  factory CasualtyTableEntry.fromJson(Map<String, dynamic> json) =>
+      CasualtyTableEntry(
+        minRoll: (json['min_roll'] as num?)?.toInt() ?? 0,
+        maxRoll: (json['max_roll'] as num?)?.toInt() ?? 0,
+        code: json['code'] as String? ?? '',
+        label: ExpensiveMistakeEffect._localized(json['label']),
+        description: ExpensiveMistakeEffect._localized(json['description']),
+        playerStatus: json['player_status'] as String? ?? 'healthy',
+        injuryCodes: (json['injury_codes'] as List<dynamic>? ?? [])
+            .map((e) => '$e')
+            .toList(),
+        requiresLastingInjuryRoll:
+            json['requires_lasting_injury_roll'] as bool? ?? false,
+      );
+}
+
+class LastingInjuryTableEntry extends DiceTableEntry {
+  final String stat;
+  final String reductionLabel;
+
+  const LastingInjuryTableEntry({
+    required super.minRoll,
+    required super.maxRoll,
+    required super.code,
+    required super.label,
+    required super.description,
+    required this.stat,
+    required this.reductionLabel,
+  });
+
+  factory LastingInjuryTableEntry.fromJson(Map<String, dynamic> json) =>
+      LastingInjuryTableEntry(
+        minRoll: (json['min_roll'] as num?)?.toInt() ?? 0,
+        maxRoll: (json['max_roll'] as num?)?.toInt() ?? 0,
+        code: json['code'] as String? ?? '',
+        label: ExpensiveMistakeEffect._localized(json['label']),
+        description: ExpensiveMistakeEffect._localized(json['description']),
+        stat: json['stat'] as String? ?? '',
+        reductionLabel: json['reduction_label'] as String? ?? '',
+      );
+}
+
 class TeamRepository {
   final Dio _dio;
 
@@ -186,12 +643,16 @@ class TeamRepository {
     required String baseType,
     String? name,
     int? number,
+    bool temporaryForMatch = false,
+    String? temporaryMatchId,
   }) async {
     try {
       await _dio.post('/user-teams/$teamId/players', data: {
         'base_type': baseType,
         if (name != null && name.trim().isNotEmpty) 'name': name.trim(),
         if (number != null) 'number': number,
+        if (temporaryForMatch) 'temporary_for_match': true,
+        if (temporaryMatchId != null) 'temporary_match_id': temporaryMatchId,
       });
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
@@ -238,6 +699,60 @@ class TeamRepository {
         if (treasury != null) 'treasury': treasury,
       });
       return UserTeamDetail.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  Future<InjuryRules> getInjuryRules() async {
+    try {
+      final response = await _dio.get('/rules/injuries');
+      return InjuryRules.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  Future<WinningsRules> getWinningsRules() async {
+    try {
+      final response = await _dio.get('/rules/winnings');
+      return WinningsRules.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  Future<DedicatedFansRules> getDedicatedFansRules() async {
+    try {
+      final response = await _dio.get('/rules/dedicated-fans');
+      return DedicatedFansRules.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  Future<InducementRules> getInducementRules() async {
+    try {
+      final response = await _dio.get('/rules/inducements');
+      return InducementRules.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  Future<DiceRangeRules> getWeatherRules() async {
+    try {
+      final response = await _dio.get('/rules/weather');
+      return DiceRangeRules.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  Future<DiceRangeRules> getKickoffEventRules() async {
+    try {
+      final response = await _dio.get('/rules/kickoff-events');
+      return DiceRangeRules.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }

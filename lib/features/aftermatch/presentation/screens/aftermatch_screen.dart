@@ -41,7 +41,6 @@ class _SppTally {
   int interceptions = 0;
   int throwTeammate = 0;
   bool mvp = false;
-  int bonus = 0;
 
   _SppTally(this.playerId, this.playerName, this.team);
 
@@ -51,49 +50,43 @@ class _SppTally {
       casualties * 2 +
       touchdowns * 3 +
       throwTeammate +
-      (mvp ? 4 : 0) +
-      bonus;
+      (mvp ? 4 : 0);
 }
 
 class _InjuryEntry {
   final String playerId;
   final String playerName;
   final String team;
-  final String type;
+  final int casualtyRoll;
+  final int? lastingInjuryRoll;
 
   _InjuryEntry({
     required this.playerId,
     required this.playerName,
     required this.team,
-    required this.type,
+    required this.casualtyRoll,
+    this.lastingInjuryRoll,
   });
 
-  String get injuryLabel {
-    switch (type) {
-      case 'badly_hurt':
-        return 'Badly Hurt';
-      case 'miss_next_game':
-        return 'Miss Next Game';
-      case 'niggling_injury':
-        return 'Niggling Injury';
-      case 'stat_decrease':
-        return 'Stat Decrease';
-      case 'dead':
-        return 'Dead';
-      default:
-        return type;
-    }
+  String injuryLabel(InjuryRules rules, String lang) {
+    final casualty = rules.casualtyResultFor(casualtyRoll);
+    final lasting = lastingInjuryRoll == null
+        ? null
+        : rules.lastingResultFor(lastingInjuryRoll!);
+    final casualtyLabel = casualty?.localizedLabel(lang) ?? 'D16 $casualtyRoll';
+    if (lasting == null) return casualtyLabel;
+    return '$casualtyLabel · ${lasting.localizedLabel(lang)} ${lasting.reductionLabel}';
   }
 
-  Color get injuryColor {
-    switch (type) {
+  Color injuryColor(InjuryRules rules) {
+    switch (rules.casualtyResultFor(casualtyRoll)?.code) {
       case 'badly_hurt':
         return AppColors.warning;
-      case 'miss_next_game':
+      case 'seriously_hurt':
         return AppColors.warning;
-      case 'niggling_injury':
+      case 'serious_injury':
         return AppColors.error;
-      case 'stat_decrease':
+      case 'lasting_injury':
         return AppColors.error;
       case 'dead':
         return AppColors.primaryDark;
@@ -101,22 +94,6 @@ class _InjuryEntry {
         return AppColors.textMuted;
     }
   }
-}
-
-class _BonusSppEntry {
-  final String playerId;
-  final String playerName;
-  final String team;
-  final int amount;
-  final String? description;
-
-  _BonusSppEntry({
-    required this.playerId,
-    required this.playerName,
-    required this.team,
-    required this.amount,
-    this.description,
-  });
 }
 
 class _ScoreboardTeamSide extends StatelessWidget {
@@ -478,9 +455,11 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
   int? _awayCatastropheD6A;
   int? _awayCatastropheD6B;
 
-  // ── Section 7: Bonus SPP ──
-  final List<_BonusSppEntry> _bonusSpp = [];
+  // ── Post-match events ──
   final List<MatchEvent> _postMatchEvents = [];
+
+  // ── Journeymen: keep/release decisions ──
+  final Map<String, String> _temporaryPlayerDecisions = {};
 
   bool _initialized = false;
   bool _submitting = false;
@@ -575,15 +554,31 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
     });
   }
 
-  double _winningsFanBase(int fanFactorHome, int fanFactorAway) {
-    return (fanFactorHome + fanFactorAway) / 2;
+  double _winningsFanBase(
+    int fanFactorHome,
+    int fanFactorAway, [
+    WinningsRules? rules,
+  ]) {
+    return rules?.fanBase(fanFactorHome, fanFactorAway) ??
+        (fanFactorHome + fanFactorAway) / 2;
   }
 
   int _calcWinnings(
-      int fanFactorHome, int fanFactorAway, int myTDs, bool stalling) {
-    final base = _winningsFanBase(fanFactorHome, fanFactorAway);
-    final stall = stalling ? 0 : 1;
-    return ((base + myTDs + stall) * 10000).round();
+    int fanFactorHome,
+    int fanFactorAway,
+    int myTDs,
+    bool stalling, [
+    WinningsRules? rules,
+  ]) {
+    return rules?.calculate(
+          teamFanFactor: fanFactorHome,
+          opponentFanFactor: fanFactorAway,
+          touchdowns: myTDs,
+          stalling: stalling,
+        ) ??
+        (((fanFactorHome + fanFactorAway) / 2 + myTDs + (stalling ? 0 : 1)) *
+                10000)
+            .round();
   }
 
   Color _expensiveColor(String code) {
@@ -720,23 +715,6 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
     );
   }
 
-  List<Map<String, dynamic>> _sppDeltasFor(
-      Map<String, _SppTally> sppMap, String team) {
-    return sppMap.values
-        .where((tally) => tally.team == team && tally.total > 0)
-        .map((tally) => {
-              'player_id': tally.playerId,
-              'spp': tally.total,
-              'completions': tally.completions,
-              'touchdowns': tally.touchdowns,
-              'casualties': tally.casualties,
-              'interceptions': tally.interceptions,
-              'mvp': tally.mvp,
-              'bonus_spp': tally.bonus,
-            })
-        .toList();
-  }
-
   List<Map<String, dynamic>> _postMatchEventPayloads() {
     return _postMatchEvents
         .map((event) => {
@@ -752,6 +730,71 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
               'turn': event.turn,
             })
         .toList();
+  }
+
+  List<Map<String, dynamic>> _injuryPayloads() {
+    return _injuries
+        .map((injury) => {
+              'team': injury.team,
+              'player_id': injury.playerId,
+              'casualty_roll': injury.casualtyRoll,
+              if (injury.lastingInjuryRoll != null)
+                'lasting_injury_roll': injury.lastingInjuryRoll,
+            })
+        .toList();
+  }
+
+  Map<String, dynamic> _winningsPayload() {
+    return {
+      'home_touchdowns': _tdHome,
+      'away_touchdowns': _tdAway,
+      'home_stalling': _homeStalling,
+      'away_stalling': _awayStalling,
+      'home_expensive_mistakes': {
+        if (_homeExpensiveRoll != null) 'roll': _homeExpensiveRoll,
+        if (_homeExpensiveD3 != null) 'd3': _homeExpensiveD3,
+        if (_homeCatastropheD6A != null)
+          'catastrophe_d6_a': _homeCatastropheD6A,
+        if (_homeCatastropheD6B != null)
+          'catastrophe_d6_b': _homeCatastropheD6B,
+      },
+      'away_expensive_mistakes': {
+        if (_awayExpensiveRoll != null) 'roll': _awayExpensiveRoll,
+        if (_awayExpensiveD3 != null) 'd3': _awayExpensiveD3,
+        if (_awayCatastropheD6A != null)
+          'catastrophe_d6_a': _awayCatastropheD6A,
+        if (_awayCatastropheD6B != null)
+          'catastrophe_d6_b': _awayCatastropheD6B,
+      },
+    };
+  }
+
+  Map<String, dynamic> _dedicatedFansPayload() {
+    return {
+      if (_homeFanRoll != null) 'home_roll': _homeFanRoll,
+      if (_awayFanRoll != null) 'away_roll': _awayFanRoll,
+    };
+  }
+
+  List<Map<String, dynamic>> _temporaryPlayerPayloads(Match match) {
+    final payloads = <Map<String, dynamic>>[];
+    void collect(UserTeamDetail? team, String side) {
+      if (team == null) return;
+      for (final player in team.players) {
+        final belongsToMatch = player.temporaryMatchId == null ||
+            player.temporaryMatchId == matchId;
+        if (!player.temporaryForMatch || !belongsToMatch) continue;
+        payloads.add({
+          'team': side,
+          'player_id': player.id,
+          'decision': _temporaryPlayerDecisions[player.id] ?? 'release',
+        });
+      }
+    }
+
+    collect(_homeTeam, 'home');
+    collect(_awayTeam, 'away');
+    return payloads;
   }
 
   void _addPostMatchEvent(MatchEventDraft draft) {
@@ -777,39 +820,42 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
     setState(() => _submitting = true);
     try {
       final repo = ref.read(leagueRepositoryProvider);
-      await repo.updateMatchState(
-        leagueId,
-        matchId,
-        mvpHome: _mvpHomeId,
-        mvpAway: _mvpAwayId,
-        gate: _gate,
-      );
-
-      final teamRepo = ref.read(teamRepositoryProvider);
       final rules = ref.read(expensiveMistakesRulesProvider).valueOrNull;
       if (rules == null) {
         throw Exception('Reglas de errores costosos no cargadas');
       }
-      final homeFans = _nextDedicatedFans(
-        currentFans: _homeDedicatedFans,
-        roll: _homeFanRoll,
-        won: _scoreHome > _scoreAway,
-        lost: _scoreHome < _scoreAway,
-      );
-      final awayFans = _nextDedicatedFans(
-        currentFans: _awayDedicatedFans,
-        roll: _awayFanRoll,
-        won: _scoreAway > _scoreHome,
-        lost: _scoreAway < _scoreHome,
-      );
+      final winningsRules = ref.read(winningsRulesProvider).valueOrNull;
+      if (winningsRules == null) {
+        throw Exception('Reglas de ganancias no cargadas');
+      }
+      if (ref.read(dedicatedFansRulesProvider).valueOrNull == null) {
+        throw Exception('Reglas de seguidores entregados no cargadas');
+      }
+      if (_scoreHome != _scoreAway && _homeFanRoll == null) {
+        throw Exception('Completa la tirada de seguidores del equipo local');
+      }
+      if (_scoreHome != _scoreAway && _awayFanRoll == null) {
+        throw Exception(
+            'Completa la tirada de seguidores del equipo visitante');
+      }
       final homeTreasury = (_homeTeam?.treasury ?? 0) +
           (_homeWinnings ??
               _calcWinnings(
-                  _homeFanFactor, _awayFanFactor, _tdHome, _homeStalling));
+                _homeFanFactor,
+                _awayFanFactor,
+                _tdHome,
+                _homeStalling,
+                winningsRules,
+              ));
       final awayTreasury = (_awayTeam?.treasury ?? 0) +
           (_awayWinnings ??
               _calcWinnings(
-                  _awayFanFactor, _homeFanFactor, _tdAway, _awayStalling));
+                _awayFanFactor,
+                _homeFanFactor,
+                _tdAway,
+                _awayStalling,
+                winningsRules,
+              ));
       final homeFinalTreasury = _expensiveFinalTreasury(
         rules: rules,
         treasury: homeTreasury,
@@ -833,31 +879,22 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
       if (homeFinalTreasury == null || awayFinalTreasury == null) {
         throw Exception('Completa las tiradas de errores costosos');
       }
-      if (_homeTeam != null) {
-        await teamRepo.patchTeamStaff(
-          _homeTeam!.id,
-          dedicatedFans: homeFans,
-          treasury: homeFinalTreasury,
-        );
-      }
-      if (_awayTeam != null) {
-        await teamRepo.patchTeamStaff(
-          _awayTeam!.id,
-          dedicatedFans: awayFans,
-          treasury: awayFinalTreasury,
-        );
-      }
 
-      final sppMap = _buildSppTallies(match);
-      await repo.applyAftermatchSpp(
+      await repo.applyAftermatch(
         leagueId: leagueId,
         matchId: matchId,
-        home: _sppDeltasFor(sppMap, 'home'),
-        away: _sppDeltasFor(sppMap, 'away'),
+        mvpHome: _mvpHomeId,
+        mvpAway: _mvpAwayId,
+        gate: _gate,
         postMatchEvents: _postMatchEventPayloads(),
+        injuries: _injuryPayloads(),
+        winnings: _winningsPayload(),
+        dedicatedFans: _dedicatedFansPayload(),
+        temporaryPlayers: _temporaryPlayerPayloads(match),
       );
 
       if (!mounted) return;
+      ref.read(tempHiredPlayersProvider).clear();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Post-match report submitted!'),
@@ -1607,10 +1644,11 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
   // ═══════════════════════════════════════════════════════════
 
   Widget _buildWinningsSection() {
-    _homeWinnings =
-        _calcWinnings(_homeFanFactor, _awayFanFactor, _tdHome, _homeStalling);
-    _awayWinnings =
-        _calcWinnings(_awayFanFactor, _homeFanFactor, _tdAway, _awayStalling);
+    final rules = ref.watch(winningsRulesProvider).valueOrNull;
+    _homeWinnings = _calcWinnings(
+        _homeFanFactor, _awayFanFactor, _tdHome, _homeStalling, rules);
+    _awayWinnings = _calcWinnings(
+        _awayFanFactor, _homeFanFactor, _tdAway, _awayStalling, rules);
     final lang = ref.watch(localeProvider);
 
     return _sectionCard(
@@ -1774,8 +1812,10 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
     required int winnings,
   }) {
     final lang = ref.read(localeProvider);
-    final fanBase = _winningsFanBase(myFanFactor, opponentFanFactor);
-    final stallBonus = stalling ? 0 : 1;
+    final rules = ref.read(winningsRulesProvider).valueOrNull;
+    final fanBase = _winningsFanBase(myFanFactor, opponentFanFactor, rules);
+    final stallBonus = stalling ? 0 : (rules?.noStallingBonus ?? 1);
+    final multiplier = rules?.goldMultiplier ?? 10000;
     final fanBaseText = _fmtDecimal(fanBase);
 
     showDialog<void>(
@@ -1845,7 +1885,7 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '($fanBaseText + $touchdowns + $stallBonus) × 10,000',
+                    '($fanBaseText + $touchdowns + $stallBonus) × ${_fmtGold(multiplier)}',
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       color: AppColors.textSecondary,
@@ -1944,6 +1984,7 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
 
   Widget _buildDedicatedFansSection() {
     final lang = ref.watch(localeProvider);
+    final rules = ref.watch(dedicatedFansRulesProvider).valueOrNull;
 
     return _sectionCard(
       icon: PhosphorIcons.users(PhosphorIconsStyle.fill),
@@ -1961,6 +2002,7 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
             onRollChanged: (v) => setState(() => _homeFanRoll = v),
             won: _scoreHome > _scoreAway,
             lost: _scoreHome < _scoreAway,
+            rules: rules,
             color: AppColors.info,
           );
 
@@ -1971,6 +2013,7 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
             onRollChanged: (v) => setState(() => _awayFanRoll = v),
             won: _scoreAway > _scoreHome,
             lost: _scoreAway < _scoreHome,
+            rules: rules,
             color: AppColors.error,
           );
 
@@ -2005,6 +2048,7 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
     required ValueChanged<int?> onRollChanged,
     required bool won,
     required bool lost,
+    required DedicatedFansRules? rules,
     required Color color,
   }) {
     final lang = ref.watch(localeProvider);
@@ -2016,6 +2060,7 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
       roll: roll,
       won: won,
       lost: lost,
+      rules: rules,
     );
     final appliedFans = isDraw ? currentFans : newFans;
     final delta = newFans - currentFans;
@@ -2217,7 +2262,16 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
     required int? roll,
     required bool won,
     required bool lost,
+    DedicatedFansRules? rules,
   }) {
+    if (rules != null) {
+      return rules.nextValue(
+        current: currentFans,
+        roll: roll,
+        won: won,
+        lost: lost,
+      );
+    }
     if (won && roll != null && roll >= currentFans) {
       return (currentFans + 1).clamp(1, 7).toInt();
     }
@@ -2230,6 +2284,16 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
   Map<String, _SppTally> _buildSppTallies(Match match) {
     final sppMap = <String, _SppTally>{};
 
+    UserPlayer? findPlayer(String team, String playerId) {
+      final players = team == 'home' ? _homeTeam?.players : _awayTeam?.players;
+      return players?.where((p) => p.id == playerId).firstOrNull;
+    }
+
+    bool generatesSpp(String team, String playerId) {
+      final player = findPlayer(team, playerId);
+      return player != null && !player.baseType.startsWith('star_');
+    }
+
     _SppTally ensureTally(String playerId, String? playerName, String team) {
       final key = '$team:$playerId';
       sppMap.putIfAbsent(
@@ -2240,6 +2304,7 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
     void addSpp(
         String? playerId, String? playerName, String team, String type) {
       if (playerId == null) return;
+      if (!generatesSpp(team, playerId)) return;
       final tally = ensureTally(playerId, playerName, team);
       switch (type) {
         case 'completion':
@@ -2259,12 +2324,16 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
         return;
       }
       if (event.victimId != null) {
-        ensureTally(event.victimId!, event.victimName, event.team)
-            .throwTeammate++;
+        if (generatesSpp(event.team, event.victimId!)) {
+          ensureTally(event.victimId!, event.victimName, event.team)
+              .throwTeammate++;
+        }
       }
       if (_throwTeammateSuperb(event.detail) && event.playerId != null) {
-        ensureTally(event.playerId!, event.playerName, event.team)
-            .throwTeammate++;
+        if (generatesSpp(event.team, event.playerId!)) {
+          ensureTally(event.playerId!, event.playerName, event.team)
+              .throwTeammate++;
+        }
       }
     }
 
@@ -2277,31 +2346,28 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
     }
 
     if (_mvpHomeId != null) {
-      final key = 'home:$_mvpHomeId';
-      final name = _homeTeam?.players
-              .where((p) => p.id == _mvpHomeId)
-              .firstOrNull
-              ?.name ??
-          '?';
-      sppMap.putIfAbsent(key, () => _SppTally(_mvpHomeId!, name, 'home'));
-      sppMap[key]!.mvp = true;
+      if (generatesSpp('home', _mvpHomeId!)) {
+        final key = 'home:$_mvpHomeId';
+        final name = _homeTeam?.players
+                .where((p) => p.id == _mvpHomeId)
+                .firstOrNull
+                ?.name ??
+            '?';
+        sppMap.putIfAbsent(key, () => _SppTally(_mvpHomeId!, name, 'home'));
+        sppMap[key]!.mvp = true;
+      }
     }
     if (_mvpAwayId != null) {
-      final key = 'away:$_mvpAwayId';
-      final name = _awayTeam?.players
-              .where((p) => p.id == _mvpAwayId)
-              .firstOrNull
-              ?.name ??
-          '?';
-      sppMap.putIfAbsent(key, () => _SppTally(_mvpAwayId!, name, 'away'));
-      sppMap[key]!.mvp = true;
-    }
-
-    for (final b in _bonusSpp) {
-      final key = '${b.team}:${b.playerId}';
-      sppMap.putIfAbsent(
-          key, () => _SppTally(b.playerId, b.playerName, b.team));
-      sppMap[key]!.bonus += b.amount;
+      if (generatesSpp('away', _mvpAwayId!)) {
+        final key = 'away:$_mvpAwayId';
+        final name = _awayTeam?.players
+                .where((p) => p.id == _mvpAwayId)
+                .firstOrNull
+                ?.name ??
+            '?';
+        sppMap.putIfAbsent(key, () => _SppTally(_mvpAwayId!, name, 'away'));
+        sppMap[key]!.mvp = true;
+      }
     }
 
     return sppMap;
@@ -2404,6 +2470,8 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
   }) {
     final lang = ref.watch(localeProvider);
     final activePlayers = players.where((p) => p.status != 'dead').toList();
+    final mvpEligiblePlayers =
+        activePlayers.where((p) => !p.baseType.startsWith('star_')).toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -2432,10 +2500,10 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
                     const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
                 minimumSize: Size.zero,
               ),
-              onPressed: activePlayers.isEmpty
+              onPressed: mvpEligiblePlayers.isEmpty
                   ? null
                   : () {
-                      final shuffled = List.of(activePlayers)..shuffle();
+                      final shuffled = List.of(mvpEligiblePlayers)..shuffle();
                       onChanged(shuffled.first.id);
                     },
             ),
@@ -2449,7 +2517,8 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
           final tally =
               sppMap['$teamKey:${p.id}'] ?? _SppTally(p.id, p.name, teamKey);
           return InkWell(
-            onTap: () => onChanged(selected ? null : p.id),
+            onTap:
+                isStarPlayer ? null : () => onChanged(selected ? null : p.id),
             borderRadius: BorderRadius.circular(12),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -2666,14 +2735,6 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
           ],
         ),
         actions: [
-          TextButton.icon(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _showAddBonusForPlayerDialog(player, team);
-            },
-            icon: Icon(PhosphorIcons.plusCircle(PhosphorIconsStyle.bold)),
-            label: Text(tr(lang, 'aftermatch.addBonusSpp')),
-          ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: Text(tr(lang, 'common.close')),
@@ -2700,29 +2761,6 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
         AppColors.accent);
     add('Lanzar compañero', tally.throwTeammate, 1, AppColors.info);
     if (tally.mvp) rows.add(_sppReasonRow('MVP', 1, 4, AppColors.accent));
-    if (tally.bonus > 0) {
-      rows.add(_sppReasonRow(tr(lang, 'aftermatch.bonusSpp'), 1, tally.bonus,
-          AppColors.primaryLight));
-      final descriptions = _bonusSpp
-          .where((b) => b.playerId == tally.playerId && b.team == tally.team)
-          .map((b) => b.description?.trim())
-          .whereType<String>()
-          .where((d) => d.isNotEmpty)
-          .toList();
-      for (final description in descriptions) {
-        rows.add(Padding(
-          padding: const EdgeInsets.only(left: 12, right: 12, bottom: 8),
-          child: Text(
-            '“$description”',
-            style: const TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 13,
-              fontStyle: FontStyle.italic,
-            ),
-          ),
-        ));
-      }
-    }
     if (rows.isEmpty) {
       rows.add(Text(
         tr(lang, 'aftermatch.noSppReasons'),
@@ -2767,146 +2805,12 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
     );
   }
 
-  void _showAddBonusForPlayerDialog(UserPlayer player, String team) {
-    final lang = ref.read(localeProvider);
-    int amount = 1;
-    String description = '';
-    showDialog<void>(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          backgroundColor: AppColors.card,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-          title: Text(tr(lang, 'aftermatch.addBonusSpp'),
-              style: const TextStyle(color: AppColors.textPrimary)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(player.name,
-                  style: const TextStyle(
-                      color: AppColors.textSecondary,
-                      fontWeight: FontWeight.w800)),
-              const SizedBox(height: 16),
-              _miniCounter(
-                amount,
-                (v) => setDialogState(() => amount = v.clamp(1, 99).toInt()),
-                AppColors.accent,
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                minLines: 2,
-                maxLines: 3,
-                style: const TextStyle(color: AppColors.textPrimary),
-                decoration: InputDecoration(
-                  labelText: tr(lang, 'aftermatch.bonusDescription'),
-                  labelStyle: const TextStyle(color: AppColors.textMuted),
-                  hintText: tr(lang, 'aftermatch.bonusDescriptionHint'),
-                  hintStyle: const TextStyle(color: AppColors.textMuted),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppColors.surfaceLight),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppColors.surfaceLight),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide:
-                        const BorderSide(color: AppColors.accent, width: 2),
-                  ),
-                ),
-                onChanged: (v) => description = v,
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text(tr(lang, 'common.cancel')),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  _bonusSpp.add(_BonusSppEntry(
-                    playerId: player.id,
-                    playerName: player.name,
-                    team: team,
-                    amount: amount,
-                    description:
-                        description.trim().isEmpty ? null : description.trim(),
-                  ));
-                });
-                Navigator.of(context).pop();
-              },
-              child: Text(tr(lang, 'common.add')),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   // ═══════════════════════════════════════════════════════════
   // SECTION 5: SPP Summary
   // ═══════════════════════════════════════════════════════════
 
   Widget _buildSppSection(Match match) {
-    final sppMap = <String, _SppTally>{};
-    void addSpp(
-        String? playerId, String? playerName, String team, String type) {
-      if (playerId == null) return;
-      final key = '$team:$playerId';
-      sppMap.putIfAbsent(
-          key, () => _SppTally(playerId, playerName ?? '?', team));
-      switch (type) {
-        case 'completion':
-          sppMap[key]!.completions++;
-        case 'touchdown':
-          sppMap[key]!.touchdowns++;
-        case 'casualty':
-          sppMap[key]!.casualties++;
-        case 'interception':
-          sppMap[key]!.interceptions++;
-      }
-    }
-
-    for (final e in match.events) {
-      addSpp(e.playerId, e.playerName, e.team, e.type);
-    }
-
-    // MVPs
-    if (_mvpHomeId != null) {
-      final key = 'home:$_mvpHomeId';
-      final name = _homeTeam?.players
-              .where((p) => p.id == _mvpHomeId)
-              .firstOrNull
-              ?.name ??
-          '?';
-      sppMap.putIfAbsent(key, () => _SppTally(_mvpHomeId!, name, 'home'));
-      sppMap[key]!.mvp = true;
-    }
-    if (_mvpAwayId != null) {
-      final key = 'away:$_mvpAwayId';
-      final name = _awayTeam?.players
-              .where((p) => p.id == _mvpAwayId)
-              .firstOrNull
-              ?.name ??
-          '?';
-      sppMap.putIfAbsent(key, () => _SppTally(_mvpAwayId!, name, 'away'));
-      sppMap[key]!.mvp = true;
-    }
-
-    // Bonus SPP
-    for (final b in _bonusSpp) {
-      final key = '${b.team}:${b.playerId}';
-      sppMap.putIfAbsent(
-          key, () => _SppTally(b.playerId, b.playerName, b.team));
-      sppMap[key]!.bonus += b.amount;
-    }
-
-    final entries = sppMap.values.toList()
+    final entries = _buildSppTallies(match).values.toList()
       ..sort((a, b) => b.total.compareTo(a.total));
 
     return _sectionCard(
@@ -2950,18 +2854,13 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
                 ),
               ),
             ),
-          const SizedBox(height: 12),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: _addBonusSppRow(),
-          ),
         ],
       ),
     );
   }
 
   List<Widget> _sppHeaders() {
-    const headers = ['Comp', 'Int', 'Cas', 'TD', 'MVP', 'Bonus', 'Total'];
+    const headers = ['Comp', 'Int', 'Cas', 'TD', 'MVP', 'Total'];
     return headers
         .map((h) => SizedBox(
               width: 40,
@@ -3002,7 +2901,6 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
           _sppCell(e.casualties),
           _sppCell(e.touchdowns),
           _sppCell(e.mvp ? 1 : 0),
-          _sppCell(e.bonus),
           SizedBox(
             width: 40,
             child: Text('${e.total}',
@@ -3031,209 +2929,102 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
     );
   }
 
-  Widget _addBonusSppRow() {
-    final allPlayers = [
-      ...(_homeTeam?.players ?? []).map((p) => (p, 'home')),
-      ...(_awayTeam?.players ?? []).map((p) => (p, 'away')),
-    ];
-    return OutlinedButton.icon(
-      icon: Icon(PhosphorIcons.plus(PhosphorIconsStyle.bold),
-          size: 14, color: AppColors.accent),
-      label: const Text('Add Bonus SPP',
-          style: TextStyle(color: AppColors.accent, fontSize: 12)),
-      style: OutlinedButton.styleFrom(
-        side: BorderSide(color: AppColors.accent.withValues(alpha: 0.3)),
-      ),
-      onPressed: () => _showAddBonusSppDialog(allPlayers),
-    );
-  }
-
-  void _showAddBonusSppDialog(List<(UserPlayer, String)> allPlayers) {
-    String? selectedId;
-    String team = 'home';
-    String name = '';
-    int amount = 1;
-    String description = '';
-
-    showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          backgroundColor: AppColors.surface,
-          title: const Text('Add Bonus SPP',
-              style: TextStyle(color: AppColors.textPrimary, fontSize: 16)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              DropdownButtonFormField<String>(
-                dropdownColor: AppColors.card,
-                decoration: const InputDecoration(
-                  labelText: 'Player',
-                  labelStyle: TextStyle(color: AppColors.textMuted),
-                  border: OutlineInputBorder(),
-                ),
-                items: allPlayers
-                    .map((e) => DropdownMenuItem(
-                          value: '${e.$2}:${e.$1.id}',
-                          child: Text(
-                              '${e.$1.name} (${e.$2 == "home" ? "H" : "A"})',
-                              style: const TextStyle(
-                                  color: AppColors.textPrimary, fontSize: 13)),
-                        ))
-                    .toList(),
-                onChanged: (v) {
-                  if (v == null) return;
-                  final parts = v.split(':');
-                  setDialogState(() {
-                    team = parts[0];
-                    selectedId = parts.sublist(1).join(':');
-                    name = allPlayers
-                        .firstWhere(
-                            (e) => e.$1.id == selectedId && e.$2 == team)
-                        .$1
-                        .name;
-                  });
-                },
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  const Text('Amount:',
-                      style: TextStyle(color: AppColors.textMuted)),
-                  const SizedBox(width: 8),
-                  _miniCounter(amount, (v) => setDialogState(() => amount = v),
-                      AppColors.accent),
-                ],
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                minLines: 2,
-                maxLines: 3,
-                style: const TextStyle(color: AppColors.textPrimary),
-                decoration: InputDecoration(
-                  labelText: tr(
-                      ref.read(localeProvider), 'aftermatch.bonusDescription'),
-                  labelStyle: const TextStyle(color: AppColors.textMuted),
-                  hintText: tr(ref.read(localeProvider),
-                      'aftermatch.bonusDescriptionHint'),
-                  hintStyle: const TextStyle(color: AppColors.textMuted),
-                  border: const OutlineInputBorder(),
-                ),
-                onChanged: (v) => description = v,
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancel')),
-            ElevatedButton(
-              onPressed: selectedId == null
-                  ? null
-                  : () {
-                      setState(() {
-                        _bonusSpp.add(_BonusSppEntry(
-                          playerId: selectedId!,
-                          playerName: name,
-                          team: team,
-                          amount: amount,
-                          description: description.trim().isEmpty
-                              ? null
-                              : description.trim(),
-                        ));
-                      });
-                      Navigator.pop(ctx);
-                    },
-              style:
-                  ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
-              child: const Text('Add'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   // ═══════════════════════════════════════════════════════════
   // SECTION 6: Injuries
   // ═══════════════════════════════════════════════════════════
 
   Widget _buildInjuriesSection() {
+    final lang = ref.watch(localeProvider);
+    final rulesAsync = ref.watch(injuryRulesProvider);
     return _sectionCard(
       icon: PhosphorIcons.firstAid(PhosphorIconsStyle.fill),
       title: 'LASTING INJURIES',
       color: AppColors.error,
-      subtitle: 'Record permanent injuries from this match',
-      child: Column(
-        children: [
-          ..._injuries.asMap().entries.map((entry) {
-            final i = entry.key;
-            final inj = entry.value;
-            final isHome = inj.team == 'home';
-            return Container(
-              margin: const EdgeInsets.only(bottom: 6),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              decoration: BoxDecoration(
-                color: AppColors.card,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                    color: (isHome ? AppColors.info : AppColors.error)
-                        .withValues(alpha: 0.3)),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 4,
-                    height: 28,
-                    decoration: BoxDecoration(
-                      color: isHome ? AppColors.info : AppColors.error,
-                      borderRadius: BorderRadius.circular(2),
+      subtitle: 'D16 Casualty + D6 Lasting Injury según reglas oficiales',
+      child: rulesAsync.when(
+        loading: () => const Padding(
+          padding: EdgeInsets.all(16),
+          child: CircularProgressIndicator(color: AppColors.error),
+        ),
+        error: (error, _) => Text(
+          'Error: $error',
+          style: const TextStyle(color: AppColors.error),
+        ),
+        data: (rules) => Column(
+          children: [
+            ..._injuries.asMap().entries.map((entry) {
+              final i = entry.key;
+              final inj = entry.value;
+              final isHome = inj.team == 'home';
+              return Container(
+                margin: const EdgeInsets.only(bottom: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.card,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                      color: (isHome ? AppColors.info : AppColors.error)
+                          .withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 4,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: isHome ? AppColors.info : AppColors.error,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(inj.playerName,
-                            style: const TextStyle(
-                                color: AppColors.textPrimary,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600)),
-                        Text(inj.injuryLabel,
-                            style: TextStyle(
-                                color: inj.injuryColor, fontSize: 12)),
-                      ],
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(inj.playerName,
+                              style: const TextStyle(
+                                  color: AppColors.textPrimary,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600)),
+                          Text(inj.injuryLabel(rules, lang),
+                              style: TextStyle(
+                                  color: inj.injuryColor(rules), fontSize: 12)),
+                        ],
+                      ),
                     ),
-                  ),
-                  IconButton(
-                    icon: Icon(PhosphorIcons.trash(PhosphorIconsStyle.regular),
-                        size: 16, color: AppColors.error),
-                    onPressed: () => setState(() => _injuries.removeAt(i)),
-                    constraints: const BoxConstraints(),
-                    padding: EdgeInsets.zero,
-                  ),
-                ],
+                    IconButton(
+                      icon: Icon(
+                          PhosphorIcons.trash(PhosphorIconsStyle.regular),
+                          size: 16,
+                          color: AppColors.error),
+                      onPressed: () => setState(() => _injuries.removeAt(i)),
+                      constraints: const BoxConstraints(),
+                      padding: EdgeInsets.zero,
+                    ),
+                  ],
+                ),
+              );
+            }),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              icon: Icon(PhosphorIcons.plus(PhosphorIconsStyle.bold),
+                  size: 14, color: AppColors.error),
+              label: const Text('Add Injury',
+                  style: TextStyle(color: AppColors.error, fontSize: 12)),
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(color: AppColors.error.withValues(alpha: 0.3)),
               ),
-            );
-          }),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            icon: Icon(PhosphorIcons.plus(PhosphorIconsStyle.bold),
-                size: 14, color: AppColors.error),
-            label: const Text('Add Injury',
-                style: TextStyle(color: AppColors.error, fontSize: 12)),
-            style: OutlinedButton.styleFrom(
-              side: BorderSide(color: AppColors.error.withValues(alpha: 0.3)),
+              onPressed: () => _showAddInjuryDialog(rules),
             ),
-            onPressed: _showAddInjuryDialog,
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  void _showAddInjuryDialog() {
+  void _showAddInjuryDialog(InjuryRules rules) {
+    final lang = ref.read(localeProvider);
     final allPlayers = [
       ...(_homeTeam?.players ?? []).map((p) => (p, 'home')),
       ...(_awayTeam?.players ?? []).map((p) => (p, 'away')),
@@ -3242,108 +3033,156 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
     String? selectedId;
     String team = 'home';
     String name = '';
-    String injuryType = 'miss_next_game';
+    int? casualtyRoll;
+    int? lastingRoll;
 
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          backgroundColor: AppColors.surface,
-          title: const Text('Add Injury',
-              style: TextStyle(color: AppColors.textPrimary, fontSize: 16)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              DropdownButtonFormField<String>(
-                dropdownColor: AppColors.card,
-                decoration: const InputDecoration(
-                  labelText: 'Player',
-                  labelStyle: TextStyle(color: AppColors.textMuted),
-                  border: OutlineInputBorder(),
+        builder: (ctx, setDialogState) {
+          final casualty = casualtyRoll == null
+              ? null
+              : rules.casualtyResultFor(casualtyRoll!);
+          final lasting =
+              lastingRoll == null ? null : rules.lastingResultFor(lastingRoll!);
+          final needsLasting = casualty?.requiresLastingInjuryRoll ?? false;
+          final canAdd = selectedId != null &&
+              casualtyRoll != null &&
+              (!needsLasting || lastingRoll != null);
+          return AlertDialog(
+            backgroundColor: AppColors.surface,
+            title: const Text('Add Injury',
+                style: TextStyle(color: AppColors.textPrimary, fontSize: 16)),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DropdownButtonFormField<String>(
+                  dropdownColor: AppColors.card,
+                  decoration: const InputDecoration(
+                    labelText: 'Player',
+                    labelStyle: TextStyle(color: AppColors.textMuted),
+                    border: OutlineInputBorder(),
+                  ),
+                  items: allPlayers
+                      .map((e) => DropdownMenuItem(
+                            value: '${e.$2}:${e.$1.id}',
+                            child: Text(
+                                '${e.$1.name} (${e.$2 == "home" ? "H" : "A"})',
+                                style: const TextStyle(
+                                    color: AppColors.textPrimary,
+                                    fontSize: 13)),
+                          ))
+                      .toList(),
+                  onChanged: (v) {
+                    if (v == null) return;
+                    final parts = v.split(':');
+                    setDialogState(() {
+                      team = parts[0];
+                      selectedId = parts.sublist(1).join(':');
+                      name = allPlayers
+                          .firstWhere(
+                              (e) => e.$1.id == selectedId && e.$2 == team)
+                          .$1
+                          .name;
+                    });
+                  },
                 ),
-                items: allPlayers
-                    .map((e) => DropdownMenuItem(
-                          value: '${e.$2}:${e.$1.id}',
-                          child: Text(
-                              '${e.$1.name} (${e.$2 == "home" ? "H" : "A"})',
-                              style: const TextStyle(
-                                  color: AppColors.textPrimary, fontSize: 13)),
-                        ))
-                    .toList(),
-                onChanged: (v) {
-                  if (v == null) return;
-                  final parts = v.split(':');
-                  setDialogState(() {
-                    team = parts[0];
-                    selectedId = parts.sublist(1).join(':');
-                    name = allPlayers
-                        .firstWhere(
-                            (e) => e.$1.id == selectedId && e.$2 == team)
-                        .$1
-                        .name;
-                  });
-                },
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                value: injuryType,
-                dropdownColor: AppColors.card,
-                decoration: const InputDecoration(
-                  labelText: 'Injury Type',
-                  labelStyle: TextStyle(color: AppColors.textMuted),
-                  border: OutlineInputBorder(),
+                const SizedBox(height: 12),
+                Text('Casualty Roll (D16)',
+                    style: const TextStyle(color: AppColors.textMuted)),
+                const SizedBox(height: 6),
+                _dieRollField(
+                  casualtyRoll,
+                  (v) => setDialogState(() {
+                    casualtyRoll = v;
+                    if (!(rules
+                            .casualtyResultFor(v ?? 0)
+                            ?.requiresLastingInjuryRoll ??
+                        false)) {
+                      lastingRoll = null;
+                    }
+                  }),
+                  max: 16,
                 ),
-                items: const [
-                  DropdownMenuItem(
-                      value: 'badly_hurt',
-                      child: Text('Badly Hurt',
-                          style: TextStyle(color: AppColors.textPrimary))),
-                  DropdownMenuItem(
-                      value: 'miss_next_game',
-                      child: Text('Miss Next Game',
-                          style: TextStyle(color: AppColors.textPrimary))),
-                  DropdownMenuItem(
-                      value: 'niggling_injury',
-                      child: Text('Niggling Injury',
-                          style: TextStyle(color: AppColors.textPrimary))),
-                  DropdownMenuItem(
-                      value: 'stat_decrease',
-                      child: Text('Stat Decrease',
-                          style: TextStyle(color: AppColors.textPrimary))),
-                  DropdownMenuItem(
-                      value: 'dead',
-                      child: Text('Dead',
-                          style: TextStyle(color: AppColors.textPrimary))),
+                if (casualty != null) ...[
+                  const SizedBox(height: 8),
+                  _injuryPreview(
+                    casualty.localizedLabel(lang),
+                    casualty.localizedDescription(lang),
+                    AppColors.error,
+                  ),
                 ],
-                onChanged: (v) =>
-                    setDialogState(() => injuryType = v ?? injuryType),
+                if (needsLasting) ...[
+                  const SizedBox(height: 12),
+                  Text('Lasting Injury Roll (D6)',
+                      style: const TextStyle(color: AppColors.textMuted)),
+                  const SizedBox(height: 6),
+                  _dieRollField(
+                    lastingRoll,
+                    (v) => setDialogState(() => lastingRoll = v),
+                    max: 6,
+                  ),
+                  if (lasting != null) ...[
+                    const SizedBox(height: 8),
+                    _injuryPreview(
+                      '${lasting.localizedLabel(lang)} ${lasting.reductionLabel}',
+                      lasting.localizedDescription(lang),
+                      AppColors.warning,
+                    ),
+                  ],
+                ],
+              ],
+            ),
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Cancel')),
+              ElevatedButton(
+                onPressed: canAdd
+                    ? () {
+                        setState(() {
+                          _injuries.add(_InjuryEntry(
+                            playerId: selectedId!,
+                            playerName: name,
+                            team: team,
+                            casualtyRoll: casualtyRoll!,
+                            lastingInjuryRoll: lastingRoll,
+                          ));
+                        });
+                        Navigator.pop(ctx);
+                      }
+                    : null,
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary),
+                child: const Text('Add'),
               ),
             ],
-          ),
-          actions: [
-            TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancel')),
-            ElevatedButton(
-              onPressed: selectedId == null
-                  ? null
-                  : () {
-                      setState(() {
-                        _injuries.add(_InjuryEntry(
-                          playerId: selectedId!,
-                          playerName: name,
-                          team: team,
-                          type: injuryType,
-                        ));
-                      });
-                      Navigator.pop(ctx);
-                    },
-              style:
-                  ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
-              child: const Text('Add'),
-            ),
-          ],
-        ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _injuryPreview(String title, String description, Color color) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withValues(alpha: 0.28)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title,
+              style: TextStyle(
+                  color: color, fontSize: 13, fontWeight: FontWeight.w900)),
+          const SizedBox(height: 4),
+          Text(description,
+              style: const TextStyle(
+                  color: AppColors.textSecondary, fontSize: 12)),
+        ],
       ),
     );
   }
@@ -3689,12 +3528,14 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
     List<UserPlayer> homeTempPlayers = [];
     List<UserPlayer> awayTempPlayers = [];
     if (_homeTeam != null) {
-      homeTempPlayers =
-          _homeTeam!.players.where((p) => homeTempIds.contains(p.id)).toList();
+      homeTempPlayers = _homeTeam!.players
+          .where((p) => _isVisibleTemporaryPlayer(p, homeTempIds))
+          .toList();
     }
     if (_awayTeam != null) {
-      awayTempPlayers =
-          _awayTeam!.players.where((p) => awayTempIds.contains(p.id)).toList();
+      awayTempPlayers = _awayTeam!.players
+          .where((p) => _isVisibleTemporaryPlayer(p, awayTempIds))
+          .toList();
     }
 
     if (homeTempPlayers.isEmpty && awayTempPlayers.isEmpty) {
@@ -3741,6 +3582,8 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
 
   Widget _buildTempPlayerRow(UserPlayer player, String teamId,
       {required bool isStarPlayer}) {
+    final decision = _temporaryPlayerDecisions[player.id] ?? 'release';
+    final isJourneyman = player.temporaryForMatch && !isStarPlayer;
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -3780,7 +3623,11 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
                     style: const TextStyle(
                         color: AppColors.textPrimary, fontSize: 13)),
                 Text(
-                  isStarPlayer ? '★ Star Player' : player.positionLabel,
+                  isStarPlayer
+                      ? '★ Star Player'
+                      : isJourneyman
+                          ? '${player.positionLabel} · Journeyman · ${decision == 'keep' ? 'Keep' : 'Release'}'
+                          : player.positionLabel,
                   style: TextStyle(
                     color:
                         isStarPlayer ? AppColors.accent : AppColors.textMuted,
@@ -3802,6 +3649,7 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
               label: 'Keep',
               color: AppColors.success,
               icon: PhosphorIcons.userPlus(PhosphorIconsStyle.bold),
+              selected: decision == 'keep',
               onPressed: () => _keepTempPlayer(player, teamId),
             ),
             const SizedBox(width: 8),
@@ -3809,6 +3657,7 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
               label: 'Release',
               color: AppColors.error,
               icon: PhosphorIcons.userMinus(PhosphorIconsStyle.bold),
+              selected: decision == 'release',
               onPressed: () => _releaseTempPlayer(player, teamId),
             ),
           ],
@@ -3822,6 +3671,7 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
     required Color color,
     required IconData icon,
     required VoidCallback onPressed,
+    bool selected = false,
   }) {
     return SizedBox(
       height: 30,
@@ -3830,30 +3680,66 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
         icon: Icon(icon, size: 14),
         label: Text(label, style: const TextStyle(fontSize: 12)),
         style: ElevatedButton.styleFrom(
-          backgroundColor: color.withValues(alpha: 0.15),
+          backgroundColor: color.withValues(alpha: selected ? 0.3 : 0.15),
           foregroundColor: color,
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 10),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+            side: BorderSide(color: selected ? color : Colors.transparent),
+          ),
         ),
       ),
     );
   }
 
+  bool _isVisibleTemporaryPlayer(UserPlayer player, Set<String> providerIds) {
+    final belongsToMatch =
+        player.temporaryMatchId == null || player.temporaryMatchId == matchId;
+    return providerIds.contains(player.id) ||
+        (player.temporaryForMatch && belongsToMatch);
+  }
+
   void _keepTempPlayer(UserPlayer player, String teamId) {
-    final tempData = ref.read(tempHiredPlayersProvider);
+    if (!player.temporaryForMatch) {
+      final tempData = ref.read(tempHiredPlayersProvider);
+      setState(() {
+        tempData.getForTeam(teamId).remove(player.id);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${player.name} added permanently to roster'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+      return;
+    }
+
     setState(() {
-      tempData.getForTeam(teamId).remove(player.id);
+      _temporaryPlayerDecisions[player.id] = 'keep';
     });
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('${player.name} added permanently to roster'),
+        content: Text('${player.name} will be hired permanently'),
         backgroundColor: AppColors.success,
       ),
     );
   }
 
   Future<void> _releaseTempPlayer(UserPlayer player, String teamId) async {
+    if (player.temporaryForMatch) {
+      setState(() {
+        _temporaryPlayerDecisions[player.id] = 'release';
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${player.name} will be released after the match'),
+          backgroundColor: AppColors.info,
+        ),
+      );
+      return;
+    }
+
     try {
       final repo = ref.read(teamRepositoryProvider);
       await repo.fireUserPlayer(teamId, player.id);

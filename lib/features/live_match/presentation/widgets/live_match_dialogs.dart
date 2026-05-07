@@ -720,7 +720,11 @@ extension _LiveMatchDialogs on _LiveMatchScreenState {
     try {
       final teamRepo = ref.read(teamRepositoryProvider);
       await teamRepo.hirePlayer(teamId,
-          baseType: baseType, name: name, number: number);
+          baseType: baseType,
+          name: name,
+          number: number,
+          temporaryForMatch: true,
+          temporaryMatchId: widget.matchId);
       // After refresh, find the newly added player and mark as temp
       await _doRefreshPreMatch();
       _refresh();

@@ -12,6 +12,10 @@ extension _LiveMatchPreMatch on _LiveMatchScreenState {
       Theme.of(context).textTheme.displayMedium ?? const TextStyle();
 
   Widget _buildPreMatchView(Match match, String lang) {
+    final weatherRules = ref.watch(weatherRulesProvider).valueOrNull;
+    final kickoffRules = ref.watch(kickoffEventRulesProvider).valueOrNull;
+    final weatherItems = _weatherOptionsFromRules(weatherRules, lang);
+    final kickoffItems = _kickoffOptionsFromRules(kickoffRules, lang);
     final weatherSet = match.weather != null && match.weather!.isNotEmpty;
     final kickoffSet =
         match.kickoffEvent != null && match.kickoffEvent!.isNotEmpty;
@@ -80,7 +84,7 @@ extension _LiveMatchPreMatch on _LiveMatchScreenState {
                   PhosphorIcons.cloudSun(PhosphorIconsStyle.fill)),
               const SizedBox(height: 12),
               _buildVisualCardSelector(
-                items: _weatherData,
+                items: weatherItems,
                 selected: match.weather,
                 onSelect: (v) => _updateState(weather: v),
               ),
@@ -93,7 +97,7 @@ extension _LiveMatchPreMatch on _LiveMatchScreenState {
                   PhosphorIcons.lightning(PhosphorIconsStyle.fill)),
               const SizedBox(height: 12),
               _buildVisualCardSelector(
-                items: _kickoffData,
+                items: kickoffItems,
                 selected: match.kickoffEvent,
                 onSelect: (v) => _updateState(kickoffEvent: v),
               ),

@@ -192,19 +192,28 @@ class LeagueRepository {
     }
   }
 
-  Future<void> applyAftermatchSpp({
+  Future<void> applyAftermatch({
     required String leagueId,
     required String matchId,
-    required List<Map<String, dynamic>> home,
-    required List<Map<String, dynamic>> away,
+    required String? mvpHome,
+    required String? mvpAway,
+    required int gate,
     required List<Map<String, dynamic>> postMatchEvents,
+    required List<Map<String, dynamic>> injuries,
+    required Map<String, dynamic> winnings,
+    required Map<String, dynamic> dedicatedFans,
+    List<Map<String, dynamic>> temporaryPlayers = const [],
   }) async {
     try {
-      await _dio
-          .post('/leagues/$leagueId/matches/$matchId/aftermatch/spp', data: {
-        'home': home,
-        'away': away,
+      await _dio.post('/leagues/$leagueId/matches/$matchId/aftermatch', data: {
+        if (mvpHome != null) 'mvp_home': mvpHome,
+        if (mvpAway != null) 'mvp_away': mvpAway,
+        'gate': gate,
         'post_match_events': postMatchEvents,
+        'injuries': injuries,
+        'winnings': winnings,
+        'dedicated_fans': dedicatedFans,
+        'temporary_players': temporaryPlayers,
       });
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);

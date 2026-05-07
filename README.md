@@ -311,6 +311,7 @@ La estructura por features, el uso de Riverpod y la intencion de modelar dominio
 - [X] En la parte de mis tacticas en lugar de lista que sea un grid. Ademas que sea multiidioma las labels de ataque y defensa [DONE]
 - [ ] Calculos post-partido en backend
 - [ ] Los equipos que tengan reglas especiales tienen que tener un popup cuando se clique sobre ella para explicarla
+- [ ] En la vista prepartido, en las cajas de clima y patada inicial deberia aparecer el resultado de dados que la genera.
 - [X] La vista de mis equipos rediseñarla. [DONE]
 - [ ] En partido rapido rediseñar las tarjetas de selector de equipo: logo, valor equipo, nombre, raza
 - [ ] Seccion de notificaciones de mis ligas más estrecho, que quepan 2 tarjetas de liga en grid
@@ -323,15 +324,14 @@ La estructura por features, el uso de Riverpod y la intencion de modelar dominio
 
 **REGLAS - LOGICA**
 
-- [ ] Reglas de retener el balon, añadir input para calculo de MO final.
+- [X] Reglas de retener el balon, añadir input para calculo de MO final.
 - [ ] Acciones pre-partido: añadir bendisiones de nurgle
 - [ ] Acciones pre-partido: creacion de equipo + fichajes temporales
-- [ ] Calculo ganancias y puntos de estrellato
-- [ ] Refactorizar la creacion de equipo
-- [ ] Acciones post-partido segun reglamento
-- [ ] Acciones post-partido: fichajes permanentes de temporales
-- [ ] Meter en wiki
-  - [ ] Tabla de lesiones
+- [X] Calculo ganancias y puntos de estrellato
+- [X] Refactorizar la creacion de equipo
+- [X] Acciones post-partido segun reglamento
+- [X] Acciones post-partido: fichajes permanentes de temporales
+- [X] Meter en wiki
+  - [X] Tabla de lesiones
   - [ ] Dados
   - [ ] Lanzamientos (con mapa)
-  - [ ] Tabla de lesiones

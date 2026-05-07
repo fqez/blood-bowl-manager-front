@@ -143,6 +143,113 @@ final _kickoffData = [
       'Fans invade the pitch! For each opposing player on the field, roll a D6; on a 5+ that player is placed in the Reserves box.'),
 ];
 
+List<_CardOption> _weatherOptionsFromRules(DiceRangeRules? rules, String lang) {
+  if (rules == null || rules.table.isEmpty) return _weatherData;
+  return rules.table
+      .map((entry) => _CardOption(
+            entry.localizedLabel('en'),
+            entry.localizedLabel(lang),
+            _weatherIcon(entry.code),
+            _weatherColor(entry.code),
+            '${entry.rollLabel}: ${entry.localizedDescription(lang)}',
+          ))
+      .toList();
+}
+
+List<_CardOption> _kickoffOptionsFromRules(DiceRangeRules? rules, String lang) {
+  if (rules == null || rules.table.isEmpty) return _kickoffData;
+  return rules.table
+      .map((entry) => _CardOption(
+            entry.localizedLabel('en'),
+            entry.localizedLabel(lang),
+            _kickoffIcon(entry.code),
+            _kickoffColor(entry.code),
+            '${entry.rollLabel}: ${entry.localizedDescription(lang)}',
+          ))
+      .toList();
+}
+
+IconData _weatherIcon(String code) {
+  switch (code) {
+    case 'sweltering_heat':
+      return PhosphorIcons.thermometerHot(PhosphorIconsStyle.fill);
+    case 'very_sunny':
+      return PhosphorIcons.sun(PhosphorIconsStyle.fill);
+    case 'pouring_rain':
+      return PhosphorIcons.cloudRain(PhosphorIconsStyle.fill);
+    case 'blizzard':
+      return PhosphorIcons.snowflake(PhosphorIconsStyle.fill);
+    default:
+      return PhosphorIcons.sunHorizon(PhosphorIconsStyle.fill);
+  }
+}
+
+Color _weatherColor(String code) {
+  switch (code) {
+    case 'sweltering_heat':
+      return const Color(0xFFFF6B35);
+    case 'very_sunny':
+      return AppColors.warning;
+    case 'pouring_rain':
+      return AppColors.info;
+    case 'blizzard':
+      return const Color(0xFF90CAF9);
+    default:
+      return AppColors.success;
+  }
+}
+
+IconData _kickoffIcon(String code) {
+  switch (code) {
+    case 'get_the_ref':
+      return PhosphorIcons.megaphone(PhosphorIconsStyle.fill);
+    case 'time_out':
+      return PhosphorIcons.timer(PhosphorIconsStyle.fill);
+    case 'solid_defence':
+      return PhosphorIcons.shieldCheck(PhosphorIconsStyle.fill);
+    case 'high_kick':
+      return PhosphorIcons.arrowUp(PhosphorIconsStyle.fill);
+    case 'cheering_fans':
+      return PhosphorIcons.handsPraying(PhosphorIconsStyle.fill);
+    case 'brilliant_coaching':
+      return PhosphorIcons.graduationCap(PhosphorIconsStyle.fill);
+    case 'changing_weather':
+      return PhosphorIcons.cloudSun(PhosphorIconsStyle.fill);
+    case 'quick_snap':
+      return PhosphorIcons.lightning(PhosphorIconsStyle.fill);
+    case 'charge':
+      return PhosphorIcons.sword(PhosphorIconsStyle.fill);
+    case 'pitch_invasion':
+      return PhosphorIcons.usersThree(PhosphorIconsStyle.fill);
+    default:
+      return PhosphorIcons.asterisk(PhosphorIconsStyle.fill);
+  }
+}
+
+Color _kickoffColor(String code) {
+  switch (code) {
+    case 'get_the_ref':
+    case 'charge':
+    case 'pitch_invasion':
+      return AppColors.error;
+    case 'time_out':
+    case 'quick_snap':
+      return AppColors.warning;
+    case 'solid_defence':
+      return AppColors.info;
+    case 'high_kick':
+      return AppColors.success;
+    case 'cheering_fans':
+      return AppColors.accent;
+    case 'brilliant_coaching':
+      return AppColors.primaryLight;
+    case 'changing_weather':
+      return const Color(0xFF90CAF9);
+    default:
+      return AppColors.primaryDark;
+  }
+}
+
 // ══════════════════════════════════════════════
 //  HELPER EXTENSION
 // ══════════════════════════════════════════════
