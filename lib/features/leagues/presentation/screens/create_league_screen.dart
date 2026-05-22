@@ -473,7 +473,7 @@ class _CreateLeagueScreenState extends ConsumerState<CreateLeagueScreen> {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeThumbColor: AppColors.success,
+            activeColor: AppColors.success,
           ),
         ],
       ),

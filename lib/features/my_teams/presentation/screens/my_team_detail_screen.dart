@@ -1074,7 +1074,7 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
           Switch(
             value: team.apothecary && team.apothecaryAllowed,
             onChanged: canToggle ? (value) => _patch(apothecary: value) : null,
-            activeThumbColor: AppColors.success,
+            activeColor: AppColors.success,
             materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
         ],
