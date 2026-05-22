@@ -4,7 +4,7 @@ class AppConfig {
   // API Configuration
   static const String apiBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'blood-bowl-manager-phi.vercel.app',
+    defaultValue: 'https://blood-bowl-manager-phi.vercel.app',
   );
   // Timeouts
   static const Duration connectTimeout = Duration(seconds: 30);
