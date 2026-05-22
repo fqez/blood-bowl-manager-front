@@ -302,8 +302,9 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
             'characteristic_improvement' => true,
             _ => false,
           };
-          final selectedModeEnabled =
-              selectedModeHasAccess && modeCost > 0 && player.spp >= modeCost;
+          final selectedModeBrowsable = selectedModeHasAccess && modeCost > 0;
+          final selectedModeAffordable =
+              selectedModeBrowsable && player.spp >= modeCost;
           final requiredAccess = selectedMode == 'choose_secondary_skill'
               ? 'SECONDARY'
               : 'PRIMARY';
@@ -432,7 +433,6 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                                         PhosphorIconsStyle.fill),
                                     cost: randomPrimaryCost,
                                     enabled: primaryRows.isNotEmpty &&
-                                        player.spp >= randomPrimaryCost &&
                                         randomPrimaryCost > 0,
                                     selected:
                                         selectedMode == 'random_primary_skill',
@@ -454,7 +454,6 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                                         PhosphorIconsStyle.fill),
                                     cost: choosePrimaryCost,
                                     enabled: primaryRows.isNotEmpty &&
-                                        player.spp >= choosePrimaryCost &&
                                         choosePrimaryCost > 0,
                                     selected:
                                         selectedMode == 'choose_primary_skill',
@@ -476,7 +475,6 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                                         PhosphorIconsStyle.fill),
                                     cost: chooseSecondaryCost,
                                     enabled: secondaryRows.isNotEmpty &&
-                                        player.spp >= chooseSecondaryCost &&
                                         chooseSecondaryCost > 0,
                                     selected: selectedMode ==
                                         'choose_secondary_skill',
@@ -496,8 +494,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                                     icon: PhosphorIcons.chartLineUp(
                                         PhosphorIconsStyle.fill),
                                     cost: characteristicCost,
-                                    enabled: player.spp >= characteristicCost &&
-                                        characteristicCost > 0,
+                                    enabled: characteristicCost > 0,
                                     selected: selectedMode ==
                                         'characteristic_improvement',
                                     color: AppColors.primaryLight,
@@ -521,7 +518,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                                                   selectedSymbol &&
                                               selectedMode !=
                                                   'characteristic_improvement',
-                                          onTap: selectedModeEnabled &&
+                                          onTap: selectedModeBrowsable &&
                                                   row.access ==
                                                       requiredAccess &&
                                                   selectedMode !=
@@ -566,8 +563,8 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                                           ),
                                         ),
                                       ),
-                                      _sppPill(
-                                          '$modeCost SPP', selectedModeEnabled),
+                                      _sppPill('$modeCost SPP',
+                                          selectedModeAffordable),
                                     ],
                                   ),
                                 ),
@@ -583,7 +580,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                                                   selectedCharacteristicRoll,
                                               selectedCharacteristic:
                                                   selectedCharacteristic,
-                                              enabled: selectedModeEnabled,
+                                              enabled: selectedModeBrowsable,
                                               onRollSelected: (roll) =>
                                                   setDialogState(() {
                                                 selectedCharacteristicRoll =
@@ -596,7 +593,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                                                 selectedCharacteristic =
                                                     characteristic;
                                               }),
-                                              onApply: selectedModeEnabled &&
+                                              onApply: selectedModeAffordable &&
                                                       selectedCharacteristicRoll !=
                                                           null &&
                                                       selectedCharacteristic !=
@@ -624,7 +621,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                                                       randomEligible.length,
                                                   cost: randomPrimaryCost,
                                                   enabled:
-                                                      selectedModeEnabled &&
+                                                      selectedModeAffordable &&
                                                           randomEligible
                                                               .isNotEmpty,
                                                   onApply: () {
@@ -659,7 +656,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                                                           16, 14, 16, 10),
                                                       child: TextField(
                                                         enabled:
-                                                            selectedModeEnabled,
+                                                            selectedModeBrowsable,
                                                         style: const TextStyle(
                                                             color: AppColors
                                                                 .textPrimary),
@@ -705,7 +702,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                                                     ),
                                                     Expanded(
                                                       child:
-                                                          !selectedModeEnabled
+                                                          !selectedModeBrowsable
                                                               ? _disabledAdvancementState(
                                                                   player.spp,
                                                                   modeCost,
@@ -768,7 +765,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                                                                               _familyColor(selectedAccess?.family ?? ''),
                                                                           isOwned:
                                                                               isOwned,
-                                                                          onTap: isOwned
+                                                                          onTap: isOwned || !selectedModeAffordable
                                                                               ? null
                                                                               : () => Navigator.pop(
                                                                                     ctx,
@@ -2419,6 +2416,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
     final progress = isMax ? 1.0 : (player.spp / next).clamp(0.0, 1.0);
     final canLevel = _canLevelUp(player);
     final canBuySkill = isOwner && _canBuySkillAdvancement(player, baseRoster);
+    final canOpenSkillPlanner = isOwner && baseRoster != null;
     final remaining = isMax ? 0 : next - player.spp;
 
     return _card(
@@ -2432,7 +2430,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
               const Spacer(),
               if (isOwner)
                 ElevatedButton.icon(
-                  onPressed: canBuySkill && !_isMutating
+                  onPressed: canOpenSkillPlanner && !_isMutating
                       ? () =>
                           _showAddSkillDialog(context, player, lang, baseRoster)
                       : null,
@@ -2447,9 +2445,12 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                         letterSpacing: 0.5,
                       )),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.warning.withValues(alpha: 0.18),
+                    backgroundColor: canBuySkill
+                        ? AppColors.warning.withValues(alpha: 0.18)
+                        : AppColors.surfaceLight,
                     disabledBackgroundColor: AppColors.surfaceLight,
-                    foregroundColor: AppColors.warning,
+                    foregroundColor:
+                        canBuySkill ? AppColors.warning : AppColors.textPrimary,
                     disabledForegroundColor: AppColors.textMuted,
                     elevation: 0,
                     padding:
@@ -2459,7 +2460,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                       side: BorderSide(
                         color: canBuySkill
                             ? AppColors.warning.withValues(alpha: 0.45)
-                            : AppColors.surfaceLight,
+                            : AppColors.textMuted.withValues(alpha: 0.35),
                       ),
                     ),
                   ),

@@ -315,6 +315,7 @@ class UserTeamDetail {
   final bool apothecary;
   final bool apothecaryAllowed;
   final int dedicatedFans;
+  final String notes;
   final bool canManageRoster;
   final List<TeamLeagueMembership> leagueMemberships;
   final String? icon;
@@ -340,6 +341,7 @@ class UserTeamDetail {
     required this.apothecary,
     required this.apothecaryAllowed,
     required this.dedicatedFans,
+    required this.notes,
     required this.canManageRoster,
     required this.leagueMemberships,
     this.icon,
@@ -377,6 +379,7 @@ class UserTeamDetail {
         apothecary: json['apothecary'] as bool? ?? false,
         apothecaryAllowed: json['apothecary_allowed'] as bool? ?? true,
         dedicatedFans: (json['dedicated_fans'] as num?)?.toInt() ?? 1,
+        notes: json['notes'] as String? ?? '',
         canManageRoster: json['can_manage_roster'] as bool? ?? true,
         leagueMemberships: (json['league_memberships'] as List<dynamic>? ?? [])
             .map(

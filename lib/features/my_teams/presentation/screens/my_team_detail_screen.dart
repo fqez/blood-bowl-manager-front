@@ -42,15 +42,19 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
   String _fmtGold(int amount) => _goldFmt.format(amount);
 
   final _searchController = TextEditingController();
+  final _teamNotesController = TextEditingController();
   String _searchQuery = '';
+  String _loadedNotes = '';
   bool _showActive = true;
   bool _showInjured = true;
   bool _showDead = false;
+  bool _notesDirty = false;
   bool _isMutating = false;
 
   @override
   void dispose() {
     _searchController.dispose();
+    _teamNotesController.dispose();
     super.dispose();
   }
 
@@ -64,6 +68,7 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
     int? cheerleaders,
     int? assistantCoaches,
     bool? apothecary,
+    String? notes,
   }) async {
     if (_isMutating) return false;
     setState(() => _isMutating = true);
@@ -77,6 +82,7 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
             cheerleaders: cheerleaders,
             assistantCoaches: assistantCoaches,
             apothecary: apothecary,
+            notes: notes,
           );
       ref.invalidate(userTeamDetailProvider(widget.teamId));
       return true;
@@ -91,6 +97,40 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
     } finally {
       if (mounted) setState(() => _isMutating = false);
     }
+  }
+
+  void _syncTeamNotes(String notes) {
+    if (_notesDirty) return;
+    if (_loadedNotes == notes && _teamNotesController.text == notes) return;
+    _loadedNotes = notes;
+    _teamNotesController.value = TextEditingValue(
+      text: notes,
+      selection: TextSelection.collapsed(offset: notes.length),
+    );
+  }
+
+  Future<void> _saveTeamNotes(UserTeamDetail team, String lang) async {
+    final nextNotes = _teamNotesController.text;
+    if (!_notesDirty || nextNotes == team.notes) {
+      if (_notesDirty && mounted) {
+        setState(() => _notesDirty = false);
+      }
+      return;
+    }
+
+    final saved = await _patch(notes: nextNotes);
+    if (!saved || !mounted) return;
+
+    setState(() {
+      _loadedNotes = nextNotes;
+      _notesDirty = false;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(tr(lang, 'team.notesSaved')),
+        backgroundColor: AppColors.success,
+      ),
+    );
   }
 
   Future<void> _firePlayer(UserTeamDetail team, UserPlayer player) async {
@@ -141,6 +181,7 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, _) => _buildError(err, lang),
         data: (team) {
+          _syncTeamNotes(team.notes);
           final isOwner = currentUserId != null && team.userId == currentUserId;
           final canManageRoster = isOwner && team.canManageRoster;
           final canHirePlayers = isOwner;
@@ -155,6 +196,8 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
                     _buildTeamHeader(team, isWide, lang),
                     const SizedBox(height: 12),
                     _buildTeamOverviewSection(team, isWide, lang),
+                    const SizedBox(height: 20),
+                    _buildNotesSection(team, isOwner, lang),
                     const SizedBox(height: 20),
                     _buildPlayerSection(
                         team, isWide, isOwner, canHirePlayers, lang),
@@ -554,6 +597,130 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
         ],
       );
     });
+  }
+
+  Widget _buildNotesSection(UserTeamDetail team, bool isOwner, String lang) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.surfaceLight),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                PhosphorIcons.notePencil(PhosphorIconsStyle.fill),
+                size: 16,
+                color: AppColors.accent,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                tr(lang, 'team.notesTitle'),
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textMuted,
+                  letterSpacing: 1,
+                ),
+              ),
+              const Spacer(),
+              if (!isOwner)
+                Text(
+                  tr(lang, 'team.notesReadOnly'),
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textMuted,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            tr(lang, 'team.notesHint'),
+            style: const TextStyle(
+              fontSize: 12,
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 14),
+          TextField(
+            controller: _teamNotesController,
+            readOnly: !isOwner,
+            minLines: 6,
+            maxLines: null,
+            keyboardType: TextInputType.multiline,
+            style: const TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 13,
+              height: 1.45,
+            ),
+            decoration: InputDecoration(
+              hintText: tr(lang, 'team.notesPlaceholder'),
+              hintStyle: const TextStyle(
+                color: AppColors.textMuted,
+                fontSize: 13,
+              ),
+              filled: true,
+              fillColor: AppColors.surface,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: const EdgeInsets.all(14),
+            ),
+            onChanged: isOwner
+                ? (value) {
+                    final dirty = value != _loadedNotes;
+                    if (dirty != _notesDirty) {
+                      setState(() => _notesDirty = dirty);
+                    }
+                  }
+                : null,
+          ),
+          if (isOwner) ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    _notesDirty
+                        ? tr(lang, 'team.notesUnsaved')
+                        : tr(lang, 'team.notesSavedState'),
+                    style: TextStyle(
+                      fontSize: 11,
+                      color:
+                          _notesDirty ? AppColors.warning : AppColors.textMuted,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                ElevatedButton.icon(
+                  onPressed: _notesDirty && !_isMutating
+                      ? () => _saveTeamNotes(team, lang)
+                      : null,
+                  icon: Icon(PhosphorIcons.floppyDisk(PhosphorIconsStyle.fill),
+                      size: 16),
+                  label: Text(tr(lang, 'common.save')),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.accent,
+                    foregroundColor: AppColors.background,
+                    disabledBackgroundColor: AppColors.surfaceLight,
+                    disabledForegroundColor: AppColors.textMuted,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
   }
 
   Widget _overviewMetricCard({

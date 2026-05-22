@@ -880,6 +880,7 @@ class TeamRepository {
     int? fanFactor,
     int? dedicatedFans,
     int? treasury,
+    String? notes,
   }) async {
     try {
       final response = await _dio.patch('/user-teams/$teamId', data: {
@@ -891,6 +892,7 @@ class TeamRepository {
         if (fanFactor != null) 'fan_factor': fanFactor,
         if (dedicatedFans != null) 'dedicated_fans': dedicatedFans,
         if (treasury != null) 'treasury': treasury,
+        if (notes != null) 'notes': notes,
       });
       return UserTeamDetail.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {

@@ -52,6 +52,32 @@ Permisos recomendados para el token de Cloudflare:
 - Produccion: despliegue directo desde `main`.
 - Estrategia: CI/CD simple de una sola via (single-branch release).
 
+### Configuracion por ficheros de entorno
+
+La URL del backend ya no se cambia en codigo. El frontend carga la configuracion desde `assets/env/` al arrancar.
+
+- `assets/env/development.env`: usado por defecto en debug/local.
+- `assets/env/production.env`: usado por defecto en builds release/web.
+- `assets/env/local.env`: override local opcional, ignorado por git.
+- `assets/env/example.env`: plantilla de referencia.
+
+Valores actuales:
+
+- `development.env` -> `API_BASE_URL=http://localhost:8080`
+- `production.env` -> `API_BASE_URL=https://blood-bowl-manager-phi.vercel.app`
+
+Flujo recomendado en local:
+
+1. Copiar `assets/env/example.env` a `assets/env/local.env`.
+2. Ajustar `API_BASE_URL` al backend que quieras usar.
+3. Ejecutar el front normalmente.
+
+Seleccion de entorno:
+
+- `flutter run -d chrome` usa `development.env` salvo que exista `local.env`.
+- `flutter build web --release` usa `production.env`.
+- Opcionalmente se puede forzar otro fichero con `--dart-define=APP_ENV=production` o cualquier nombre que exista como `assets/env/<nombre>.env`.
+
 Esto implica que cualquier merge/push en `main` impacta directamente en el sitio publicado.
 
 ### Operacion y verificacion

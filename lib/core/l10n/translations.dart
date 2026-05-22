@@ -770,6 +770,30 @@ const _t = <String, Map<String, String>>{
   },
   'team.cheerleaders': {'es': 'ANIMADORAS', 'en': 'CHEERLEADERS'},
   'team.levelUp': {'es': 'SUBIR NIVEL', 'en': 'LEVEL UP'},
+  'team.notesTitle': {'es': 'NOTAS DEL EQUIPO', 'en': 'TEAM NOTES'},
+  'team.notesHint': {
+    'es':
+        'Campo libre para estrategia, plan de desarrollo, scouting o cualquier apunte del equipo.',
+    'en':
+        'Freeform field for strategy, development plans, scouting, or any team notes.',
+  },
+  'team.notesPlaceholder': {
+    'es': 'Escribe aqui tus notas del equipo. Sin limite de longitud.',
+    'en': 'Write your team notes here. No length limit.',
+  },
+  'team.notesReadOnly': {'es': 'Solo lectura', 'en': 'Read-only'},
+  'team.notesSaved': {
+    'es': 'Notas del equipo guardadas',
+    'en': 'Team notes saved',
+  },
+  'team.notesUnsaved': {
+    'es': 'Cambios sin guardar',
+    'en': 'Unsaved changes',
+  },
+  'team.notesSavedState': {
+    'es': 'Sin cambios pendientes',
+    'en': 'No pending changes',
+  },
   'team.treasuryLog': {
     'es': 'REGISTRO DE TESORERÍA',
     'en': 'TREASURY LOG',

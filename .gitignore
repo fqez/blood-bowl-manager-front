@@ -64,3 +64,4 @@ coverage/
 # Environment / secrets
 .env
 .env.local
+assets/env/local.env
