@@ -2,9 +2,10 @@ class AppConfig {
   AppConfig._();
 
   // API Configuration
-  static const String apiBaseUrl = String.fromEnvironment('API_BASE_URL',
-      defaultValue: 'https://web-production-9aceb.up.railway.app');
-
+  static const String apiBaseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'https://blood-bowl-manager-vercel.vercel.app/',
+  );
   // Timeouts
   static const Duration connectTimeout = Duration(seconds: 30);
   static const Duration receiveTimeout = Duration(seconds: 30);

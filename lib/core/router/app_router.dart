@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
@@ -26,29 +27,41 @@ import '../../features/wiki/presentation/screens/wiki_achievements_screen.dart';
 import '../../features/tactics/presentation/screens/tactics_screen.dart';
 import '../../features/tactics/presentation/screens/my_tactics_screen.dart';
 import '../../features/auth/data/providers/auth_provider.dart';
+import '../../features/auth/domain/models/user.dart';
 import '../shell/app_shell.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authStateProvider);
+  final refreshNotifier = _AuthRefreshNotifier(ref);
+  ref.onDispose(refreshNotifier.dispose);
 
   return GoRouter(
-    initialLocation: '/leagues',
+    refreshListenable: refreshNotifier,
     redirect: (context, state) {
+      final authState = ref.read(authStateProvider);
+      if (authState.isLoading) return null;
+
       final isLoggedIn = authState.valueOrNull?.isAuthenticated ?? false;
       final isAuthRoute = state.matchedLocation == '/login' ||
           state.matchedLocation == '/register';
 
       if (!isLoggedIn && !isAuthRoute) {
-        return '/login';
+        return '/login?from=${Uri.encodeComponent(state.uri.toString())}';
       }
 
       if (isLoggedIn && isAuthRoute) {
+        final from = state.uri.queryParameters['from'];
+        if (from != null && from.isNotEmpty && from != '/login') return from;
         return '/leagues';
       }
 
       return null;
     },
     routes: [
+      GoRoute(
+        path: '/',
+        redirect: (context, state) => '/leagues',
+      ),
+
       // Auth routes (no shell)
       GoRoute(
         path: '/login',
@@ -276,3 +289,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
+
+class _AuthRefreshNotifier extends ChangeNotifier {
+  late final ProviderSubscription<AsyncValue<AuthState>> _subscription;
+
+  _AuthRefreshNotifier(Ref ref) {
+    _subscription = ref.listen<AsyncValue<AuthState>>(
+      authStateProvider,
+      (_, __) => notifyListeners(),
+    );
+  }
+
+  @override
+  void dispose() {
+    _subscription.close();
+    super.dispose();
+  }
+}

@@ -100,9 +100,9 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surface,
         title: Text(tr(lang, 'team.firePlayer'),
-            style: TextStyle(color: AppColors.textPrimary)),
+            style: const TextStyle(color: AppColors.textPrimary)),
         content: Text(trf(lang, 'team.fireConfirm', {'name': player.name}),
-            style: TextStyle(color: AppColors.textSecondary)),
+            style: const TextStyle(color: AppColors.textSecondary)),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
@@ -183,7 +183,7 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
               size: 48, color: AppColors.error),
           const SizedBox(height: 16),
           Text(tr(lang, 'team.errorLoading'),
-              style: TextStyle(
+              style: const TextStyle(
                   color: AppColors.textPrimary,
                   fontSize: 16,
                   fontWeight: FontWeight.bold)),
@@ -368,13 +368,13 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: isValid
-            ? AppColors.success.withOpacity(0.15)
-            : AppColors.warning.withOpacity(0.15),
+            ? AppColors.success.withValues(alpha: 0.15)
+            : AppColors.warning.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: isValid
-              ? AppColors.success.withOpacity(0.5)
-              : AppColors.warning.withOpacity(0.5),
+              ? AppColors.success.withValues(alpha: 0.5)
+              : AppColors.warning.withValues(alpha: 0.5),
         ),
       ),
       child: Row(
@@ -407,49 +407,6 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
     );
   }
 
-  Widget _buildLeagueMembershipPanel(
-      UserTeamDetail team, bool isWide, String lang) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.surfaceLight),
-      ),
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: [
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(PhosphorIcons.flagBanner(PhosphorIconsStyle.fill),
-                  size: 16, color: AppColors.accent),
-              const SizedBox(width: 6),
-              Text(
-                tr(lang, 'team.leagueMemberships'),
-                style: const TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          if (team.leagueMemberships.isEmpty)
-            Text(
-              tr(lang, 'team.noLeagueMemberships'),
-              style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
-            )
-          else
-            ...team.leagueMemberships.map(_buildLeagueChip),
-        ],
-      ),
-    );
-  }
-
   Widget _buildLeagueChip(TeamLeagueMembership league) {
     final isActive = league.status == 'active';
     return Container(
@@ -457,12 +414,12 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
         color: isActive
-            ? AppColors.primary.withOpacity(0.18)
+            ? AppColors.primary.withValues(alpha: 0.18)
             : AppColors.surfaceLight,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: isActive
-              ? AppColors.primary.withOpacity(0.45)
+              ? AppColors.primary.withValues(alpha: 0.45)
               : Colors.transparent,
         ),
       ),
@@ -507,10 +464,10 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
       decoration: BoxDecoration(
         color: AppColors.card,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.primary.withOpacity(0.18)),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.18)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.18),
+            color: Colors.black.withValues(alpha: 0.18),
             blurRadius: 24,
             offset: const Offset(0, 12),
           ),
@@ -611,9 +568,9 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
       width: width,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.11),
+        color: color.withValues(alpha: 0.11),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: color.withOpacity(0.32)),
+        border: Border.all(color: color.withValues(alpha: 0.32)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -658,7 +615,7 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
       Icon(icon, size: 14, color: color),
       const SizedBox(width: 6),
       Text(label,
-          style: TextStyle(
+          style: const TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.bold,
               color: AppColors.textMuted,
@@ -670,9 +627,9 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.25)),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
       ),
       child: Text(label,
           style: TextStyle(
@@ -684,337 +641,9 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
     );
   }
 
-  // ── Stats strip ──
-
-  Widget _buildStatsStrip(UserTeamDetail team, bool isWide, bool isOwner) {
-    final isLeague = widget.leagueId != null;
-    final cards = [
-      _statCardTeamValue(team),
-      _statCardTreasury(team),
-      _statCardFanFactor(team, isOwner, isLeague),
-      _statCardRerolls(team, isOwner),
-      _statCardStaff(
-        icon: PhosphorIcons.chalkboardTeacher(PhosphorIconsStyle.fill),
-        label: 'AYUDANTES',
-        count: team.assistantCoaches,
-        cost: 10000,
-        canAdd: isOwner && team.treasury >= 10000 && team.assistantCoaches < 6,
-        canRemove: isOwner && team.assistantCoaches > 0,
-        onAdd: () => _patch(assistantCoaches: team.assistantCoaches + 1),
-        onRemove: () => _patch(assistantCoaches: team.assistantCoaches - 1),
-      ),
-      _statCardStaff(
-        icon: PhosphorIcons.megaphoneSimple(PhosphorIconsStyle.fill),
-        label: 'ANIMADORAS',
-        count: team.cheerleaders,
-        cost: 10000,
-        canAdd: isOwner && team.treasury >= 10000 && team.cheerleaders < 6,
-        canRemove: isOwner && team.cheerleaders > 0,
-        onAdd: () => _patch(cheerleaders: team.cheerleaders + 1),
-        onRemove: () => _patch(cheerleaders: team.cheerleaders - 1),
-      ),
-      _statCardMedStaff(team, isOwner),
-    ];
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final perRow = constraints.maxWidth >= 1180
-            ? 4
-            : constraints.maxWidth >= 760
-                ? 3
-                : 2;
-        final width = (constraints.maxWidth - (10 * (perRow - 1))) / perRow;
-        return Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          children:
-              cards.map((card) => SizedBox(width: width, child: card)).toList(),
-        );
-      },
-    );
-  }
-
-  Widget _statCard({required Widget child}) {
-    return Container(
-      constraints: const BoxConstraints(minHeight: 122),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.surfaceLight),
-      ),
-      child: child,
-    );
-  }
-
-  Widget _statCardTeamValue(UserTeamDetail team) {
-    return _statCard(
-        child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _statCardLabel(
-            PhosphorIcons.chartLineUp(PhosphorIconsStyle.fill), 'VALORACIÓN'),
-        const SizedBox(height: 8),
-        Row(children: [
-          Expanded(child: _valueBlock('VE', team.teamValue, AppColors.primary)),
-          const SizedBox(width: 10),
-          Expanded(
-              child:
-                  _valueBlock('VAE', team.currentTeamValue, AppColors.success)),
-        ]),
-        const SizedBox(height: 6),
-        Text('Sin tesorería ni hinchas',
-            style: TextStyle(fontSize: 10, color: AppColors.textMuted)),
-      ],
-    ));
-  }
-
-  Widget _valueBlock(String label, int value, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.28)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label,
-              style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  color: color,
-                  letterSpacing: 0.8)),
-          const SizedBox(height: 2),
-          Text(_fmtGold(value),
-              style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                  height: 1)),
-        ],
-      ),
-    );
-  }
-
-  Widget _statCardTreasury(UserTeamDetail team) {
-    return _statCard(
-        child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _statCardLabel(
-            PhosphorIcons.coins(PhosphorIconsStyle.fill), 'TESORERÍA'),
-        const SizedBox(height: 6),
-        Text(_fmtGold(team.treasury),
-            style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: AppColors.accent,
-                height: 1)),
-        const SizedBox(height: 4),
-        Text('Ver Historial',
-            style: TextStyle(
-                fontSize: 11,
-                color: AppColors.primary,
-                decoration: TextDecoration.underline)),
-      ],
-    ));
-  }
-
-  Widget _statCardRerolls(UserTeamDetail team, bool isOwner) {
-    final purchaseCost = _rerollPurchaseCost(team);
-    final canAdd = isOwner && team.treasury >= purchaseCost;
-    final canRemove = isOwner && team.rerolls > 0;
-    return _statCard(
-        child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _statCardLabel(PhosphorIcons.arrowsClockwise(PhosphorIconsStyle.fill),
-            'SEGUNDAS OP.'),
-        const SizedBox(height: 4),
-        Text('${team.rerolls}  (${_fmtGold(purchaseCost)}/1)',
-            style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-                height: 1.2)),
-        const SizedBox(height: 6),
-        Row(children: [
-          _counterBtn(
-              icon: PhosphorIcons.minus(PhosphorIconsStyle.bold),
-              enabled: canRemove && !_isMutating,
-              onTap: () => _patch(rerolls: team.rerolls - 1)),
-          const SizedBox(width: 8),
-          _counterBtn(
-              icon: PhosphorIcons.plus(PhosphorIconsStyle.bold),
-              enabled: canAdd && !_isMutating,
-              onTap: () => _patch(rerolls: team.rerolls + 1)),
-        ]),
-      ],
-    ));
-  }
-
   int _rerollPurchaseCost(UserTeamDetail team) {
     final isLeagueTeam = team.leagueMemberships.isNotEmpty;
     return team.rerollCost * (isLeagueTeam ? 2 : 1);
-  }
-
-  Widget _statCardFanFactor(UserTeamDetail team, bool isOwner, bool isLeague) {
-    return _statCard(
-        child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _statCardLabel(
-            PhosphorIcons.megaphone(PhosphorIconsStyle.fill), 'FACTOR HINCHAS'),
-        const SizedBox(height: 4),
-        Text('${team.dedicatedFans}',
-            style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-                height: 1)),
-        const SizedBox(height: 6),
-        Text(
-          isLeague ? 'Cambia post-partido (1-7)' : 'Inicial: 1-3',
-          style: TextStyle(fontSize: 11, color: AppColors.textMuted),
-        ),
-      ],
-    ));
-  }
-
-  Widget _statCardMedStaff(UserTeamDetail team, bool isOwner) {
-    final lang = ref.watch(localeProvider);
-    return _statCard(
-        child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _statCardLabel(
-            PhosphorIcons.firstAidKit(PhosphorIconsStyle.fill), 'STAFF MÉDICO'),
-        const SizedBox(height: 8),
-        if (!team.apothecaryAllowed)
-          Text(tr(lang, 'team.notAvailable'),
-              style: TextStyle(fontSize: 12, color: AppColors.textMuted))
-        else if (team.apothecary)
-          Row(children: [
-            Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                    color: AppColors.success, shape: BoxShape.circle)),
-            const SizedBox(width: 6),
-            Text(tr(lang, 'team.apothecary'),
-                style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.success)),
-          ])
-        else if (isOwner) ...[
-          Text('Apotecario',
-              style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
-          const SizedBox(height: 4),
-          OutlinedButton(
-            onPressed: team.treasury >= 50000 && !_isMutating
-                ? () => _patch(apothecary: true)
-                : null,
-            style: OutlinedButton.styleFrom(
-              minimumSize: const Size(0, 28),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              side: const BorderSide(color: AppColors.accent),
-              foregroundColor: AppColors.accent,
-            ),
-            child: Text(tr(lang, 'team.hire50k'),
-                style: const TextStyle(fontSize: 11)),
-          ),
-        ] else
-          Text(tr(lang, 'team.noApothecary'),
-              style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
-      ],
-    ));
-  }
-
-  Widget _statCardStaff({
-    required IconData icon,
-    required String label,
-    required int count,
-    required int cost,
-    required bool canAdd,
-    required bool canRemove,
-    required VoidCallback onAdd,
-    required VoidCallback onRemove,
-  }) {
-    return _statCard(
-        child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _statCardLabel(icon, label),
-        const SizedBox(height: 4),
-        Text('$count  (${_fmtGold(cost)}/1)',
-            style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-                height: 1.2)),
-        const SizedBox(height: 6),
-        Row(children: [
-          _counterBtn(
-              icon: PhosphorIcons.minus(PhosphorIconsStyle.bold),
-              enabled: canRemove && !_isMutating,
-              onTap: onRemove),
-          const SizedBox(width: 8),
-          _counterBtn(
-              icon: PhosphorIcons.plus(PhosphorIconsStyle.bold),
-              enabled: canAdd && !_isMutating,
-              onTap: onAdd),
-          const SizedBox(width: 8),
-          Text('máx. 6',
-              style: TextStyle(fontSize: 10, color: AppColors.textMuted)),
-        ]),
-      ],
-    ));
-  }
-
-  Widget _statCardLabel(IconData icon, String label) {
-    return Row(
-      children: [
-        Icon(icon, size: 14, color: AppColors.textMuted),
-        const SizedBox(width: 6),
-        Text(label,
-            style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textMuted,
-                letterSpacing: 0.8)),
-      ],
-    );
-  }
-
-  Widget _counterBtn(
-      {required IconData icon,
-      required bool enabled,
-      required VoidCallback onTap}) {
-    return InkWell(
-      onTap: enabled ? onTap : null,
-      borderRadius: BorderRadius.circular(4),
-      child: Container(
-        width: 26,
-        height: 26,
-        decoration: BoxDecoration(
-          color: enabled
-              ? AppColors.surfaceLight
-              : AppColors.surfaceLight.withOpacity(0.4),
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: Icon(icon,
-            size: 12,
-            color: enabled ? AppColors.textPrimary : AppColors.textMuted),
-      ),
-    );
   }
 
   // ── Player section ──
@@ -1050,7 +679,7 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
                   Icon(PhosphorIcons.usersThree(PhosphorIconsStyle.light),
                       size: 40, color: AppColors.textMuted),
                   const SizedBox(height: 8),
-                  Text('Sin jugadores que mostrar',
+                  const Text('Sin jugadores que mostrar',
                       style: TextStyle(color: AppColors.textMuted)),
                 ]),
               ),
@@ -1078,7 +707,7 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
                               size: 40,
                               color: AppColors.textMuted),
                           const SizedBox(height: 8),
-                          Text('Sin jugadores que mostrar',
+                          const Text('Sin jugadores que mostrar',
                               style: TextStyle(color: AppColors.textMuted)),
                         ]),
                       ),
@@ -1097,7 +726,8 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
               alignment: Alignment.centerRight,
               child: Text(
                   '1 - ${filtered.length} de ${team.players.length} jugadores',
-                  style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                  style: const TextStyle(
+                      fontSize: 11, color: AppColors.textMuted)),
             ),
           ),
       ],
@@ -1117,7 +747,7 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
             fontSize: 11,
             color: selected ? AppColors.textPrimary : AppColors.textMuted),
         backgroundColor: AppColors.surface,
-        selectedColor: AppColors.primary.withOpacity(0.25),
+        selectedColor: AppColors.primary.withValues(alpha: 0.25),
         checkmarkColor: AppColors.primary,
         side: BorderSide.none,
         padding: EdgeInsets.zero,
@@ -1151,7 +781,7 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
                   Icon(PhosphorIcons.listBullets(PhosphorIconsStyle.bold),
                       size: 16, color: AppColors.primary),
                   const SizedBox(width: 8),
-                  Expanded(
+                  const Expanded(
                     child: Text('PLANTILLA',
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
@@ -1182,12 +812,12 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
                     controller: _searchController,
                     onChanged: (v) =>
                         setState(() => _searchQuery = v.toLowerCase()),
-                    style:
-                        TextStyle(fontSize: 13, color: AppColors.textPrimary),
+                    style: const TextStyle(
+                        fontSize: 13, color: AppColors.textPrimary),
                     decoration: InputDecoration(
                       hintText: 'Buscar jugador...',
-                      hintStyle:
-                          TextStyle(color: AppColors.textMuted, fontSize: 13),
+                      hintStyle: const TextStyle(
+                          color: AppColors.textMuted, fontSize: 13),
                       prefixIcon: Icon(
                           PhosphorIcons.magnifyingGlass(
                               PhosphorIconsStyle.regular),
@@ -1224,7 +854,7 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
       decoration: BoxDecoration(
           color: AppColors.surface, borderRadius: BorderRadius.circular(20)),
       child: Text('Jugadores: $totalActive/16',
-          style: TextStyle(
+          style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w500,
               color: AppColors.textSecondary)),
@@ -1304,7 +934,7 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
             Icon(PhosphorIcons.shoppingCart(PhosphorIconsStyle.fill),
                 size: 16, color: AppColors.accent),
             const SizedBox(width: 8),
-            Text('COMPRAS Y CONTRATACIONES',
+            const Text('COMPRAS Y CONTRATACIONES',
                 style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
@@ -1320,7 +950,8 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
             ),
             const SizedBox(width: 6),
             Text('$activeCount jugadores activos',
-                style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                style:
+                    const TextStyle(fontSize: 11, color: AppColors.textMuted)),
           ]),
           const SizedBox(height: 16),
           LayoutBuilder(builder: (context, constraints) {
@@ -1366,13 +997,13 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
           Icon(icon, color: AppColors.accent, size: 22),
           const SizedBox(height: 6),
           Text(label,
-              style: TextStyle(
+              style: const TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textMuted,
                   letterSpacing: 0.5)),
           Text(subtitle,
-              style: TextStyle(fontSize: 10, color: AppColors.textMuted)),
+              style: const TextStyle(fontSize: 10, color: AppColors.textMuted)),
           const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -1417,7 +1048,7 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
           color: team.apothecary
-              ? AppColors.success.withOpacity(0.5)
+              ? AppColors.success.withValues(alpha: 0.5)
               : AppColors.surfaceLight,
         ),
       ),
@@ -1431,19 +1062,19 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
             size: 22,
           ),
           const SizedBox(height: 6),
-          Text('APOTECARIO',
+          const Text('APOTECARIO',
               style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textMuted,
                   letterSpacing: 0.5)),
           Text(team.apothecaryAllowed ? '50k (Max 1)' : 'No disponible',
-              style: TextStyle(fontSize: 10, color: AppColors.textMuted)),
+              style: const TextStyle(fontSize: 10, color: AppColors.textMuted)),
           const SizedBox(height: 8),
           Switch(
             value: team.apothecary && team.apothecaryAllowed,
             onChanged: canToggle ? (value) => _patch(apothecary: value) : null,
-            activeColor: AppColors.success,
+            activeThumbColor: AppColors.success,
             materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
         ],
@@ -1458,7 +1089,7 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.primary.withOpacity(0.35)),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.35)),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -1466,13 +1097,13 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
           Icon(PhosphorIcons.userPlus(PhosphorIconsStyle.fill),
               color: AppColors.primary, size: 24),
           const SizedBox(height: 6),
-          Text('JUGADORES',
+          const Text('JUGADORES',
               style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textMuted,
                   letterSpacing: 0.5)),
-          Text('Contratación permanente',
+          const Text('Contratación permanente',
               style: TextStyle(fontSize: 10, color: AppColors.textMuted)),
           const SizedBox(height: 10),
           FilledButton.icon(
@@ -1511,8 +1142,8 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
           shape: BoxShape.circle,
           border: Border.all(
             color: enabled
-                ? AppColors.textMuted.withOpacity(0.7)
-                : AppColors.textMuted.withOpacity(0.2),
+                ? AppColors.textMuted.withValues(alpha: 0.7)
+                : AppColors.textMuted.withValues(alpha: 0.2),
           ),
         ),
         child: Icon(
@@ -1520,7 +1151,7 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
           size: 12,
           color: enabled
               ? AppColors.textPrimary
-              : AppColors.textMuted.withOpacity(0.3),
+              : AppColors.textMuted.withValues(alpha: 0.3),
         ),
       ),
     );
@@ -1536,7 +1167,9 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
         final positionLabel =
             localizedPlayerPosition(p, roster: baseRoster, lang: lang);
         if (!p.name.toLowerCase().contains(_searchQuery) &&
-            !positionLabel.toLowerCase().contains(_searchQuery)) return false;
+            !positionLabel.toLowerCase().contains(_searchQuery)) {
+          return false;
+        }
       }
       return true;
     }).toList();
@@ -1574,7 +1207,7 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
   }
 
   Widget _th(String t) => Text(t,
-      style: TextStyle(
+      style: const TextStyle(
           fontSize: 10,
           fontWeight: FontWeight.bold,
           color: AppColors.textMuted,
@@ -1670,12 +1303,12 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
       child: Container(
         decoration: BoxDecoration(
           border: Border(
-            bottom: BorderSide(color: AppColors.surfaceLight),
+            bottom: const BorderSide(color: AppColors.surfaceLight),
             left: BorderSide(
               color: isDead
-                  ? AppColors.dead.withOpacity(0.5)
+                  ? AppColors.dead.withValues(alpha: 0.5)
                   : player.status != 'healthy'
-                      ? AppColors.warning.withOpacity(0.5)
+                      ? AppColors.warning.withValues(alpha: 0.5)
                       : Colors.transparent,
               width: 3,
             ),
@@ -1714,7 +1347,7 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
                 child: Padding(
                   padding: const EdgeInsets.only(left: 12),
                   child: Text(positionLabel,
-                      style: TextStyle(
+                      style: const TextStyle(
                           fontSize: 12, color: AppColors.textSecondary),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis),
@@ -1768,7 +1401,7 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
                 width: 60,
                 child: Center(
                   child: Text(_fmtGold(player.currentValue),
-                      style: TextStyle(
+                      style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
                           color: AppColors.textSecondary)),
@@ -1806,7 +1439,7 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
                                   size: 16,
                                   color: AppColors.textSecondary),
                               const SizedBox(width: 8),
-                              Text('Editar',
+                              const Text('Editar',
                                   style: TextStyle(
                                       color: AppColors.textPrimary,
                                       fontSize: 13)),
@@ -1822,7 +1455,7 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
                                   color: AppColors.error),
                               const SizedBox(width: 8),
                               Text(tr(lang, 'team.fire'),
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                       color: AppColors.error, fontSize: 13)),
                             ]),
                           ),
@@ -1841,10 +1474,10 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
     final isDead = player.isDead;
     final isInjured = !isDead && player.status != 'healthy';
     final borderColor = isDead
-        ? AppColors.dead.withOpacity(0.5)
+        ? AppColors.dead.withValues(alpha: 0.5)
         : isInjured
-            ? AppColors.warning.withOpacity(0.6)
-            : AppColors.primary.withOpacity(0.4);
+            ? AppColors.warning.withValues(alpha: 0.6)
+            : AppColors.primary.withValues(alpha: 0.4);
     final textColor = isDead
         ? AppColors.textMuted
         : isInjured
@@ -1859,8 +1492,8 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
           height: 42,
           decoration: BoxDecoration(
             color: isDead
-                ? AppColors.surfaceLight.withOpacity(0.5)
-                : AppColors.primary.withOpacity(0.08),
+                ? AppColors.surfaceLight.withValues(alpha: 0.5)
+                : AppColors.primary.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(8),
             border: Border.all(color: borderColor, width: 1.5),
           ),
@@ -1883,8 +1516,8 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
             top: -4,
             child: Container(
               padding: const EdgeInsets.all(2),
-              decoration:
-                  BoxDecoration(color: AppColors.card, shape: BoxShape.circle),
+              decoration: const BoxDecoration(
+                  color: AppColors.card, shape: BoxShape.circle),
               child: Icon(PhosphorIcons.skull(PhosphorIconsStyle.fill),
                   size: 10, color: AppColors.dead),
             ),
@@ -1895,8 +1528,8 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
             top: -4,
             child: Container(
               padding: const EdgeInsets.all(2),
-              decoration:
-                  BoxDecoration(color: AppColors.card, shape: BoxShape.circle),
+              decoration: const BoxDecoration(
+                  color: AppColors.card, shape: BoxShape.circle),
               child: Icon(PhosphorIcons.firstAid(PhosphorIconsStyle.fill),
                   size: 10, color: AppColors.warning),
             ),
@@ -1911,7 +1544,7 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
       child: Center(
         child: Text(
           value,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w900,
             color: AppColors.textPrimary,
@@ -1949,9 +1582,10 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
                 bottom: 3,
               ),
               decoration: BoxDecoration(
-                color: color.withOpacity(backgroundOpacity),
+                color: color.withValues(alpha: backgroundOpacity),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: color.withOpacity(borderOpacity)),
+                border:
+                    Border.all(color: color.withValues(alpha: borderOpacity)),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -1994,9 +1628,10 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
         decoration: BoxDecoration(
-          color: AppColors.surfaceLight.withOpacity(0.75),
+          color: AppColors.surfaceLight.withValues(alpha: 0.75),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.textMuted.withOpacity(0.35)),
+          border:
+              Border.all(color: AppColors.textMuted.withValues(alpha: 0.35)),
         ),
         child: const Text(
           '...',
@@ -2015,7 +1650,7 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: player.statusColor.withOpacity(0.15),
+        color: player.statusColor.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Text(player.statusLabel,
@@ -2033,9 +1668,9 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
         width: 72,
         padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
         decoration: BoxDecoration(
-          color: AppColors.warning.withOpacity(0.2),
+          color: AppColors.warning.withValues(alpha: 0.2),
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: AppColors.warning.withOpacity(0.5)),
+          border: Border.all(color: AppColors.warning.withValues(alpha: 0.5)),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -2044,7 +1679,7 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
             Icon(PhosphorIcons.arrowFatUp(PhosphorIconsStyle.fill),
                 size: 10, color: AppColors.warning),
             const SizedBox(width: 3),
-            Flexible(
+            const Flexible(
               child: Text('SUBIR',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -2063,259 +1698,6 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
     const nextCosts = {1: 3, 2: 4, 3: 6, 4: 8, 5: 10, 6: 15};
     final next = nextCosts[p.level] ?? 0;
     return next > 0 && p.spp >= next;
-  }
-
-  // ── Bottom sections ──
-
-  Widget _buildBottomTwoCol(UserTeamDetail team, bool isOwner, String lang) {
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(child: _buildTreasuryHistory(lang)),
-          const SizedBox(width: 16),
-          Expanded(child: _buildStaffGestion(team, isOwner, lang)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBottomStacked(UserTeamDetail team, bool isOwner, String lang) {
-    return Column(children: [
-      _buildTreasuryHistory(lang),
-      const SizedBox(height: 16),
-      _buildStaffGestion(team, isOwner, lang),
-    ]);
-  }
-
-  Widget _buildTreasuryHistory(String lang) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.surfaceLight),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(children: [
-            Icon(PhosphorIcons.coins(PhosphorIconsStyle.fill),
-                size: 14, color: AppColors.accent),
-            const SizedBox(width: 8),
-            Text('REGISTRO DE TESORERÍA',
-                style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textMuted,
-                    letterSpacing: 0.8)),
-          ]),
-          const SizedBox(height: 12),
-          _historyItem(
-              'Creación del equipo', 'Fondos iniciales', 1000000, true),
-          const Divider(height: 1),
-          _historyItem(
-              'Contratación de plantilla', 'Jugadores base', -700000, false),
-          const Divider(height: 1),
-          Padding(
-            padding: const EdgeInsets.only(top: 12),
-            child: Center(
-              child: TextButton.icon(
-                onPressed: () {},
-                icon: Icon(PhosphorIcons.arrowDown(PhosphorIconsStyle.bold),
-                    size: 12),
-                label: Text(tr(lang, 'team.manualFunds'),
-                    style: TextStyle(fontSize: 12)),
-                style:
-                    TextButton.styleFrom(foregroundColor: AppColors.textMuted),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _historyItem(
-      String title, String subtitle, int amount, bool isPositive) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title,
-                    style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.textPrimary)),
-                Text(subtitle,
-                    style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
-              ],
-            ),
-          ),
-          Text(
-            isPositive ? '+${_fmtGold(amount)}' : _fmtGold(amount),
-            style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: isPositive ? AppColors.success : AppColors.error),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStaffGestion(UserTeamDetail team, bool isOwner, String lang) {
-    final activeCount = team.players.where((p) => p.status == 'healthy').length;
-    final isValidRoster = activeCount >= 11;
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.surfaceLight),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(children: [
-            Icon(PhosphorIcons.usersThree(PhosphorIconsStyle.fill),
-                size: 14, color: AppColors.accent),
-            const SizedBox(width: 8),
-            Text('STAFF Y GESTIÓN',
-                style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textMuted,
-                    letterSpacing: 0.8)),
-          ]),
-          const SizedBox(height: 12),
-          _staffRow(
-            label: 'ENTRENADORES AYUDANTES',
-            count: team.assistantCoaches,
-            cost: 10000,
-            canHire:
-                isOwner && team.treasury >= 10000 && team.assistantCoaches < 6,
-            canFire: isOwner && team.assistantCoaches > 0,
-            onHire: () => _patch(assistantCoaches: team.assistantCoaches + 1),
-            onFire: () => _patch(assistantCoaches: team.assistantCoaches - 1),
-          ),
-          const SizedBox(height: 10),
-          _staffRow(
-            label: 'ANIMADORAS',
-            count: team.cheerleaders,
-            cost: 10000,
-            canHire: isOwner && team.treasury >= 10000 && team.cheerleaders < 6,
-            canFire: isOwner && team.cheerleaders > 0,
-            onHire: () => _patch(cheerleaders: team.cheerleaders + 1),
-            onFire: () => _patch(cheerleaders: team.cheerleaders - 1),
-          ),
-          const Divider(height: 24),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(
-                isValidRoster
-                    ? PhosphorIcons.checkCircle(PhosphorIconsStyle.fill)
-                    : PhosphorIcons.warning(PhosphorIconsStyle.fill),
-                size: 16,
-                color: isValidRoster ? AppColors.success : AppColors.warning,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(tr(lang, 'team.rosterStatus'),
-                        style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textPrimary)),
-                    const SizedBox(height: 4),
-                    Text(
-                      isValidRoster
-                          ? 'Actualmente tienes $activeCount jugadores activos. El equipo está listo para jugar.'
-                          : 'Actualmente tienes $activeCount jugadores activos. Necesitas mínimo 11 para el próximo partido.',
-                      style: TextStyle(
-                          fontSize: 11, color: AppColors.textSecondary),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _staffRow({
-    required String label,
-    required int count,
-    required int cost,
-    required bool canHire,
-    required bool canFire,
-    required VoidCallback onHire,
-    required VoidCallback onFire,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(children: [
-          Text(label,
-              style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textMuted,
-                  letterSpacing: 0.5)),
-          const Spacer(),
-          Text('$count',
-              style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color:
-                      count > 0 ? AppColors.textPrimary : AppColors.textMuted)),
-        ]),
-        Text('Coste: ${cost ~/ 1000}k. Modificador a Eventos.',
-            style: TextStyle(fontSize: 10, color: AppColors.textMuted)),
-        const SizedBox(height: 6),
-        Row(children: [
-          _staffActionBtn(
-              label: 'Despedir',
-              enabled: canFire && !_isMutating,
-              color: AppColors.error,
-              onTap: onFire),
-          const SizedBox(width: 8),
-          _staffActionBtn(
-              label: 'Contratar',
-              enabled: canHire && !_isMutating,
-              color: AppColors.accent,
-              onTap: onHire),
-        ]),
-      ],
-    );
-  }
-
-  Widget _staffActionBtn({
-    required String label,
-    required bool enabled,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return OutlinedButton(
-      onPressed: enabled ? onTap : null,
-      style: OutlinedButton.styleFrom(
-        foregroundColor: enabled ? color : AppColors.textMuted,
-        side: BorderSide(
-            color: enabled ? color.withOpacity(0.6) : AppColors.surfaceLight),
-        minimumSize: const Size(80, 30),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      ),
-      child: Text(label, style: const TextStyle(fontSize: 12)),
-    );
   }
 
   void _showHireDialog(BuildContext context) {
@@ -2352,17 +1734,17 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surface,
         title: Text(tr(lang, 'team.editTeamName'),
-            style: TextStyle(color: AppColors.textPrimary)),
+            style: const TextStyle(color: AppColors.textPrimary)),
         content: Form(
           key: formKey,
           child: TextFormField(
             controller: controller,
             autofocus: true,
             maxLength: 50,
-            style: TextStyle(color: AppColors.textPrimary),
+            style: const TextStyle(color: AppColors.textPrimary),
             decoration: InputDecoration(
               labelText: tr(lang, 'team.teamName'),
-              labelStyle: TextStyle(color: AppColors.textMuted),
+              labelStyle: const TextStyle(color: AppColors.textMuted),
               filled: true,
               fillColor: AppColors.background,
               border:
@@ -2377,7 +1759,7 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
             child: Text(tr(lang, 'common.cancel'),
-                style: TextStyle(color: AppColors.textMuted)),
+                style: const TextStyle(color: AppColors.textMuted)),
           ),
           ElevatedButton(
             onPressed: () {
@@ -2424,16 +1806,16 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surface,
         title: Text(tr(lang, 'team.deleteTeam'),
-            style: TextStyle(color: AppColors.textPrimary)),
+            style: const TextStyle(color: AppColors.textPrimary)),
         content: Text(
           trf(lang, 'team.deleteConfirm', {'name': team.name}),
-          style: TextStyle(color: AppColors.textSecondary),
+          style: const TextStyle(color: AppColors.textSecondary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
             child: Text(tr(lang, 'common.cancel'),
-                style: TextStyle(color: AppColors.textMuted)),
+                style: const TextStyle(color: AppColors.textMuted)),
           ),
           ElevatedButton.icon(
             onPressed: () => Navigator.pop(ctx, true),
@@ -2486,13 +1868,13 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
               width: 32,
               height: 32,
               decoration: BoxDecoration(
-                color: AppColors.accent.withOpacity(0.2),
+                color: AppColors.accent.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Center(
                 child: Text(
                   '#${player.number}',
-                  style: TextStyle(
+                  style: const TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
                       color: AppColors.accent),
@@ -2502,7 +1884,8 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
             const SizedBox(width: 12),
             Expanded(
               child: Text(tr(lang, 'team.editPlayer'),
-                  style: TextStyle(color: AppColors.textPrimary, fontSize: 18)),
+                  style: const TextStyle(
+                      color: AppColors.textPrimary, fontSize: 18)),
             ),
           ],
         ),
@@ -2513,10 +1896,10 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
             children: [
               TextFormField(
                 controller: nameController,
-                style: TextStyle(color: AppColors.textPrimary),
+                style: const TextStyle(color: AppColors.textPrimary),
                 decoration: InputDecoration(
                   labelText: 'Nombre',
-                  labelStyle: TextStyle(color: AppColors.textMuted),
+                  labelStyle: const TextStyle(color: AppColors.textMuted),
                   filled: true,
                   fillColor: AppColors.background,
                   border: OutlineInputBorder(
@@ -2534,11 +1917,11 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
               const SizedBox(height: 16),
               TextFormField(
                 controller: numberController,
-                style: TextStyle(color: AppColors.textPrimary),
+                style: const TextStyle(color: AppColors.textPrimary),
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
                   labelText: 'Dorsal',
-                  labelStyle: TextStyle(color: AppColors.textMuted),
+                  labelStyle: const TextStyle(color: AppColors.textMuted),
                   filled: true,
                   fillColor: AppColors.background,
                   border: OutlineInputBorder(
@@ -2549,11 +1932,13 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
                       color: AppColors.textMuted),
                 ),
                 validator: (v) {
-                  if (v == null || v.trim().isEmpty)
+                  if (v == null || v.trim().isEmpty) {
                     return 'Introduce un dorsal';
+                  }
                   final n = int.tryParse(v);
-                  if (n == null || n < 1 || n > 99)
+                  if (n == null || n < 1 || n > 99) {
                     return 'Dorsal entre 1 y 99';
+                  }
                   return null;
                 },
               ),
@@ -2564,7 +1949,7 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
             child: Text(tr(lang, 'common.cancel'),
-                style: TextStyle(color: AppColors.textMuted)),
+                style: const TextStyle(color: AppColors.textMuted)),
           ),
           ElevatedButton(
             onPressed: () {
@@ -2701,7 +2086,7 @@ class _HirePlayerDialogState extends ConsumerState<_HirePlayerDialog> {
                     width: 36,
                     height: 36,
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.15),
+                      color: AppColors.primary.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(PhosphorIcons.userPlus(PhosphorIconsStyle.fill),
@@ -2713,13 +2098,13 @@ class _HirePlayerDialogState extends ConsumerState<_HirePlayerDialog> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(tr(lang, 'team.hirePlayer'),
-                            style: TextStyle(
+                            style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
                                 color: AppColors.textPrimary)),
                         Text(
                           'Tesorería: ${widget.treasury ~/ 1000}k  •  ${widget.currentPlayers.length}/16 jugadores',
-                          style: TextStyle(
+                          style: const TextStyle(
                               fontSize: 12, color: AppColors.textMuted),
                         ),
                       ],
@@ -2733,7 +2118,7 @@ class _HirePlayerDialogState extends ConsumerState<_HirePlayerDialog> {
                 ],
               ),
             ),
-            Divider(height: 1, color: AppColors.surfaceLight),
+            const Divider(height: 1, color: AppColors.surfaceLight),
             // Position list
             Flexible(
               child: rosterAsync.when(
@@ -2744,14 +2129,14 @@ class _HirePlayerDialogState extends ConsumerState<_HirePlayerDialog> {
                 error: (err, _) => Padding(
                   padding: const EdgeInsets.all(20),
                   child: Text(trf(lang, 'team.errorPositions', {'err': '$err'}),
-                      style: TextStyle(color: AppColors.error)),
+                      style: const TextStyle(color: AppColors.error)),
                 ),
                 data: (roster) => ListView.separated(
                   shrinkWrap: true,
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   itemCount: roster.positions.length,
                   separatorBuilder: (_, __) =>
-                      Divider(height: 1, color: AppColors.surfaceLight),
+                      const Divider(height: 1, color: AppColors.surfaceLight),
                   itemBuilder: (_, i) {
                     final pos = roster.positions[i];
                     final hired = _hiredCount(pos.id);
@@ -2793,7 +2178,7 @@ class _HirePlayerDialogState extends ConsumerState<_HirePlayerDialog> {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: isMaxed
-                  ? AppColors.textMuted.withOpacity(0.3)
+                  ? AppColors.textMuted.withValues(alpha: 0.3)
                   : canHire
                       ? AppColors.success
                       : AppColors.warning,
@@ -2830,8 +2215,8 @@ class _HirePlayerDialogState extends ConsumerState<_HirePlayerDialog> {
                 if (perkNames.isNotEmpty) ...[
                   const SizedBox(height: 3),
                   Text(perkNames,
-                      style:
-                          TextStyle(fontSize: 11, color: AppColors.textMuted),
+                      style: const TextStyle(
+                          fontSize: 11, color: AppColors.textMuted),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis),
                 ],
@@ -2845,7 +2230,7 @@ class _HirePlayerDialogState extends ConsumerState<_HirePlayerDialog> {
             children: [
               Text(
                 '${pos.cost ~/ 1000}k',
-                style: TextStyle(
+                style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
                     color: AppColors.accent),
@@ -2853,7 +2238,8 @@ class _HirePlayerDialogState extends ConsumerState<_HirePlayerDialog> {
               const SizedBox(height: 4),
               Text(
                 '$hired / ${pos.maxQuantity}',
-                style: TextStyle(fontSize: 11, color: AppColors.textMuted),
+                style:
+                    const TextStyle(fontSize: 11, color: AppColors.textMuted),
               ),
               const SizedBox(height: 6),
               SizedBox(
@@ -2861,7 +2247,7 @@ class _HirePlayerDialogState extends ConsumerState<_HirePlayerDialog> {
                 child: FilledButton.icon(
                   onPressed: canHire ? () => _hire(pos) : null,
                   icon: _isHiring
-                      ? SizedBox(
+                      ? const SizedBox(
                           width: 12,
                           height: 12,
                           child: CircularProgressIndicator(
@@ -2890,11 +2276,11 @@ class _HirePlayerDialogState extends ConsumerState<_HirePlayerDialog> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
       decoration: BoxDecoration(
-        color: AppColors.surfaceLight.withOpacity(0.7),
+        color: AppColors.surfaceLight.withValues(alpha: 0.7),
         borderRadius: BorderRadius.circular(3),
       ),
       child: Text(val,
-          style: TextStyle(
+          style: const TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.bold,
               color: AppColors.textPrimary)),

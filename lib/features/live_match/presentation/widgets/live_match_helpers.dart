@@ -29,18 +29,43 @@ class _QA {
 
 final _goldFmt = NumberFormat('#,###');
 
-const _injuryTypes = [
-  'Badly Hurt',
-  'Serious Injury',
-  'RIP',
-  'Miss Next Game',
-  'Niggling Injury',
-  '-AV',
-  '-MA',
-  '-AG',
-  '-PA',
-  '-ST',
-];
+const _inducementSyncMarker = 'BBM_INDUCEMENT_SYNC:';
+
+String _inducementInstanceUseKey(String ruleId, int index) => '$ruleId#$index';
+
+int? _prayerRollFromDetail(String detail) {
+  final match = RegExp(r'D16\s+(\d{1,2})').firstMatch(detail);
+  return int.tryParse(match?.group(1) ?? '');
+}
+
+PrayerToNuffleResult? _prayerResultForDetail(
+  String detail,
+  List<PrayerToNuffleResult> results,
+) {
+  final roll = _prayerRollFromDetail(detail);
+  if (roll == null) return null;
+  for (final result in results) {
+    if (result.roll == roll) return result;
+  }
+  return null;
+}
+
+Map<String, List<String>> _copyInducementDetails(
+  Map<String, List<String>> source,
+) =>
+    source.map((key, value) => MapEntry(key, List<String>.from(value)));
+
+bool _inducementDetailsEqual(
+  Map<String, List<String>> a,
+  Map<String, List<String>> b,
+) {
+  if (a.length != b.length) return false;
+  for (final entry in a.entries) {
+    final other = b[entry.key];
+    if (other == null || !listEquals(entry.value, other)) return false;
+  }
+  return true;
+}
 
 final _weatherData = [
   _CardOption(
@@ -280,6 +305,9 @@ extension _LiveMatchHelpers on _LiveMatchScreenState {
         'weather_change',
         'kickoff_change',
         'reroll_change',
+        'reroll_total_change',
+        'inducement_purchase',
+        'inducement_change',
       }.contains(type);
 
   Color _evColor(String type) {
@@ -309,7 +337,11 @@ extension _LiveMatchHelpers on _LiveMatchScreenState {
       case 'kickoff_change':
         return AppColors.warning;
       case 'reroll_change':
+      case 'reroll_total_change':
         return const Color(0xFF9C27B0);
+      case 'inducement_purchase':
+      case 'inducement_change':
+        return AppColors.accent;
       default:
         return AppColors.textMuted;
     }
@@ -346,20 +378,86 @@ extension _LiveMatchHelpers on _LiveMatchScreenState {
       case 'kickoff_change':
         return PhosphorIcons.lightning(PhosphorIconsStyle.fill);
       case 'reroll_change':
+      case 'reroll_total_change':
         return PhosphorIcons.arrowsCounterClockwise(PhosphorIconsStyle.fill);
+      case 'inducement_purchase':
+      case 'inducement_change':
+        return PhosphorIcons.handCoins(PhosphorIconsStyle.fill);
       default:
         return PhosphorIcons.note(PhosphorIconsStyle.fill);
     }
   }
 
-  String _fmtTime(DateTime dt) =>
-      '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+  String _fmtAuditDateTime(DateTime dt) {
+    final local = dt.toLocal();
+    return DateFormat('dd/MM/yyyy HH:mm:ss').format(local);
+  }
 
   String _fmtDuration(Duration d) {
     final h = d.inHours;
     final m = d.inMinutes.remainder(60);
     final s = d.inSeconds.remainder(60);
-    return '${h}:${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
+    return '$h:${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
+  }
+
+  String _teamLabel(Match match, String team) {
+    switch (team) {
+      case 'home':
+        return 'HOME - ${match.home.teamName}';
+      case 'away':
+        return 'AWAY - ${match.away.teamName}';
+      default:
+        return tr(ref.read(localeProvider), 'liveMatch.system');
+    }
+  }
+
+  String _matchAuditContext(Match match) {
+    final half = match.currentHalf > 0 ? match.currentHalf : '-';
+    final turn = match.currentTurn > 0 ? match.currentTurn : '-';
+    return [
+      'Marcador ${match.scoreHome}-${match.scoreAway}',
+      'Parte $half',
+      'Turno $turn',
+      'Activo ${_teamLabel(match, match.currentTeam)}',
+      'Reloj ${_fmtDuration(_elapsed)}',
+    ].join(' | ');
+  }
+
+  String _withMatchAuditContext(Match match, String? detail) {
+    final cleanDetail = detail?.trim();
+    final audit = 'Audit: ${_matchAuditContext(match)}';
+    if (cleanDetail == null || cleanDetail.isEmpty) return audit;
+    return '$cleanDetail\n$audit';
+  }
+
+  String _withInducementSyncPayload({
+    required String summary,
+    required String team,
+    required String ruleId,
+    required int purchased,
+    required int used,
+  }) {
+    return [
+      summary,
+      '$_inducementSyncMarker${jsonEncode({
+            'team': team,
+            'ruleId': ruleId,
+            'purchased': purchased,
+            'used': used,
+          })}',
+    ].join('\n');
+  }
+
+  String _visibleEventDetail(String detail) {
+    return detail
+        .split('\n')
+        .where((line) => !line.startsWith(_inducementSyncMarker))
+        .join('\n')
+        .trim();
+  }
+
+  void _debugSyncTrace(String message) {
+    if (kDebugMode) debugPrint('[LiveMatchSync] $message');
   }
 
   Widget _empty(String text) => Container(
@@ -424,39 +522,6 @@ extension _LiveMatchHelpers on _LiveMatchScreenState {
             borderRadius: BorderRadius.circular(8),
             borderSide: const BorderSide(color: AppColors.primary)),
       );
-
-  Widget _teamChip(
-      {required String label,
-      required bool selected,
-      required VoidCallback onTap}) {
-    return Material(
-      color: selected
-          ? AppColors.primary.withValues(alpha: 0.2)
-          : AppColors.surfaceLight,
-      borderRadius: BorderRadius.circular(10),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-                color: selected ? AppColors.primary : Colors.transparent,
-                width: 2),
-          ),
-          child: Text(label,
-              style: TextStyle(
-                  color: selected ? AppColors.primary : AppColors.textSecondary,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis),
-        ),
-      ),
-    );
-  }
 
   Widget _teamLogo(String assetPath, double size) {
     return SizedBox(

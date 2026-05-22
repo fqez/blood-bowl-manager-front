@@ -37,11 +37,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
 
     if (!mounted) return;
-
-    final authState = ref.read(authStateProvider);
-    if (authState.valueOrNull?.isAuthenticated == true) {
-      context.go('/dashboard');
-    }
   }
 
   @override

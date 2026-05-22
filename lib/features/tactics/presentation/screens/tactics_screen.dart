@@ -9,6 +9,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../roster/domain/models/team.dart';
 import '../../../shared/data/repositories.dart';
 import '../../../team_creator/presentation/screens/team_creator_screen.dart';
+import 'my_tactics_screen.dart';
 
 // ignore_for_file: deprecated_member_use
 
@@ -170,6 +171,7 @@ class _TacticsScreenState extends ConsumerState<TacticsScreen> {
         final created = await repo.createTactic(body);
         _existingTacticId = created['id'] as String?;
       }
+      ref.invalidate(myTacticsProvider);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -312,12 +314,58 @@ class _TacticsScreenState extends ConsumerState<TacticsScreen> {
     final pos =
         _selectedTeam?.positions.where((p) => p.id == positionId).firstOrNull;
     if (pos == null) return '?';
-    final words = pos.name.split(RegExp(r'[\s/]+'));
+    final roleName = _positionRoleName(pos);
+    final words = roleName
+        .split(RegExp(r'[\s/\-]+'))
+        .where((word) => word.trim().isNotEmpty)
+        .toList();
     if (words.length >= 2) {
       return '${words[0][0]}${words[1][0]}'.toUpperCase();
     }
-    return pos.name.substring(0, pos.name.length.clamp(0, 2)).toUpperCase();
+    return roleName.substring(0, roleName.length.clamp(0, 2)).toUpperCase();
   }
+
+  String _positionRoleName(BasePosition pos) {
+    final categoryRole = _roleFromPositionText(pos.position ?? pos.name);
+    if (categoryRole != null) return categoryRole;
+
+    var cleanName = _positionDisplayName(pos.name);
+    final teamName = _selectedTeam?.name.trim();
+    if (teamName != null && teamName.isNotEmpty) {
+      final lowerName = cleanName.toLowerCase();
+      final lowerTeam = teamName.toLowerCase();
+      if (lowerName.startsWith('$lowerTeam ')) {
+        final withoutTeam = cleanName.substring(teamName.length).trim();
+        if (withoutTeam.isNotEmpty) cleanName = withoutTeam;
+      }
+    }
+    return cleanName;
+  }
+
+  String? _roleFromPositionText(String text) {
+    final englishText = text.split('/').first.trim();
+    final match = RegExp(r'\(([^)]*)\)').firstMatch(englishText);
+    final categoryText = match?.group(1);
+    if (categoryText == null) return null;
+    final rolePattern = RegExp(
+      r'\b(lineman|linewoman|blitzer|blocker|thrower|catcher|runner|assassin|slayer|wardancer|wight|ghoul|zombie|skeleton|mummy|guardian|rotter|pestigor|bloater|berserker|valkyrie|anointed|thrall|vampire|werewolf|gutter|stormvermin|hobgoblin|centaur|renegade|throw-ra|blitz-ra)\b',
+      caseSensitive: false,
+    );
+    final categories = categoryText
+        .split(',')
+        .map((part) => part.trim())
+        .where((part) => part.isNotEmpty)
+        .toList();
+    for (final category in categories.reversed) {
+      if (rolePattern.hasMatch(category)) {
+        return category;
+      }
+    }
+    return null;
+  }
+
+  String _positionDisplayName(String name) =>
+      name.replaceAll(RegExp(r'\s*\([^)]*\)\s*$'), '').trim();
 
   @override
   Widget build(BuildContext context) {
@@ -1232,7 +1280,7 @@ class _TacticsScreenState extends ConsumerState<TacticsScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            pos.name,
+                            _positionDisplayName(pos.name),
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
@@ -1453,7 +1501,7 @@ class _TacticsScreenState extends ConsumerState<TacticsScreen> {
                   ),
                   const SizedBox(width: 10),
                   Expanded(
-                    child: Text(pos.name,
+                    child: Text(_positionDisplayName(pos.name),
                         style: const TextStyle(
                             fontSize: 12, color: AppColors.textSecondary)),
                   ),

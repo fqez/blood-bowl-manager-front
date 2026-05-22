@@ -433,11 +433,13 @@ class InducementCostOption {
 class PrayerToNuffleResult {
   final int roll;
   final String code;
+  final Map<String, String> name;
   final Map<String, String> description;
 
   const PrayerToNuffleResult({
     required this.roll,
     required this.code,
+    required this.name,
     required this.description,
   });
 
@@ -445,8 +447,24 @@ class PrayerToNuffleResult {
       PrayerToNuffleResult(
         roll: (json['roll'] as num?)?.toInt() ?? 0,
         code: json['code'] as String? ?? '',
+        name: ExpensiveMistakeEffect._localized(json['name']),
         description: ExpensiveMistakeEffect._localized(json['description']),
       );
+
+  String localizedName(String lang) {
+    final localized = name[lang] ?? name['en'];
+    if (localized != null && localized.trim().isNotEmpty) {
+      return localized.trim();
+    }
+    return code
+        .split('_')
+        .where((part) => part.isNotEmpty)
+        .map((part) => '${part[0].toUpperCase()}${part.substring(1)}')
+        .join(' ');
+  }
+
+  String localizedDescription(String lang) =>
+      description[lang] ?? description['en'] ?? '';
 }
 
 class DedicatedFansRules {

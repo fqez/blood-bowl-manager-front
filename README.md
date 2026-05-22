@@ -207,15 +207,15 @@ abstract class AppDimensions {
 
 Revision manual adicional del frontend centrada en buenas practicas, olores de codigo y defectos de implementacion observables en la base actual.
 
-### 1. Modelos de dominio con errores reales de compilacion
+### 1. Modelos de dominio con errores reales de compilacion [RESUELTO]
 
-**Ficheros:** `lib/features/auth/domain/models/user.dart`, `lib/features/league/domain/models/league.dart`.
+**Ficheros:** `lib/features/auth/domain/models/user.dart`, `lib/features/league/domain/models/league.dart`, `lib/features/aftermatch/domain/models/aftermatch.dart`.
 
 **Problema:** varios modelos Freezed usan `@JsonKey` directamente sobre parametros del factory y el analizador reporta errores del tipo `The annotation 'JsonKey.new' can only be used on fields or getters`.
 
 **Impacto:** no es solo deuda tecnica; parte del dominio queda mal definida para la toolchain actual y rompe la fiabilidad del proyecto.
 
-**Recomendacion:** unificar la estrategia de serializacion para Freezed/JsonSerializable y adaptar esos modelos a una unica convencion compatible con la version actual de las dependencias.
+**Estado actual:** eliminados los `@JsonKey` y `@JsonSerializable` sobre parametros de factory en los modelos de auth, liga y aftermatch. Los `fromJson` normalizan aliases snake_case del backend a los nombres camelCase de Dart antes de delegar en el codigo generado, manteniendo compatibilidad sin disparar `invalid_annotation_target`.
 
 ### 2. Ruta rota en la navegacion de ligas
 
@@ -309,7 +309,12 @@ La estructura por features, el uso de Riverpod y la intencion de modelar dominio
 - [X] Pills de habilidades adquiridas con otro color o icono para diferenciarlos de las habilidades base [DONE]
 - [X] Reorganizar la sección de mis tácticas - el mapa debería aparecer lo primero [DONE]
 - [X] En la parte de mis tacticas en lugar de lista que sea un grid. Ademas que sea multiidioma las labels de ataque y defensa [DONE]
-- [ ] Calculos post-partido en backend
+- [ ] En la pantalla de tacticas, dividir las tacticas por equipo, con un filtro de equipo también
+- [ ] Quitar de la pantalla de tacticas las posiciones entre parentesis de los jugadores.
+
+![1778185342347](image/README/1778185342347.png)
+
+- [X] Calculos post-partido en backend
 - [ ] Los equipos que tengan reglas especiales tienen que tener un popup cuando se clique sobre ella para explicarla
 - [X] En la vista prepartido, en las cajas de clima y patada inicial deberia aparecer el resultado de dados que la genera. [DONE] Valores recuperados desde reglas del backend.
 - [X] La vista de mis equipos rediseñarla. [DONE]
@@ -325,7 +330,7 @@ La estructura por features, el uso de Riverpod y la intencion de modelar dominio
 **REGLAS - LOGICA**
 
 - [X] Reglas de retener el balon, añadir input para calculo de MO final.
-- [ ] Acciones pre-partido: añadir bendisiones de nurgle
+- [X] Acciones pre-partido: añadir bendisiones de nurgle [DONE: popup D16 de Plegarias a Nuffle]
 - [ ] Acciones pre-partido: creacion de equipo + fichajes temporales
 - [ ] Contrastar las skills y traits en ingles y español en la BD
 - [X] Calculo ganancias y puntos de estrellato
@@ -339,8 +344,6 @@ La estructura por features, el uso de Riverpod y la intencion de modelar dominio
   - [ ] Lanzamientos (con mapa)
 
   //static const String apiBaseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: 'https://web-production-9aceb.up.railway.app');
-
-
 
 staticconstString apiBaseUrl =String.fromEnvironment(
 

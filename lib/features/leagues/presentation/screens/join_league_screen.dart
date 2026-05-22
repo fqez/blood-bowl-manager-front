@@ -7,9 +7,12 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../core/l10n/locale_provider.dart';
 import '../../../../core/l10n/translations.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../dashboard/presentation/screens/dashboard_screen.dart';
+import '../../../league/presentation/screens/league_overview_screen.dart';
 import '../../../my_teams/domain/models/user_team.dart';
 import '../../../shared/data/repositories.dart';
 import '../../domain/models/league_summary.dart';
+import 'leagues_screen.dart';
 
 class JoinLeagueScreen extends ConsumerStatefulWidget {
   const JoinLeagueScreen({super.key});
@@ -74,6 +77,10 @@ class _JoinLeagueScreenState extends ConsumerState<JoinLeagueScreen> {
             _selectedTeamId!,
             _code,
           );
+      ref.invalidate(myLeaguesSummaryProvider);
+      ref.invalidate(myLeaguesProvider);
+      ref.invalidate(leagueProvider(_preview!.id));
+      ref.invalidate(matchesProvider(_preview!.id));
       if (mounted) context.go('/league/${_preview!.id}');
     } catch (e) {
       if (mounted) {

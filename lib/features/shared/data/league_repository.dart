@@ -359,6 +359,12 @@ class LeagueRepository {
     List<String>? awaySquad,
     int? rerollsUsedHome,
     int? rerollsUsedAway,
+    Map<String, int>? homeInducementPurchases,
+    Map<String, int>? awayInducementPurchases,
+    Map<String, int>? homeInducementUses,
+    Map<String, int>? awayInducementUses,
+    Map<String, List<String>>? homeInducementDetails,
+    Map<String, List<String>>? awayInducementDetails,
     String? mvpHome,
     String? mvpAway,
     int? gate,
@@ -382,6 +388,18 @@ class LeagueRepository {
           if (awaySquad != null) 'away_squad': awaySquad,
           if (rerollsUsedHome != null) 'rerolls_used_home': rerollsUsedHome,
           if (rerollsUsedAway != null) 'rerolls_used_away': rerollsUsedAway,
+          if (homeInducementPurchases != null)
+            'home_inducement_purchases': homeInducementPurchases,
+          if (awayInducementPurchases != null)
+            'away_inducement_purchases': awayInducementPurchases,
+          if (homeInducementUses != null)
+            'home_inducement_uses': homeInducementUses,
+          if (awayInducementUses != null)
+            'away_inducement_uses': awayInducementUses,
+          if (homeInducementDetails != null)
+            'home_inducement_details': homeInducementDetails,
+          if (awayInducementDetails != null)
+            'away_inducement_details': awayInducementDetails,
           if (mvpHome != null) 'mvp_home': mvpHome,
           if (mvpAway != null) 'mvp_away': mvpAway,
           if (gate != null) 'gate': gate,

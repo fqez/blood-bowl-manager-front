@@ -9,7 +9,10 @@ import '../../../../core/l10n/translations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/money_format.dart';
 import '../../../shared/data/repositories.dart';
+import '../../../dashboard/presentation/screens/dashboard_screen.dart';
+import '../../../league/presentation/screens/league_overview_screen.dart';
 import '../../domain/models/league_summary.dart';
+import 'leagues_screen.dart';
 
 class CreateLeagueScreen extends ConsumerStatefulWidget {
   const CreateLeagueScreen({super.key});
@@ -58,6 +61,10 @@ class _CreateLeagueScreenState extends ConsumerState<CreateLeagueScreen> {
             inducements: _inducements,
             spiralingExpenses: _spiralingExpenses,
           );
+      ref.invalidate(myLeaguesSummaryProvider);
+      ref.invalidate(myLeaguesProvider);
+      ref.invalidate(leagueProvider(league.id));
+      ref.invalidate(matchesProvider(league.id));
       if (mounted) _showInviteCodeDialog(league);
     } catch (e) {
       if (mounted) {
@@ -104,7 +111,8 @@ class _CreateLeagueScreenState extends ConsumerState<CreateLeagueScreen> {
               decoration: BoxDecoration(
                 color: AppColors.background,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppColors.accent.withOpacity(0.5)),
+                border:
+                    Border.all(color: AppColors.accent.withValues(alpha: 0.5)),
               ),
               child: Wrap(
                 alignment: WrapAlignment.spaceBetween,
@@ -415,7 +423,7 @@ class _CreateLeagueScreenState extends ConsumerState<CreateLeagueScreen> {
                     label: Text(formatBudget(budget)),
                     selected: _startingBudget == budget,
                     onSelected: (_) => setState(() => _startingBudget = budget),
-                    selectedColor: AppColors.primary.withOpacity(0.8),
+                    selectedColor: AppColors.primary.withValues(alpha: 0.8),
                     backgroundColor: AppColors.card,
                     labelStyle: TextStyle(
                       color: _startingBudget == budget
@@ -465,7 +473,7 @@ class _CreateLeagueScreenState extends ConsumerState<CreateLeagueScreen> {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: AppColors.success,
+            activeThumbColor: AppColors.success,
           ),
         ],
       ),
@@ -545,8 +553,9 @@ class _FormatOption extends StatelessWidget {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
         decoration: BoxDecoration(
-          color:
-              selected ? AppColors.primary.withOpacity(0.15) : AppColors.card,
+          color: selected
+              ? AppColors.primary.withValues(alpha: 0.15)
+              : AppColors.card,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
             color: selected ? AppColors.primary : AppColors.surfaceLight,

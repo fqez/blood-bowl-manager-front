@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../core/l10n/locale_provider.dart';
 import '../../../../core/l10n/translations.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -60,7 +59,7 @@ class MatchCard extends ConsumerWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
-            color: _getStatusColor().withOpacity(0.2),
+            color: _getStatusColor().withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(4),
           ),
           child: Text(
@@ -76,7 +75,7 @@ class MatchCard extends ConsumerWidget {
         if (match.playedAt != null)
           Text(
             _formatDate(match.playedAt!),
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 11,
               color: AppColors.textMuted,
             ),
@@ -95,7 +94,7 @@ class MatchCard extends ConsumerWidget {
               const SizedBox(height: 8),
               Text(
                 match.home.teamName,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
                   color: AppColors.textPrimary,
@@ -115,7 +114,7 @@ class MatchCard extends ConsumerWidget {
               const SizedBox(height: 8),
               Text(
                 match.away.teamName,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
                   color: AppColors.textPrimary,
@@ -135,14 +134,14 @@ class MatchCard extends ConsumerWidget {
     return Container(
       width: 48,
       height: 48,
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: AppColors.surfaceLight,
         shape: BoxShape.circle,
       ),
       child: Center(
         child: Text(
           teamName.substring(0, 1).toUpperCase(),
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
             color: AppColors.textPrimary,
@@ -164,14 +163,14 @@ class MatchCard extends ConsumerWidget {
         children: [
           Text(
             (match.isPlayed || match.isInProgress) ? '${match.scoreHome}' : '?',
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
               color: AppColors.textPrimary,
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 8),
             child: Text(
               '-',
               style: TextStyle(
@@ -182,7 +181,7 @@ class MatchCard extends ConsumerWidget {
           ),
           Text(
             (match.isPlayed || match.isInProgress) ? '${match.scoreAway}' : '?',
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
               color: AppColors.textPrimary,

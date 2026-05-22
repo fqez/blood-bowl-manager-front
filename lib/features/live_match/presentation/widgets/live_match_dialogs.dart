@@ -41,11 +41,226 @@ extension _LiveMatchDialogs on _LiveMatchScreenState {
         victimId: draft.victimId,
         victimName: draft.victimName,
         injury: draft.injury,
-        detail: draft.detail,
+        detail: _withMatchAuditContext(match, draft.detail),
         half: draft.half,
         turn: draft.turn,
       ),
     );
+  }
+
+  Future<PrayerToNuffleResult?> _showPrayerToNuffleDialog({
+    required List<PrayerToNuffleResult> results,
+    required String lang,
+  }) async {
+    if (results.isEmpty) {
+      _snack(lang == 'es'
+          ? 'No se pudo cargar la tabla de Plegarias a Nuffle'
+          : 'Could not load the Prayers to Nuffle table');
+      return null;
+    }
+    final sorted = List<PrayerToNuffleResult>.from(results)
+      ..sort((a, b) => a.roll.compareTo(b.roll));
+    final rollCtrl = TextEditingController();
+    PrayerToNuffleResult? selected;
+
+    try {
+      return await showDialog<PrayerToNuffleResult>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => StatefulBuilder(
+          builder: (ctx, setS) {
+            void selectRoll(String raw) {
+              final roll = int.tryParse(raw.trim());
+              selected = null;
+              if (roll != null) {
+                for (final result in sorted) {
+                  if (result.roll == roll) {
+                    selected = result;
+                    break;
+                  }
+                }
+              }
+              setS(() {});
+            }
+
+            return Dialog(
+              backgroundColor: Colors.transparent,
+              child: Container(
+                width: 680,
+                constraints: const BoxConstraints(maxHeight: 720),
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: AppColors.accent.withValues(alpha: 0.38),
+                  ),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          PhosphorIcons.handsPraying(PhosphorIconsStyle.fill),
+                          color: AppColors.accent,
+                          size: 24,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            (lang == 'es'
+                                    ? 'Plegarias a Nuffle'
+                                    : 'Prayers to Nuffle')
+                                .toUpperCase(),
+                            style: TextStyle(
+                              color: AppColors.accent,
+                              fontSize: 17,
+                              fontWeight: FontWeight.w900,
+                              fontFamily: AppTypography.displayFontFamily,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          icon: Icon(
+                            PhosphorIcons.x(PhosphorIconsStyle.bold),
+                            color: AppColors.textMuted,
+                            size: 18,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: 160,
+                      child: TextField(
+                        controller: rollCtrl,
+                        autofocus: true,
+                        keyboardType: TextInputType.number,
+                        style: const TextStyle(color: AppColors.textPrimary),
+                        decoration: _inputDeco('D16'),
+                        onChanged: selectRoll,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Flexible(
+                      child: ListView.separated(
+                        shrinkWrap: true,
+                        itemCount: sorted.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 6),
+                        itemBuilder: (context, index) {
+                          final result = sorted[index];
+                          final active = selected?.roll == result.roll;
+                          return InkWell(
+                            onTap: () {
+                              rollCtrl.text = '${result.roll}';
+                              selected = result;
+                              setS(() {});
+                            },
+                            borderRadius: BorderRadius.circular(10),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: active
+                                    ? AppColors.accent.withValues(alpha: 0.14)
+                                    : AppColors.card.withValues(alpha: 0.45),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: active
+                                      ? AppColors.accent
+                                      : AppColors.surfaceLight,
+                                ),
+                              ),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  SizedBox(
+                                    width: 34,
+                                    child: Text(
+                                      '${result.roll}',
+                                      style: TextStyle(
+                                        color: active
+                                            ? AppColors.accent
+                                            : AppColors.textMuted,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          result.localizedName(lang),
+                                          style: const TextStyle(
+                                            color: AppColors.textPrimary,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          result.localizedDescription(lang),
+                                          style: const TextStyle(
+                                            color: AppColors.textSecondary,
+                                            fontSize: 11,
+                                            height: 1.25,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          child: Text(
+                            tr(lang, 'common.cancel'),
+                            style: const TextStyle(color: AppColors.textMuted),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        ElevatedButton(
+                          onPressed: selected == null
+                              ? null
+                              : () => Navigator.pop(ctx, selected),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.accent,
+                            foregroundColor: Colors.black,
+                          ),
+                          child: Text(
+                            tr(lang, 'common.confirm'),
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      );
+    } finally {
+      rollCtrl.dispose();
+    }
   }
 
   // ── Hire Player Dialog ──
@@ -111,7 +326,7 @@ extension _LiveMatchDialogs on _LiveMatchScreenState {
                                   fontSize: 24, color: AppColors.textPrimary)),
                           Text(
                             baseRoster.name.toUpperCase(),
-                            style: TextStyle(
+                            style: const TextStyle(
                                 color: AppColors.accent,
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,

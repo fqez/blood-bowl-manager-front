@@ -58,24 +58,17 @@ class _InjuryEntry {
   final String playerName;
   final String team;
   final int casualtyRoll;
-  final int? lastingInjuryRoll;
 
   _InjuryEntry({
     required this.playerId,
     required this.playerName,
     required this.team,
     required this.casualtyRoll,
-    this.lastingInjuryRoll,
   });
 
   String injuryLabel(InjuryRules rules, String lang) {
     final casualty = rules.casualtyResultFor(casualtyRoll);
-    final lasting = lastingInjuryRoll == null
-        ? null
-        : rules.lastingResultFor(lastingInjuryRoll!);
-    final casualtyLabel = casualty?.localizedLabel(lang) ?? 'D16 $casualtyRoll';
-    if (lasting == null) return casualtyLabel;
-    return '$casualtyLabel · ${lasting.localizedLabel(lang)} ${lasting.reductionLabel}';
+    return casualty?.localizedLabel(lang) ?? 'D16 $casualtyRoll';
   }
 
   Color injuryColor(InjuryRules rules) {
@@ -446,8 +439,6 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
   // ── Section 6: Expensive Mistakes ──
   int? _homeExpensiveRoll;
   int? _awayExpensiveRoll;
-  String? _homeExpensiveResult;
-  String? _awayExpensiveResult;
   int? _homeExpensiveD3;
   int? _awayExpensiveD3;
   int? _homeCatastropheD6A;
@@ -738,8 +729,6 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
               'team': injury.team,
               'player_id': injury.playerId,
               'casualty_roll': injury.casualtyRoll,
-              if (injury.lastingInjuryRoll != null)
-                'lasting_injury_roll': injury.lastingInjuryRoll,
             })
         .toList();
   }
@@ -2806,388 +2795,6 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
   }
 
   // ═══════════════════════════════════════════════════════════
-  // SECTION 5: SPP Summary
-  // ═══════════════════════════════════════════════════════════
-
-  Widget _buildSppSection(Match match) {
-    final entries = _buildSppTallies(match).values.toList()
-      ..sort((a, b) => b.total.compareTo(a.total));
-
-    return _sectionCard(
-      icon: PhosphorIcons.star(PhosphorIconsStyle.fill),
-      title: 'SPP SUMMARY',
-      color: AppColors.accent,
-      subtitle: 'Comp=1, Throw TM=1, Int=2, Cas=2, TD=3, MVP=4',
-      child: Column(
-        children: [
-          if (entries.isEmpty)
-            const Padding(
-              padding: EdgeInsets.all(12),
-              child: Text('No SPP awarded yet',
-                  style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
-            )
-          else
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: SizedBox(
-                width: 420,
-                child: Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Row(
-                        children: [
-                          const SizedBox(
-                              width: 80,
-                              child: Text('Player',
-                                  style: TextStyle(
-                                      color: AppColors.textMuted,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold))),
-                          const Spacer(),
-                          ..._sppHeaders(),
-                        ],
-                      ),
-                    ),
-                    ...entries.map((e) => _sppRow(e)),
-                  ],
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  List<Widget> _sppHeaders() {
-    const headers = ['Comp', 'Int', 'Cas', 'TD', 'MVP', 'Total'];
-    return headers
-        .map((h) => SizedBox(
-              width: 40,
-              child: Text(h,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                      color: AppColors.textMuted,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold)),
-            ))
-        .toList();
-  }
-
-  Widget _sppRow(_SppTally e) {
-    final isHome = e.team == 'home';
-    final color = isHome ? AppColors.info : AppColors.error;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        children: [
-          Container(
-            width: 4,
-            height: 20,
-            decoration: BoxDecoration(
-                color: color, borderRadius: BorderRadius.circular(2)),
-          ),
-          const SizedBox(width: 6),
-          SizedBox(
-            width: 70,
-            child: Text(e.playerName,
-                style:
-                    const TextStyle(color: AppColors.textPrimary, fontSize: 12),
-                overflow: TextOverflow.ellipsis),
-          ),
-          const Spacer(),
-          _sppCell(e.completions),
-          _sppCell(e.interceptions),
-          _sppCell(e.casualties),
-          _sppCell(e.touchdowns),
-          _sppCell(e.mvp ? 1 : 0),
-          SizedBox(
-            width: 40,
-            child: Text('${e.total}',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    color: AppColors.accent,
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: AppTypography.displayFontFamily)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _sppCell(int count) {
-    return SizedBox(
-      width: 40,
-      child: Text(
-        count > 0 ? '$count' : '−',
-        textAlign: TextAlign.center,
-        style: TextStyle(
-            color: count > 0 ? AppColors.textPrimary : AppColors.textMuted,
-            fontSize: 12),
-      ),
-    );
-  }
-
-  // ═══════════════════════════════════════════════════════════
-  // SECTION 6: Injuries
-  // ═══════════════════════════════════════════════════════════
-
-  Widget _buildInjuriesSection() {
-    final lang = ref.watch(localeProvider);
-    final rulesAsync = ref.watch(injuryRulesProvider);
-    return _sectionCard(
-      icon: PhosphorIcons.firstAid(PhosphorIconsStyle.fill),
-      title: 'LASTING INJURIES',
-      color: AppColors.error,
-      subtitle: 'D16 Casualty + D6 Lasting Injury según reglas oficiales',
-      child: rulesAsync.when(
-        loading: () => const Padding(
-          padding: EdgeInsets.all(16),
-          child: CircularProgressIndicator(color: AppColors.error),
-        ),
-        error: (error, _) => Text(
-          'Error: $error',
-          style: const TextStyle(color: AppColors.error),
-        ),
-        data: (rules) => Column(
-          children: [
-            ..._injuries.asMap().entries.map((entry) {
-              final i = entry.key;
-              final inj = entry.value;
-              final isHome = inj.team == 'home';
-              return Container(
-                margin: const EdgeInsets.only(bottom: 6),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                decoration: BoxDecoration(
-                  color: AppColors.card,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                      color: (isHome ? AppColors.info : AppColors.error)
-                          .withValues(alpha: 0.3)),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 4,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        color: isHome ? AppColors.info : AppColors.error,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(inj.playerName,
-                              style: const TextStyle(
-                                  color: AppColors.textPrimary,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600)),
-                          Text(inj.injuryLabel(rules, lang),
-                              style: TextStyle(
-                                  color: inj.injuryColor(rules), fontSize: 12)),
-                        ],
-                      ),
-                    ),
-                    IconButton(
-                      icon: Icon(
-                          PhosphorIcons.trash(PhosphorIconsStyle.regular),
-                          size: 16,
-                          color: AppColors.error),
-                      onPressed: () => setState(() => _injuries.removeAt(i)),
-                      constraints: const BoxConstraints(),
-                      padding: EdgeInsets.zero,
-                    ),
-                  ],
-                ),
-              );
-            }),
-            const SizedBox(height: 8),
-            OutlinedButton.icon(
-              icon: Icon(PhosphorIcons.plus(PhosphorIconsStyle.bold),
-                  size: 14, color: AppColors.error),
-              label: const Text('Add Injury',
-                  style: TextStyle(color: AppColors.error, fontSize: 12)),
-              style: OutlinedButton.styleFrom(
-                side: BorderSide(color: AppColors.error.withValues(alpha: 0.3)),
-              ),
-              onPressed: () => _showAddInjuryDialog(rules),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showAddInjuryDialog(InjuryRules rules) {
-    final lang = ref.read(localeProvider);
-    final allPlayers = [
-      ...(_homeTeam?.players ?? []).map((p) => (p, 'home')),
-      ...(_awayTeam?.players ?? []).map((p) => (p, 'away')),
-    ];
-
-    String? selectedId;
-    String team = 'home';
-    String name = '';
-    int? casualtyRoll;
-    int? lastingRoll;
-
-    showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) {
-          final casualty = casualtyRoll == null
-              ? null
-              : rules.casualtyResultFor(casualtyRoll!);
-          final lasting =
-              lastingRoll == null ? null : rules.lastingResultFor(lastingRoll!);
-          final needsLasting = casualty?.requiresLastingInjuryRoll ?? false;
-          final canAdd = selectedId != null &&
-              casualtyRoll != null &&
-              (!needsLasting || lastingRoll != null);
-          return AlertDialog(
-            backgroundColor: AppColors.surface,
-            title: const Text('Add Injury',
-                style: TextStyle(color: AppColors.textPrimary, fontSize: 16)),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                DropdownButtonFormField<String>(
-                  dropdownColor: AppColors.card,
-                  decoration: const InputDecoration(
-                    labelText: 'Player',
-                    labelStyle: TextStyle(color: AppColors.textMuted),
-                    border: OutlineInputBorder(),
-                  ),
-                  items: allPlayers
-                      .map((e) => DropdownMenuItem(
-                            value: '${e.$2}:${e.$1.id}',
-                            child: Text(
-                                '${e.$1.name} (${e.$2 == "home" ? "H" : "A"})',
-                                style: const TextStyle(
-                                    color: AppColors.textPrimary,
-                                    fontSize: 13)),
-                          ))
-                      .toList(),
-                  onChanged: (v) {
-                    if (v == null) return;
-                    final parts = v.split(':');
-                    setDialogState(() {
-                      team = parts[0];
-                      selectedId = parts.sublist(1).join(':');
-                      name = allPlayers
-                          .firstWhere(
-                              (e) => e.$1.id == selectedId && e.$2 == team)
-                          .$1
-                          .name;
-                    });
-                  },
-                ),
-                const SizedBox(height: 12),
-                Text('Casualty Roll (D16)',
-                    style: const TextStyle(color: AppColors.textMuted)),
-                const SizedBox(height: 6),
-                _dieRollField(
-                  casualtyRoll,
-                  (v) => setDialogState(() {
-                    casualtyRoll = v;
-                    if (!(rules
-                            .casualtyResultFor(v ?? 0)
-                            ?.requiresLastingInjuryRoll ??
-                        false)) {
-                      lastingRoll = null;
-                    }
-                  }),
-                  max: 16,
-                ),
-                if (casualty != null) ...[
-                  const SizedBox(height: 8),
-                  _injuryPreview(
-                    casualty.localizedLabel(lang),
-                    casualty.localizedDescription(lang),
-                    AppColors.error,
-                  ),
-                ],
-                if (needsLasting) ...[
-                  const SizedBox(height: 12),
-                  Text('Lasting Injury Roll (D6)',
-                      style: const TextStyle(color: AppColors.textMuted)),
-                  const SizedBox(height: 6),
-                  _dieRollField(
-                    lastingRoll,
-                    (v) => setDialogState(() => lastingRoll = v),
-                    max: 6,
-                  ),
-                  if (lasting != null) ...[
-                    const SizedBox(height: 8),
-                    _injuryPreview(
-                      '${lasting.localizedLabel(lang)} ${lasting.reductionLabel}',
-                      lasting.localizedDescription(lang),
-                      AppColors.warning,
-                    ),
-                  ],
-                ],
-              ],
-            ),
-            actions: [
-              TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Cancel')),
-              ElevatedButton(
-                onPressed: canAdd
-                    ? () {
-                        setState(() {
-                          _injuries.add(_InjuryEntry(
-                            playerId: selectedId!,
-                            playerName: name,
-                            team: team,
-                            casualtyRoll: casualtyRoll!,
-                            lastingInjuryRoll: lastingRoll,
-                          ));
-                        });
-                        Navigator.pop(ctx);
-                      }
-                    : null,
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary),
-                child: const Text('Add'),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _injuryPreview(String title, String description, Color color) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withValues(alpha: 0.28)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title,
-              style: TextStyle(
-                  color: color, fontSize: 13, fontWeight: FontWeight.w900)),
-          const SizedBox(height: 4),
-          Text(description,
-              style: const TextStyle(
-                  color: AppColors.textSecondary, fontSize: 12)),
-        ],
-      ),
-    );
-  }
-
-  // ═══════════════════════════════════════════════════════════
   // SECTION 7: Expensive Mistakes
   // ═══════════════════════════════════════════════════════════
 
@@ -3236,8 +2843,6 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
               onRollChanged: (v) {
                 setState(() {
                   _homeExpensiveRoll = v;
-                  _homeExpensiveResult =
-                      v == null ? null : rules.resultFor(homeTreasury, v);
                   _clearHomeExpensiveExtraDice();
                 });
               },
@@ -3259,8 +2864,6 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
               onRollChanged: (v) {
                 setState(() {
                   _awayExpensiveRoll = v;
-                  _awayExpensiveResult =
-                      v == null ? null : rules.resultFor(awayTreasury, v);
                   _clearAwayExpensiveExtraDice();
                 });
               },

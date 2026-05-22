@@ -10,25 +10,26 @@ class League with _$League {
   const factory League({
     required String id,
     required String name,
-    @JsonKey(name: 'owner_id') required String ownerId,
-    @JsonKey(name: 'owner_username') @Default('') String ownerUsername,
+    required String ownerId,
+    @Default('') String ownerUsername,
     @Default(LeagueStatus.draft) LeagueStatus status,
     @Default(1) int season,
-    @JsonKey(name: 'current_round') int? currentRound,
-    @JsonKey(name: 'max_teams') @Default(8) int maxTeams,
+    int? currentRound,
+    @Default(8) int maxTeams,
     @Default('round_robin') String format,
-    @JsonKey(name: 'invite_code') String? inviteCode,
+    String? inviteCode,
     @Default([]) List<LeagueTeam> teams,
     @Default([]) List<LeagueStanding> standings,
     @Default([]) List<Match> matches,
     LeagueRules? rules,
     String? description,
-    @JsonKey(name: 'created_at') DateTime? createdAt,
-    @JsonKey(name: 'started_at') DateTime? startedAt,
-    @JsonKey(name: 'ended_at') DateTime? endedAt,
+    DateTime? createdAt,
+    DateTime? startedAt,
+    DateTime? endedAt,
   }) = _League;
 
-  factory League.fromJson(Map<String, dynamic> json) => _$LeagueFromJson(json);
+  factory League.fromJson(Map<String, dynamic> json) =>
+      _$LeagueFromJson(_normalizeLeagueJson(json));
 
   int get teamsCount => teams.length;
 
@@ -41,15 +42,15 @@ class League with _$League {
 @freezed
 class LeagueRules with _$LeagueRules {
   const factory LeagueRules({
-    @JsonKey(name: 'starting_budget') @Default(1000000) int startingBudget,
+    @Default(1000000) int startingBudget,
     @Default(false) bool resurrection,
     @Default(true) bool inducements,
-    @JsonKey(name: 'spiraling_expenses') @Default(true) bool spiralingExpenses,
-    @JsonKey(name: 'max_team_value') int? maxTeamValue,
+    @Default(true) bool spiralingExpenses,
+    int? maxTeamValue,
   }) = _LeagueRules;
 
   factory LeagueRules.fromJson(Map<String, dynamic> json) =>
-      _$LeagueRulesFromJson(json);
+      _$LeagueRulesFromJson(_normalizeLeagueRulesJson(json));
 }
 
 @freezed
@@ -57,17 +58,17 @@ class LeagueTeam with _$LeagueTeam {
   const LeagueTeam._();
 
   const factory LeagueTeam({
-    @JsonKey(name: 'team_id') required String teamId,
-    @JsonKey(name: 'team_name') required String teamName,
-    @JsonKey(name: 'user_id') required String userId,
+    required String teamId,
+    required String teamName,
+    required String userId,
     @Default('') String username,
-    @JsonKey(name: 'base_roster_id') @Default('') String baseRosterId,
+    @Default('') String baseRosterId,
     String? icon,
-    @JsonKey(name: 'joined_at') DateTime? joinedAt,
+    DateTime? joinedAt,
   }) = _LeagueTeam;
 
   factory LeagueTeam.fromJson(Map<String, dynamic> json) =>
-      _$LeagueTeamFromJson(json);
+      _$LeagueTeamFromJson(_normalizeLeagueTeamJson(json));
 }
 
 @freezed
@@ -75,22 +76,22 @@ class LeagueStanding with _$LeagueStanding {
   const LeagueStanding._();
 
   const factory LeagueStanding({
-    @JsonKey(name: 'team_id') required String teamId,
-    @JsonKey(name: 'team_name') required String teamName,
+    required String teamId,
+    required String teamName,
     @Default(0) int wins,
     @Default(0) int draws,
     @Default(0) int losses,
     @Default(0) int points,
-    @JsonKey(name: 'touchdowns_for') @Default(0) int touchdownsFor,
-    @JsonKey(name: 'touchdowns_against') @Default(0) int touchdownsAgainst,
-    @JsonKey(name: 'touchdown_diff') @Default(0) int touchdownDiff,
-    @JsonKey(name: 'casualties_for') @Default(0) int casualtiesFor,
-    @JsonKey(name: 'casualties_against') @Default(0) int casualtiesAgainst,
-    @JsonKey(name: 'games_played') @Default(0) int gamesPlayed,
+    @Default(0) int touchdownsFor,
+    @Default(0) int touchdownsAgainst,
+    @Default(0) int touchdownDiff,
+    @Default(0) int casualtiesFor,
+    @Default(0) int casualtiesAgainst,
+    @Default(0) int gamesPlayed,
   }) = _LeagueStanding;
 
   factory LeagueStanding.fromJson(Map<String, dynamic> json) =>
-      _$LeagueStandingFromJson(json);
+      _$LeagueStandingFromJson(_normalizeLeagueStandingJson(json));
 }
 
 enum LeagueStatus {
@@ -118,34 +119,41 @@ class Match with _$Match {
     required MatchTeamInfo home,
     required MatchTeamInfo away,
     @Default('scheduled') String status,
-    @JsonKey(name: 'score_home') @Default(0) int scoreHome,
-    @JsonKey(name: 'score_away') @Default(0) int scoreAway,
+    @Default(0) int scoreHome,
+    @Default(0) int scoreAway,
     String? weather,
-    @JsonKey(name: 'kickoff_event') String? kickoffEvent,
-    @JsonKey(name: 'home_ready') @Default(false) bool homeReady,
-    @JsonKey(name: 'away_ready') @Default(false) bool awayReady,
-    @JsonKey(name: 'home_squad') @Default([]) List<String> homeSquad,
-    @JsonKey(name: 'away_squad') @Default([]) List<String> awaySquad,
-    @JsonKey(name: 'current_half') @Default(0) int currentHalf,
-    @JsonKey(name: 'current_turn') @Default(0) int currentTurn,
-    @JsonKey(name: 'current_team') @Default('home') String currentTeam,
-    @JsonKey(name: 'home_turn') @Default(1) int homeTurn,
-    @JsonKey(name: 'away_turn') @Default(1) int awayTurn,
-    @JsonKey(name: 'turn_started_at') DateTime? turnStartedAt,
-    @JsonKey(name: 'home_turn_seconds') @Default([]) List<int> homeTurnSeconds,
-    @JsonKey(name: 'away_turn_seconds') @Default([]) List<int> awayTurnSeconds,
-    @JsonKey(name: 'rerolls_used_home') @Default(0) int rerollsUsedHome,
-    @JsonKey(name: 'rerolls_used_away') @Default(0) int rerollsUsedAway,
-    @JsonKey(name: 'mvp_home') String? mvpHome,
-    @JsonKey(name: 'mvp_away') String? mvpAway,
+    String? kickoffEvent,
+    @Default(false) bool homeReady,
+    @Default(false) bool awayReady,
+    @Default([]) List<String> homeSquad,
+    @Default([]) List<String> awaySquad,
+    @Default(0) int currentHalf,
+    @Default(0) int currentTurn,
+    @Default('home') String currentTeam,
+    @Default(1) int homeTurn,
+    @Default(1) int awayTurn,
+    DateTime? turnStartedAt,
+    @Default([]) List<int> homeTurnSeconds,
+    @Default([]) List<int> awayTurnSeconds,
+    @Default(0) int rerollsUsedHome,
+    @Default(0) int rerollsUsedAway,
+    @Default({}) Map<String, int> homeInducementPurchases,
+    @Default({}) Map<String, int> awayInducementPurchases,
+    @Default({}) Map<String, int> homeInducementUses,
+    @Default({}) Map<String, int> awayInducementUses,
+    @Default({}) Map<String, List<String>> homeInducementDetails,
+    @Default({}) Map<String, List<String>> awayInducementDetails,
+    String? mvpHome,
+    String? mvpAway,
     int? gate,
     @Default([]) List<MatchEvent> events,
-    @JsonKey(name: 'scheduled_at') DateTime? scheduledAt,
-    @JsonKey(name: 'played_at') DateTime? playedAt,
-    @JsonKey(name: 'started_at') DateTime? startedAt,
+    DateTime? scheduledAt,
+    DateTime? playedAt,
+    DateTime? startedAt,
   }) = _Match;
 
-  factory Match.fromJson(Map<String, dynamic> json) => _$MatchFromJson(json);
+  factory Match.fromJson(Map<String, dynamic> json) =>
+      _$MatchFromJson(_normalizeMatchJson(json));
 
   bool get isPlayed => status == 'completed';
   bool get isPending => status == 'scheduled' || status == 'pending';
@@ -160,35 +168,35 @@ class MatchEvent with _$MatchEvent {
     required String id,
     required String type,
     required String team,
-    @JsonKey(name: 'player_id') String? playerId,
-    @JsonKey(name: 'player_name') String? playerName,
-    @JsonKey(name: 'victim_id') String? victimId,
-    @JsonKey(name: 'victim_name') String? victimName,
+    String? playerId,
+    String? playerName,
+    String? victimId,
+    String? victimName,
     String? injury,
     String? detail,
     @Default(0) int half,
     @Default(0) int turn,
     DateTime? timestamp,
-    @JsonKey(name: 'created_by') String? createdBy,
-    @JsonKey(name: 'created_by_name') String? createdByName,
+    String? createdBy,
+    String? createdByName,
   }) = _MatchEvent;
 
   factory MatchEvent.fromJson(Map<String, dynamic> json) =>
-      _$MatchEventFromJson(json);
+      _$MatchEventFromJson(_normalizeMatchEventJson(json));
 }
 
 @freezed
 class MatchTeamInfo with _$MatchTeamInfo {
   const factory MatchTeamInfo({
-    @JsonKey(name: 'team_id') required String teamId,
-    @JsonKey(name: 'team_name') required String teamName,
-    @JsonKey(name: 'user_id') @Default('') String userId,
+    required String teamId,
+    required String teamName,
+    @Default('') String userId,
     @Default('') String username,
-    @JsonKey(name: 'base_roster_id') @Default('') String baseRosterId,
+    @Default('') String baseRosterId,
   }) = _MatchTeamInfo;
 
   factory MatchTeamInfo.fromJson(Map<String, dynamic> json) =>
-      _$MatchTeamInfoFromJson(json);
+      _$MatchTeamInfoFromJson(_normalizeMatchTeamInfoJson(json));
 }
 
 enum MatchStatus {
@@ -206,14 +214,14 @@ enum MatchStatus {
 class LeagueInvitation with _$LeagueInvitation {
   const factory LeagueInvitation({
     required String id,
-    @JsonKey(name: 'league_id') required String leagueId,
-    @JsonKey(name: 'league_name') required String leagueName,
-    @JsonKey(name: 'invited_by') required String invitedBy,
-    @JsonKey(name: 'created_at') DateTime? createdAt,
+    required String leagueId,
+    required String leagueName,
+    required String invitedBy,
+    DateTime? createdAt,
   }) = _LeagueInvitation;
 
   factory LeagueInvitation.fromJson(Map<String, dynamic> json) =>
-      _$LeagueInvitationFromJson(json);
+      _$LeagueInvitationFromJson(_normalizeLeagueInvitationJson(json));
 }
 
 @freezed
@@ -222,10 +230,132 @@ class LeagueActivity with _$LeagueActivity {
     required String id,
     required String type,
     required String message,
-    @JsonKey(name: 'created_at') required DateTime createdAt,
+    required DateTime createdAt,
     Map<String, dynamic>? data,
   }) = _LeagueActivity;
 
   factory LeagueActivity.fromJson(Map<String, dynamic> json) =>
-      _$LeagueActivityFromJson(json);
+      _$LeagueActivityFromJson(_normalizeLeagueActivityJson(json));
+}
+
+Map<String, dynamic> _normalizeLeagueJson(Map<String, dynamic> json) =>
+    _withAliases(json, {
+      'ownerId': ['owner_id'],
+      'ownerUsername': ['owner_username'],
+      'currentRound': ['current_round'],
+      'maxTeams': ['max_teams'],
+      'inviteCode': ['invite_code'],
+      'createdAt': ['created_at'],
+      'startedAt': ['started_at'],
+      'endedAt': ['ended_at'],
+    });
+
+Map<String, dynamic> _normalizeLeagueRulesJson(Map<String, dynamic> json) =>
+    _withAliases(json, {
+      'startingBudget': ['starting_budget'],
+      'spiralingExpenses': ['spiraling_expenses'],
+      'maxTeamValue': ['max_team_value'],
+    });
+
+Map<String, dynamic> _normalizeLeagueTeamJson(Map<String, dynamic> json) =>
+    _withAliases(json, {
+      'teamId': ['team_id'],
+      'teamName': ['team_name'],
+      'userId': ['user_id'],
+      'baseRosterId': ['base_roster_id'],
+      'joinedAt': ['joined_at'],
+    });
+
+Map<String, dynamic> _normalizeLeagueStandingJson(Map<String, dynamic> json) =>
+    _withAliases(json, {
+      'teamId': ['team_id'],
+      'teamName': ['team_name'],
+      'touchdownsFor': ['touchdowns_for'],
+      'touchdownsAgainst': ['touchdowns_against'],
+      'touchdownDiff': ['touchdown_diff'],
+      'casualtiesFor': ['casualties_for'],
+      'casualtiesAgainst': ['casualties_against'],
+      'gamesPlayed': ['games_played'],
+    });
+
+Map<String, dynamic> _normalizeMatchJson(Map<String, dynamic> json) =>
+    _withAliases(json, {
+      'scoreHome': ['score_home'],
+      'scoreAway': ['score_away'],
+      'kickoffEvent': ['kickoff_event'],
+      'homeReady': ['home_ready'],
+      'awayReady': ['away_ready'],
+      'homeSquad': ['home_squad'],
+      'awaySquad': ['away_squad'],
+      'currentHalf': ['current_half'],
+      'currentTurn': ['current_turn'],
+      'currentTeam': ['current_team'],
+      'homeTurn': ['home_turn'],
+      'awayTurn': ['away_turn'],
+      'turnStartedAt': ['turn_started_at'],
+      'homeTurnSeconds': ['home_turn_seconds'],
+      'awayTurnSeconds': ['away_turn_seconds'],
+      'rerollsUsedHome': ['rerolls_used_home'],
+      'rerollsUsedAway': ['rerolls_used_away'],
+      'homeInducementPurchases': ['home_inducement_purchases'],
+      'awayInducementPurchases': ['away_inducement_purchases'],
+      'homeInducementUses': ['home_inducement_uses'],
+      'awayInducementUses': ['away_inducement_uses'],
+      'homeInducementDetails': ['home_inducement_details'],
+      'awayInducementDetails': ['away_inducement_details'],
+      'mvpHome': ['mvp_home'],
+      'mvpAway': ['mvp_away'],
+      'scheduledAt': ['scheduled_at'],
+      'playedAt': ['played_at'],
+      'startedAt': ['started_at'],
+    });
+
+Map<String, dynamic> _normalizeMatchEventJson(Map<String, dynamic> json) =>
+    _withAliases(json, {
+      'playerId': ['player_id'],
+      'playerName': ['player_name'],
+      'victimId': ['victim_id'],
+      'victimName': ['victim_name'],
+      'createdBy': ['created_by'],
+      'createdByName': ['created_by_name'],
+    });
+
+Map<String, dynamic> _normalizeMatchTeamInfoJson(Map<String, dynamic> json) =>
+    _withAliases(json, {
+      'teamId': ['team_id'],
+      'teamName': ['team_name'],
+      'userId': ['user_id'],
+      'baseRosterId': ['base_roster_id'],
+    });
+
+Map<String, dynamic> _normalizeLeagueInvitationJson(
+        Map<String, dynamic> json) =>
+    _withAliases(json, {
+      'leagueId': ['league_id'],
+      'leagueName': ['league_name'],
+      'invitedBy': ['invited_by'],
+      'createdAt': ['created_at'],
+    });
+
+Map<String, dynamic> _normalizeLeagueActivityJson(Map<String, dynamic> json) =>
+    _withAliases(json, {
+      'createdAt': ['created_at'],
+    });
+
+Map<String, dynamic> _withAliases(
+  Map<String, dynamic> json,
+  Map<String, List<String>> aliases,
+) {
+  final normalized = {...json};
+  for (final MapEntry(:key, :value) in aliases.entries) {
+    normalized[key] ??= _firstValue(json, value);
+  }
+  return normalized;
+}
+
+Object? _firstValue(Map<String, dynamic> json, List<String> keys) {
+  for (final key in keys) {
+    if (json.containsKey(key)) return json[key];
+  }
+  return null;
 }

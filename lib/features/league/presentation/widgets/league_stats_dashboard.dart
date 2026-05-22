@@ -170,9 +170,9 @@ class LeagueStatsDashboard extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            AppColors.primary.withOpacity(0.20),
+            AppColors.primary.withValues(alpha: 0.20),
             AppColors.card,
-            AppColors.accent.withOpacity(0.08),
+            AppColors.accent.withValues(alpha: 0.08),
           ],
         ),
       ),
@@ -198,7 +198,7 @@ class LeagueStatsDashboard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 8),
-                Text(
+                const Text(
                   'Radiografia competitiva: marcadores, violencia, ritmo por jornada y rendimiento de equipos.',
                   style: TextStyle(
                     fontSize: 13,
@@ -474,8 +474,8 @@ class _MetricPuck extends StatelessWidget {
             height: 54,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: data.color.withOpacity(0.13),
-              border: Border.all(color: data.color.withOpacity(0.45)),
+              color: data.color.withValues(alpha: 0.13),
+              border: Border.all(color: data.color.withValues(alpha: 0.45)),
             ),
             child: Icon(data.icon, color: data.color, size: 24),
           ),
@@ -636,7 +636,7 @@ class _PodiumStep extends StatelessWidget {
             width: 46,
             height: 46,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.18),
+              color: color.withValues(alpha: 0.18),
               shape: BoxShape.circle,
               border: Border.all(color: color),
             ),
@@ -659,9 +659,9 @@ class _PodiumStep extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.12),
+              color: color.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: color.withOpacity(0.42)),
+              border: Border.all(color: color.withValues(alpha: 0.42)),
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.end,
@@ -716,9 +716,9 @@ class _SpotlightChip extends StatelessWidget {
       width: 168,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.10),
+        color: color.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.34)),
+        border: Border.all(color: color.withValues(alpha: 0.34)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -844,8 +844,8 @@ class _ScoreBubble extends StatelessWidget {
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: color.withOpacity(0.13),
-        border: Border.all(color: color.withOpacity(0.5)),
+        color: color.withValues(alpha: 0.13),
+        border: Border.all(color: color.withValues(alpha: 0.5)),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -869,91 +869,6 @@ class _ScoreBubble extends StatelessWidget {
               fontSize: 10,
               color: AppColors.textSecondary,
               fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _KpiData {
-  const _KpiData({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.detail,
-    required this.color,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-  final String detail;
-  final Color color;
-}
-
-class _KpiCard extends StatelessWidget {
-  const _KpiCard({required this.data});
-
-  final _KpiData data;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.surfaceLight),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: data.color.withOpacity(0.14),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(data.icon, color: data.color, size: 22),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  data.label.toUpperCase(),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textMuted,
-                    letterSpacing: 0.6,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  data.value,
-                  style: TextStyle(
-                    fontFamily: AppTypography.displayFontFamily,
-                    fontSize: 30,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
-                    height: 1,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  data.detail,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                      fontSize: 11, color: AppColors.textSecondary),
-                ),
-              ],
             ),
           ),
         ],
@@ -1195,267 +1110,6 @@ class _LegendRow extends StatelessWidget {
   }
 }
 
-class _TeamRankings extends StatelessWidget {
-  const _TeamRankings({required this.stats});
-
-  final _LeagueStats stats;
-
-  @override
-  Widget build(BuildContext context) {
-    return _Panel(
-      title: 'Rendimiento por equipos',
-      icon: PhosphorIcons.ranking(PhosphorIconsStyle.fill),
-      child: Column(
-        children: [
-          _RankingBlock(
-            title: 'Clasificacion',
-            standings: stats.pointsLeaders.take(5).toList(),
-            maxValue: stats.maxPoints,
-            value: (standing) => standing.points,
-            suffix: 'pts',
-            color: AppColors.accent,
-          ),
-          const SizedBox(height: 16),
-          _RankingBlock(
-            title: 'Mejor ataque',
-            standings: stats.attackLeaders.take(5).toList(),
-            maxValue: stats.maxTouchdownsFor,
-            value: (standing) => standing.touchdownsFor,
-            suffix: 'TD',
-            color: AppColors.primary,
-          ),
-          const SizedBox(height: 16),
-          _RankingBlock(
-            title: 'Mas bajas',
-            standings: stats.casualtyLeaders.take(5).toList(),
-            maxValue: stats.maxCasualtiesFor,
-            value: (standing) => standing.casualtiesFor,
-            suffix: 'CAS',
-            color: AppColors.warning,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _RankingBlock extends StatelessWidget {
-  const _RankingBlock({
-    required this.title,
-    required this.standings,
-    required this.maxValue,
-    required this.value,
-    required this.suffix,
-    required this.color,
-  });
-
-  final String title;
-  final List<LeagueStanding> standings;
-  final int maxValue;
-  final int Function(LeagueStanding standing) value;
-  final String suffix;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title.toUpperCase(),
-          style: const TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.bold,
-            color: AppColors.textMuted,
-            letterSpacing: 0.6,
-          ),
-        ),
-        const SizedBox(height: 8),
-        for (final standing in standings) ...[
-          _HorizontalMetricBar(
-            label: standing.teamName,
-            value: value(standing),
-            maxValue: math.max(maxValue, 1),
-            suffix: suffix,
-            color: color,
-          ),
-          const SizedBox(height: 8),
-        ],
-      ],
-    );
-  }
-}
-
-class _HorizontalMetricBar extends StatelessWidget {
-  const _HorizontalMetricBar({
-    required this.label,
-    required this.value,
-    required this.maxValue,
-    required this.suffix,
-    required this.color,
-  });
-
-  final String label;
-  final int value;
-  final int maxValue;
-  final String suffix;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    final percent = (value / maxValue).clamp(0.0, 1.0);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style:
-                    const TextStyle(fontSize: 12, color: AppColors.textPrimary),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              '$value $suffix',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 4),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(999),
-          child: LinearProgressIndicator(
-            value: percent,
-            minHeight: 8,
-            color: color,
-            backgroundColor: AppColors.surfaceLight,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _MatchDistribution extends StatelessWidget {
-  const _MatchDistribution({required this.stats});
-
-  final _LeagueStats stats;
-
-  @override
-  Widget build(BuildContext context) {
-    final total = math.max(stats.playedMatches, 1);
-
-    return _Panel(
-      title: 'Tipo de marcador',
-      icon: PhosphorIcons.chartBarHorizontal(PhosphorIconsStyle.fill),
-      child: Column(
-        children: stats.scoreBuckets.entries.map((entry) {
-          final color = switch (entry.key) {
-            'Cerrados' => AppColors.info,
-            'Medios' => AppColors.accent,
-            _ => AppColors.primary,
-          };
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 14),
-            child: _DistributionBar(
-              label: entry.key,
-              value: entry.value,
-              total: total,
-              color: color,
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-}
-
-class _DistributionBar extends StatelessWidget {
-  const _DistributionBar({
-    required this.label,
-    required this.value,
-    required this.total,
-    required this.color,
-  });
-
-  final String label;
-  final int value;
-  final int total;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    final percent = value / total;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(label,
-                  style: const TextStyle(color: AppColors.textPrimary)),
-            ),
-            Text(
-              '$value',
-              style: TextStyle(fontWeight: FontWeight.bold, color: color),
-            ),
-          ],
-        ),
-        const SizedBox(height: 6),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(6),
-          child: LinearProgressIndicator(
-            value: percent,
-            minHeight: 18,
-            color: color,
-            backgroundColor: AppColors.surfaceLight,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _StatusBars extends StatelessWidget {
-  const _StatusBars({required this.stats});
-
-  final _LeagueStats stats;
-
-  @override
-  Widget build(BuildContext context) {
-    final total = math.max(stats.totalMatches, 1);
-    final rows = [
-      ('Jugados', stats.playedMatches, AppColors.success),
-      ('En curso', stats.inProgress, AppColors.warning),
-      ('Pendientes', stats.scheduled, AppColors.info),
-    ];
-
-    return Column(
-      children: rows
-          .map((row) => Padding(
-                padding: const EdgeInsets.only(bottom: 14),
-                child: _DistributionBar(
-                  label: row.$1,
-                  value: row.$2,
-                  total: total,
-                  color: row.$3,
-                ),
-              ))
-          .toList(),
-    );
-  }
-}
-
 class _CalendarRadialStatus extends StatelessWidget {
   const _CalendarRadialStatus({required this.stats});
 
@@ -1546,71 +1200,6 @@ class _RingData {
   final Color color;
 }
 
-class _RoundHeatmap extends StatelessWidget {
-  const _RoundHeatmap({required this.stats});
-
-  final _LeagueStats stats;
-
-  @override
-  Widget build(BuildContext context) {
-    final maxTouchdowns = stats.roundIntensity.fold<int>(
-      0,
-      (max, round) => math.max(max, round.touchdowns),
-    );
-
-    return Wrap(
-      spacing: 10,
-      runSpacing: 10,
-      children: stats.roundIntensity.map((round) {
-        final intensity =
-            maxTouchdowns == 0 ? 0.0 : round.touchdowns / maxTouchdowns;
-        return Container(
-          width: 76,
-          height: 76,
-          padding: const EdgeInsets.all(9),
-          decoration: BoxDecoration(
-            color: Color.lerp(
-                AppColors.surfaceLight, AppColors.primary, intensity * 0.85),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: AppColors.surfaceLight),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'J${round.round}',
-                style: const TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const Spacer(),
-              Text(
-                '${round.touchdowns}',
-                style: TextStyle(
-                  fontFamily: AppTypography.displayFontFamily,
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                  height: 1,
-                ),
-              ),
-              Text(
-                '${round.played}/${round.matches} partidos',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                    fontSize: 9, color: AppColors.textSecondary),
-              ),
-            ],
-          ),
-        );
-      }).toList(),
-    );
-  }
-}
-
 class _RoundBubbleChart extends StatelessWidget {
   const _RoundBubbleChart({required this.stats});
 
@@ -1665,11 +1254,12 @@ class _RoundBubble extends StatelessWidget {
             height: diameter,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: color.withOpacity(0.18),
-              border: Border.all(color: color.withOpacity(0.65), width: 2),
+              color: color.withValues(alpha: 0.18),
+              border:
+                  Border.all(color: color.withValues(alpha: 0.65), width: 2),
               boxShadow: [
                 BoxShadow(
-                  color: color.withOpacity(0.18),
+                  color: color.withValues(alpha: 0.18),
                   blurRadius: 18,
                   spreadRadius: 2,
                 ),
@@ -1840,91 +1430,6 @@ class _MultiRingPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _MultiRingPainter oldDelegate) {
     return oldDelegate.rings != rings;
-  }
-}
-
-class _BubbleChartPainter extends CustomPainter {
-  const _BubbleChartPainter({
-    required this.rounds,
-    required this.maxTouchdowns,
-  });
-
-  final List<_RoundIntensity> rounds;
-  final int maxTouchdowns;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (rounds.isEmpty) return;
-
-    final textPainter = TextPainter(textDirection: TextDirection.ltr);
-    final columns = rounds.length <= 4 ? rounds.length : 4;
-    final rows = (rounds.length / columns).ceil();
-    final cellWidth = size.width / columns;
-    final cellHeight = size.height / rows;
-
-    for (var index = 0; index < rounds.length; index++) {
-      final round = rounds[index];
-      final col = index % columns;
-      final row = index ~/ columns;
-      final center = Offset(
-        cellWidth * col + cellWidth / 2,
-        cellHeight * row + cellHeight / 2,
-      );
-      final intensity = round.touchdowns / maxTouchdowns;
-      final radius = 24 + intensity * 22;
-      final color = Color.lerp(AppColors.info, AppColors.primary, intensity) ??
-          AppColors.primary;
-
-      final glowPaint = Paint()
-        ..color = color.withOpacity(0.16)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 16);
-      canvas.drawCircle(center, radius + 6, glowPaint);
-
-      final paint = Paint()..color = color.withOpacity(0.24);
-      canvas.drawCircle(center, radius, paint);
-
-      final borderPaint = Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2
-        ..color = color.withOpacity(0.72);
-      canvas.drawCircle(center, radius, borderPaint);
-
-      textPainter.text = TextSpan(
-        text: '${round.touchdowns}',
-        style: TextStyle(
-          fontFamily: AppTypography.displayFontFamily,
-          fontSize: 28,
-          fontWeight: FontWeight.bold,
-          color: AppColors.textPrimary,
-          height: 1,
-        ),
-      );
-      textPainter.layout();
-      textPainter.paint(
-        canvas,
-        center - Offset(textPainter.width / 2, textPainter.height / 2 + 8),
-      );
-
-      textPainter.text = TextSpan(
-        text: 'J${round.round}  ${round.played}/${round.matches}',
-        style: const TextStyle(
-          fontSize: 10,
-          color: AppColors.textSecondary,
-          fontWeight: FontWeight.bold,
-        ),
-      );
-      textPainter.layout();
-      textPainter.paint(
-        canvas,
-        center + Offset(-textPainter.width / 2, radius + 5),
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _BubbleChartPainter oldDelegate) {
-    return oldDelegate.rounds != rounds ||
-        oldDelegate.maxTouchdowns != maxTouchdowns;
   }
 }
 

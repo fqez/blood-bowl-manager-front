@@ -1,9 +1,12 @@
 import 'dart:async';
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../core/l10n/locale_provider.dart';
 import '../../../../core/l10n/translations.dart';
@@ -57,12 +60,14 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
   bool _isSubmitting = false;
   Timer? _pollTimer;
   Timer? _clockTimer;
+  Timer? _inducementBudgetTimer;
   Duration _elapsed = Duration.zero;
   DateTime? _matchStartedAt;
 
   List<UserPlayer>? _homePlayers;
   List<UserPlayer>? _awayPlayers;
   bool _rosterLoading = false;
+  bool _preMatchRefreshInFlight = false;
 
   // Pre-match preparation state
   UserTeamDetail? _homeTeam;
@@ -83,6 +88,21 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
   final Set<String> _tempHiredHomePlayers = {};
   final Set<String> _tempHiredAwayPlayers = {};
 
+  // ── Match-only inducements bought during pre-match ──
+  final Map<String, int> _homeInducementPurchases = {};
+  final Map<String, int> _awayInducementPurchases = {};
+  final Map<String, int> _homeInducementUses = {};
+  final Map<String, int> _awayInducementUses = {};
+  final Map<String, List<String>> _homeInducementDetails = {};
+  final Map<String, List<String>> _awayInducementDetails = {};
+  final Set<String> _inducementMutatingKeys = {};
+  int _homeInducementSpent = 0;
+  int _awayInducementSpent = 0;
+  int _homeRerollAdjustment = 0;
+  int _awayRerollAdjustment = 0;
+  int? _homeInducementTreasuryBaseline;
+  int? _awayInducementTreasuryBaseline;
+
   // ── Quick-match helpers ──
   bool get _isQM => widget.isQuickMatch;
 
@@ -92,6 +112,9 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
 
   String get _backRoute =>
       _isQM ? '/quick-match' : '/league/${widget.leagueId}';
+
+  String get _inducementStoragePrefix =>
+      'live_match_inducements:${widget.leagueId}:${widget.matchId}';
 
   @override
   void initState() {
@@ -104,6 +127,7 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
           matchId: widget.matchId,
         );
       });
+      _startInducementBudgetRefresh();
     }
   }
 
@@ -111,12 +135,32 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
   void dispose() {
     _pollTimer?.cancel();
     _clockTimer?.cancel();
+    _inducementBudgetTimer?.cancel();
     super.dispose();
+  }
+
+  void _startInducementBudgetRefresh() {
+    _inducementBudgetTimer?.cancel();
+    _inducementBudgetTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted || _isQM) return;
+      final match = ref
+          .read(_matchDetailProvider(
+              (leagueId: widget.leagueId, matchId: widget.matchId)))
+          .valueOrNull;
+      if (match?.isPending != true) return;
+      if (_homeTeam != null &&
+          _awayTeam != null &&
+          _inducementMutatingKeys.isEmpty) {
+        _doRefreshPreMatch();
+      } else {
+        setState(() {});
+      }
+    });
   }
 
   void _startPolling() {
     _pollTimer?.cancel();
-    _pollTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+    _pollTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) _refresh();
     });
   }
@@ -151,9 +195,94 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
     }
   }
 
+  void _syncInducementsFromMatch(Match match) {
+    if (_isQM) return;
+    if (_inducementMutatingKeys.isNotEmpty) return;
+    final nextHomePurchases =
+        Map<String, int>.from(match.homeInducementPurchases);
+    final nextAwayPurchases =
+        Map<String, int>.from(match.awayInducementPurchases);
+    final nextHomeUses = Map<String, int>.from(match.homeInducementUses);
+    final nextAwayUses = Map<String, int>.from(match.awayInducementUses);
+    final nextHomeDetails = _copyInducementDetails(match.homeInducementDetails);
+    final nextAwayDetails = _copyInducementDetails(match.awayInducementDetails);
+
+    final serverHasNoInducements = nextHomePurchases.isEmpty &&
+        nextAwayPurchases.isEmpty &&
+        nextHomeUses.isEmpty &&
+        nextAwayUses.isEmpty &&
+        nextHomeDetails.isEmpty &&
+        nextAwayDetails.isEmpty;
+    final localHasInducements = _homeInducementPurchases.isNotEmpty ||
+        _awayInducementPurchases.isNotEmpty ||
+        _homeInducementUses.isNotEmpty ||
+        _awayInducementUses.isNotEmpty ||
+        _homeInducementDetails.isNotEmpty ||
+        _awayInducementDetails.isNotEmpty;
+    if (serverHasNoInducements && localHasInducements) return;
+
+    if (mapEquals(nextHomePurchases, _homeInducementPurchases) &&
+        mapEquals(nextAwayPurchases, _awayInducementPurchases) &&
+        mapEquals(nextHomeUses, _homeInducementUses) &&
+        mapEquals(nextAwayUses, _awayInducementUses) &&
+        _inducementDetailsEqual(nextHomeDetails, _homeInducementDetails) &&
+        _inducementDetailsEqual(nextAwayDetails, _awayInducementDetails)) {
+      return;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      setState(() {
+        _homeInducementPurchases
+          ..clear()
+          ..addAll(nextHomePurchases);
+        _awayInducementPurchases
+          ..clear()
+          ..addAll(nextAwayPurchases);
+        _homeInducementUses
+          ..clear()
+          ..addAll(nextHomeUses);
+        _awayInducementUses
+          ..clear()
+          ..addAll(nextAwayUses);
+        _homeInducementDetails
+          ..clear()
+          ..addAll(nextHomeDetails);
+        _awayInducementDetails
+          ..clear()
+          ..addAll(nextAwayDetails);
+      });
+      await _persistInducementBudgetState();
+      _debugSyncTrace(
+        'inducements synced homePurchases=$_homeInducementPurchases homeUses=$_homeInducementUses awayPurchases=$_awayInducementPurchases awayUses=$_awayInducementUses',
+      );
+    });
+  }
+
   Match _preMatchViewMatch(Match match) {
     final optimistic = _optimisticPreMatch;
-    if (match.isPending && optimistic?.id == match.id) return optimistic!;
+    if (match.isPending && optimistic?.id == match.id) {
+      return optimistic!.copyWith(
+        homeInducementPurchases: match.homeInducementPurchases.isNotEmpty
+            ? match.homeInducementPurchases
+            : Map<String, int>.from(_homeInducementPurchases),
+        awayInducementPurchases: match.awayInducementPurchases.isNotEmpty
+            ? match.awayInducementPurchases
+            : Map<String, int>.from(_awayInducementPurchases),
+        homeInducementUses: match.homeInducementUses.isNotEmpty
+            ? match.homeInducementUses
+            : Map<String, int>.from(_homeInducementUses),
+        awayInducementUses: match.awayInducementUses.isNotEmpty
+            ? match.awayInducementUses
+            : Map<String, int>.from(_awayInducementUses),
+        homeInducementDetails: match.homeInducementDetails.isNotEmpty
+            ? match.homeInducementDetails
+            : _copyInducementDetails(_homeInducementDetails),
+        awayInducementDetails: match.awayInducementDetails.isNotEmpty
+            ? match.awayInducementDetails
+            : _copyInducementDetails(_awayInducementDetails),
+      );
+    }
     return match;
   }
 
@@ -195,8 +324,9 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
   }
 
   Future<void> _loadRosters(Match match) async {
-    if (_rosterLoading || (_homePlayers != null && _awayPlayers != null))
+    if (_rosterLoading || (_homePlayers != null && _awayPlayers != null)) {
       return;
+    }
     _rosterLoading = true;
     try {
       final teamRepo = ref.read(teamRepositoryProvider);
@@ -204,6 +334,8 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
         teamRepo.getUserTeamDetail(match.home.teamId),
         teamRepo.getUserTeamDetail(match.away.teamId),
       ]);
+      await _restoreInducementBudgetState(results[0], results[1]);
+      await _maybeMigrateLegacyInducementsToServer(match);
       if (mounted) {
         setState(() {
           _seedSquadSelection(
@@ -260,6 +392,8 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
         teamRepo.getBaseTeamDetail(home.baseRosterId),
         teamRepo.getBaseTeamDetail(away.baseRosterId),
       ]);
+      await _restoreInducementBudgetState(home, away);
+      await _maybeMigrateLegacyInducementsToServer(match);
       if (mounted) {
         setState(() {
           _seedSquadSelection(
@@ -290,13 +424,16 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
   }
 
   Future<void> _doRefreshPreMatch() async {
+    if (_preMatchRefreshInFlight) return;
     if (_homeTeam == null || _awayTeam == null) return;
+    _preMatchRefreshInFlight = true;
     try {
       final teamRepo = ref.read(teamRepositoryProvider);
       final results = await Future.wait([
         teamRepo.getUserTeamDetail(_homeTeam!.id),
         teamRepo.getUserTeamDetail(_awayTeam!.id),
       ]);
+      await _restoreInducementBudgetState(results[0], results[1]);
       if (mounted) {
         setState(() {
           _seedSquadSelection(
@@ -314,6 +451,190 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
         });
       }
     } catch (_) {}
+    _preMatchRefreshInFlight = false;
+  }
+
+  Future<void> _restoreInducementBudgetState(
+    UserTeamDetail home,
+    UserTeamDetail away,
+  ) async {
+    if (_isQM) return;
+    final prefs = await SharedPreferences.getInstance();
+    final prefix = _inducementStoragePrefix;
+    final storedHomeSpent = prefs.getInt('$prefix:homeSpent');
+    final storedAwaySpent = prefs.getInt('$prefix:awaySpent');
+    final storedHomePurchases = _decodeInducementPurchases(
+        prefs.getStringList('$prefix:homePurchases'));
+    final storedAwayPurchases = _decodeInducementPurchases(
+        prefs.getStringList('$prefix:awayPurchases'));
+    final storedHomeUses =
+        _decodeInducementPurchases(prefs.getStringList('$prefix:homeUses'));
+    final storedAwayUses =
+        _decodeInducementPurchases(prefs.getStringList('$prefix:awayUses'));
+    final homeSpent = storedHomeSpent ?? _homeInducementSpent;
+    final awaySpent = storedAwaySpent ?? _awayInducementSpent;
+    final storedHomeBaseline = prefs.getInt('$prefix:homeTreasuryBaseline');
+    final storedAwayBaseline = prefs.getInt('$prefix:awayTreasuryBaseline');
+    final storedHomeRerollAdjustment =
+        prefs.getInt('$prefix:homeRerollAdjustment');
+    final storedAwayRerollAdjustment =
+        prefs.getInt('$prefix:awayRerollAdjustment');
+
+    _homeInducementSpent = homeSpent;
+    _awayInducementSpent = awaySpent;
+    if (storedHomePurchases.isNotEmpty && _homeInducementPurchases.isEmpty) {
+      _homeInducementPurchases
+        ..clear()
+        ..addAll(storedHomePurchases);
+    }
+    if (storedAwayPurchases.isNotEmpty && _awayInducementPurchases.isEmpty) {
+      _awayInducementPurchases
+        ..clear()
+        ..addAll(storedAwayPurchases);
+    }
+    if (storedHomeUses.isNotEmpty && _homeInducementUses.isEmpty) {
+      _homeInducementUses
+        ..clear()
+        ..addAll(storedHomeUses);
+    }
+    if (storedAwayUses.isNotEmpty && _awayInducementUses.isEmpty) {
+      _awayInducementUses
+        ..clear()
+        ..addAll(storedAwayUses);
+    }
+    _homeRerollAdjustment = storedHomeRerollAdjustment ?? _homeRerollAdjustment;
+    _awayRerollAdjustment = storedAwayRerollAdjustment ?? _awayRerollAdjustment;
+    _homeInducementTreasuryBaseline =
+        storedHomeBaseline ?? home.treasury + homeSpent;
+    _awayInducementTreasuryBaseline =
+        storedAwayBaseline ?? away.treasury + awaySpent;
+
+    if (storedHomeBaseline == null) {
+      await prefs.setInt(
+        '$prefix:homeTreasuryBaseline',
+        _homeInducementTreasuryBaseline!,
+      );
+    }
+    if (storedAwayBaseline == null) {
+      await prefs.setInt(
+        '$prefix:awayTreasuryBaseline',
+        _awayInducementTreasuryBaseline!,
+      );
+    }
+    if (storedHomeSpent == null) {
+      await prefs.setInt('$prefix:homeSpent', _homeInducementSpent);
+    }
+    if (storedAwaySpent == null) {
+      await prefs.setInt('$prefix:awaySpent', _awayInducementSpent);
+    }
+    if (storedHomePurchases.isEmpty && _homeInducementPurchases.isNotEmpty) {
+      await prefs.setStringList(
+        '$prefix:homePurchases',
+        _encodeInducementPurchases(_homeInducementPurchases),
+      );
+    }
+    if (storedAwayPurchases.isEmpty && _awayInducementPurchases.isNotEmpty) {
+      await prefs.setStringList(
+        '$prefix:awayPurchases',
+        _encodeInducementPurchases(_awayInducementPurchases),
+      );
+    }
+    if (storedHomeUses.isEmpty && _homeInducementUses.isNotEmpty) {
+      await prefs.setStringList(
+        '$prefix:homeUses',
+        _encodeInducementPurchases(_homeInducementUses),
+      );
+    }
+    if (storedAwayUses.isEmpty && _awayInducementUses.isNotEmpty) {
+      await prefs.setStringList(
+        '$prefix:awayUses',
+        _encodeInducementPurchases(_awayInducementUses),
+      );
+    }
+    if (storedHomeRerollAdjustment == null) {
+      await prefs.setInt('$prefix:homeRerollAdjustment', _homeRerollAdjustment);
+    }
+    if (storedAwayRerollAdjustment == null) {
+      await prefs.setInt('$prefix:awayRerollAdjustment', _awayRerollAdjustment);
+    }
+  }
+
+  Future<void> _maybeMigrateLegacyInducementsToServer(Match match) async {
+    if (_isQM || !mounted) return;
+    final hasServerInducements = match.homeInducementPurchases.isNotEmpty ||
+        match.awayInducementPurchases.isNotEmpty ||
+        match.homeInducementUses.isNotEmpty ||
+        match.awayInducementUses.isNotEmpty;
+    final hasLocalInducements = _homeInducementPurchases.isNotEmpty ||
+        _awayInducementPurchases.isNotEmpty ||
+        _homeInducementUses.isNotEmpty ||
+        _awayInducementUses.isNotEmpty;
+    if (hasServerInducements || !hasLocalInducements) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    final migratedKey = '$_inducementStoragePrefix:serverMigrated';
+    if (prefs.getBool(migratedKey) == true) return;
+
+    await _updateState(
+      homeInducementPurchases: Map<String, int>.from(_homeInducementPurchases),
+      awayInducementPurchases: Map<String, int>.from(_awayInducementPurchases),
+      homeInducementUses: Map<String, int>.from(_homeInducementUses),
+      awayInducementUses: Map<String, int>.from(_awayInducementUses),
+    );
+    await prefs.setBool(migratedKey, true);
+  }
+
+  Future<void> _persistInducementBudgetState() async {
+    if (_isQM) return;
+    final prefs = await SharedPreferences.getInstance();
+    final prefix = _inducementStoragePrefix;
+    await prefs.setInt('$prefix:homeSpent', _homeInducementSpent);
+    await prefs.setInt('$prefix:awaySpent', _awayInducementSpent);
+    await prefs.setStringList(
+      '$prefix:homePurchases',
+      _encodeInducementPurchases(_homeInducementPurchases),
+    );
+    await prefs.setStringList(
+      '$prefix:awayPurchases',
+      _encodeInducementPurchases(_awayInducementPurchases),
+    );
+    await prefs.setStringList(
+      '$prefix:homeUses',
+      _encodeInducementPurchases(_homeInducementUses),
+    );
+    await prefs.setStringList(
+      '$prefix:awayUses',
+      _encodeInducementPurchases(_awayInducementUses),
+    );
+    await prefs.setInt('$prefix:homeRerollAdjustment', _homeRerollAdjustment);
+    await prefs.setInt('$prefix:awayRerollAdjustment', _awayRerollAdjustment);
+    final homeBaseline = _homeInducementTreasuryBaseline;
+    final awayBaseline = _awayInducementTreasuryBaseline;
+    if (homeBaseline != null) {
+      await prefs.setInt('$prefix:homeTreasuryBaseline', homeBaseline);
+    }
+    if (awayBaseline != null) {
+      await prefs.setInt('$prefix:awayTreasuryBaseline', awayBaseline);
+    }
+  }
+
+  List<String> _encodeInducementPurchases(Map<String, int> purchases) {
+    return purchases.entries
+        .where((entry) => entry.value > 0)
+        .map((entry) => '${entry.key}=${entry.value}')
+        .toList();
+  }
+
+  Map<String, int> _decodeInducementPurchases(List<String>? encoded) {
+    final purchases = <String, int>{};
+    for (final entry in encoded ?? const <String>[]) {
+      final separator = entry.lastIndexOf('=');
+      if (separator <= 0 || separator == entry.length - 1) continue;
+      final key = entry.substring(0, separator);
+      final value = int.tryParse(entry.substring(separator + 1)) ?? 0;
+      if (value > 0) purchases[key] = value;
+    }
+    return purchases;
   }
 
   // Ã¢â€â‚¬Ã¢â€â‚¬ Actions Ã¢â€â‚¬Ã¢â€â‚¬
@@ -395,6 +716,12 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
     List<String>? awaySquad,
     int? rerollsUsedHome,
     int? rerollsUsedAway,
+    Map<String, int>? homeInducementPurchases,
+    Map<String, int>? awayInducementPurchases,
+    Map<String, int>? homeInducementUses,
+    Map<String, int>? awayInducementUses,
+    Map<String, List<String>>? homeInducementDetails,
+    Map<String, List<String>>? awayInducementDetails,
     String? mvpHome,
     String? mvpAway,
     int? gate,
@@ -443,6 +770,12 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
           awaySquad: awaySquad,
           rerollsUsedHome: rerollsUsedHome,
           rerollsUsedAway: rerollsUsedAway,
+          homeInducementPurchases: homeInducementPurchases,
+          awayInducementPurchases: awayInducementPurchases,
+          homeInducementUses: homeInducementUses,
+          awayInducementUses: awayInducementUses,
+          homeInducementDetails: homeInducementDetails,
+          awayInducementDetails: awayInducementDetails,
           mvpHome: mvpHome,
           mvpAway: mvpAway,
           gate: gate,
@@ -511,6 +844,7 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
     String? detail,
     required int half,
     required int turn,
+    bool showSnack = true,
   }) async {
     try {
       if (_isQM) {
@@ -546,7 +880,7 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
         );
       }
       _refresh();
-      if (mounted) {
+      if (mounted && showSnack) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('${type.toUpperCase()} recorded'),
@@ -614,6 +948,7 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
       });
     }
     final displayMatch = _preMatchViewMatch(match);
+    _syncInducementsFromMatch(displayMatch);
 
     if (displayMatch.isInProgress && displayMatch.startedAt != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {

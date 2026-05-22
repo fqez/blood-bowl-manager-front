@@ -169,8 +169,9 @@ class _AppShellState extends ConsumerState<AppShell> {
   }
 
   int _resolveSelectedIndex(String location) {
-    if (location.startsWith('/quick-match'))
+    if (location.startsWith('/quick-match')) {
       return AppShellNavIndexes.quickMatch;
+    }
     if (location.startsWith('/debug/league-aftermatch')) {
       return AppShellNavIndexes.debugPostMatch;
     }
@@ -182,16 +183,21 @@ class _AppShellState extends ConsumerState<AppShell> {
     if (location.startsWith('/wiki/achievements')) {
       return AppShellNavIndexes.wikiAchievements;
     }
-    if (location.startsWith('/wiki/passing'))
+    if (location.startsWith('/wiki/passing')) {
       return AppShellNavIndexes.wikiPassing;
-    if (location.startsWith('/wiki/blocking'))
+    }
+    if (location.startsWith('/wiki/blocking')) {
       return AppShellNavIndexes.wikiBlocking;
-    if (location.startsWith('/wiki/injuries'))
+    }
+    if (location.startsWith('/wiki/injuries')) {
       return AppShellNavIndexes.wikiInjuries;
-    if (location.startsWith('/wiki/star-players'))
+    }
+    if (location.startsWith('/wiki/star-players')) {
       return AppShellNavIndexes.wikiStars;
-    if (location.startsWith('/wiki/weather'))
+    }
+    if (location.startsWith('/wiki/weather')) {
       return AppShellNavIndexes.wikiWeather;
+    }
     if (location.startsWith('/wiki')) return AppShellNavIndexes.wikiSkills;
     if (location.startsWith('/leagues')) return AppShellNavIndexes.myLeagues;
     if (location.startsWith('/dashboard')) return AppShellNavIndexes.myLeagues;
@@ -201,8 +207,9 @@ class _AppShellState extends ConsumerState<AppShell> {
     if (location.contains('/aftermatch')) return AppShellNavIndexes.postMatch;
     if (location.contains('/team/')) return AppShellNavIndexes.roster;
     if (location.contains('/league/')) return AppShellNavIndexes.leagueView;
-    if (location.startsWith('/create-team'))
+    if (location.startsWith('/create-team')) {
       return AppShellNavIndexes.createTeam;
+    }
     return AppShellNavIndexes.myLeagues;
   }
 

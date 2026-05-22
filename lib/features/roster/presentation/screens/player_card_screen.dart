@@ -98,13 +98,13 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
               width: 32,
               height: 32,
               decoration: BoxDecoration(
-                color: AppColors.accent.withOpacity(0.2),
+                color: AppColors.accent.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Center(
                 child: Text(
                   '#${player.number}',
-                  style: TextStyle(
+                  style: const TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
                       color: AppColors.accent),
@@ -114,7 +114,8 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
             const SizedBox(width: 12),
             Expanded(
               child: Text(tr(lang, 'player.editPlayer'),
-                  style: TextStyle(color: AppColors.textPrimary, fontSize: 18)),
+                  style: const TextStyle(
+                      color: AppColors.textPrimary, fontSize: 18)),
             ),
           ],
         ),
@@ -125,10 +126,10 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
             children: [
               TextFormField(
                 controller: nameController,
-                style: TextStyle(color: AppColors.textPrimary),
+                style: const TextStyle(color: AppColors.textPrimary),
                 decoration: InputDecoration(
                   labelText: tr(lang, 'player.name'),
-                  labelStyle: TextStyle(color: AppColors.textMuted),
+                  labelStyle: const TextStyle(color: AppColors.textMuted),
                   filled: true,
                   fillColor: AppColors.background,
                   border: OutlineInputBorder(
@@ -146,11 +147,11 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
               const SizedBox(height: 16),
               TextFormField(
                 controller: numberController,
-                style: TextStyle(color: AppColors.textPrimary),
+                style: const TextStyle(color: AppColors.textPrimary),
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
                   labelText: tr(lang, 'player.number'),
-                  labelStyle: TextStyle(color: AppColors.textMuted),
+                  labelStyle: const TextStyle(color: AppColors.textMuted),
                   filled: true,
                   fillColor: AppColors.background,
                   border: OutlineInputBorder(
@@ -161,11 +162,13 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                       color: AppColors.textMuted),
                 ),
                 validator: (v) {
-                  if (v == null || v.trim().isEmpty)
+                  if (v == null || v.trim().isEmpty) {
                     return tr(lang, 'player.numberRequired');
+                  }
                   final n = int.tryParse(v);
-                  if (n == null || n < 1 || n > 99)
+                  if (n == null || n < 1 || n > 99) {
                     return tr(lang, 'player.numberRange');
+                  }
                   return null;
                 },
               ),
@@ -176,7 +179,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
             child: Text(tr(lang, 'common.cancel'),
-                style: TextStyle(color: AppColors.textMuted)),
+                style: const TextStyle(color: AppColors.textMuted)),
           ),
           ElevatedButton(
             onPressed: () {
@@ -190,7 +193,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
         ],
       ),
     );
-    if (!mounted) return;
+    if (!context.mounted) return;
 
     if (confirmed != true) return;
 
@@ -209,19 +212,17 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
             name: nameChanged ? newName : null,
             number: numberChanged ? newNumber : null,
           );
-      if (!mounted) return;
+      if (!context.mounted) return;
       _refresh();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(trf(lang, 'player.updated',
-                {'name': newName, 'number': '${newNumber ?? player.number}'})),
-            backgroundColor: AppColors.success,
-          ),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(trf(lang, 'player.updated',
+              {'name': newName, 'number': '${newNumber ?? player.number}'})),
+          backgroundColor: AppColors.success,
+        ),
+      );
     } catch (e) {
-      if (mounted) {
+      if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
               content: Text(trf(lang, 'common.error', {'e': '$e'})),
@@ -348,12 +349,12 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
               height: dialogHeight,
               child: Container(
                 decoration: BoxDecoration(
-                  color: AppColors.surface.withOpacity(0.96),
+                  color: AppColors.surface.withValues(alpha: 0.96),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: AppColors.primary, width: 2),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.55),
+                      color: Colors.black.withValues(alpha: 0.55),
                       blurRadius: 34,
                       offset: const Offset(0, 18),
                     ),
@@ -378,7 +379,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Text('ADQUIRIR MEJORA',
+                                const Text('ADQUIRIR MEJORA',
                                     style: TextStyle(
                                       color: AppColors.accentLight,
                                       fontSize: 11,
@@ -415,7 +416,8 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                           SizedBox(
                             width: 330,
                             child: Container(
-                              color: AppColors.background.withOpacity(0.55),
+                              color:
+                                  AppColors.background.withValues(alpha: 0.55),
                               padding: const EdgeInsets.all(14),
                               child: ListView(
                                 padding: EdgeInsets.zero,
@@ -543,9 +545,9 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                                   padding:
                                       const EdgeInsets.fromLTRB(18, 14, 18, 12),
                                   decoration: BoxDecoration(
-                                    color:
-                                        AppColors.background.withOpacity(0.5),
-                                    border: Border(
+                                    color: AppColors.background
+                                        .withValues(alpha: 0.5),
+                                    border: const Border(
                                       bottom: BorderSide(
                                           color: AppColors.surfaceLight),
                                     ),
@@ -797,7 +799,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
         },
       ),
     );
-    if (!mounted || selectedChoice == null) return;
+    if (!context.mounted || selectedChoice == null) return;
 
     final selectedPerk = selectedChoice.perk;
     final perkId = selectedPerk == null ? null : perkIdFromJson(selectedPerk);
@@ -813,7 +815,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
             characteristic: selectedChoice.characteristic,
             characteristicRoll: selectedChoice.characteristicRoll,
           );
-      if (!mounted) return;
+      if (!context.mounted) return;
       _refresh();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -824,7 +826,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
             backgroundColor: AppColors.success),
       );
     } catch (e) {
-      if (mounted) {
+      if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
               content: Text(trf(lang, 'common.error', {'e': '$e'})),
@@ -836,31 +838,9 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
     }
   }
 
-  Widget _levelDialogTab(String label, bool selected) {
-    return Container(
-      height: 34,
-      padding: const EdgeInsets.symmetric(horizontal: 18),
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: selected ? AppColors.primary : AppColors.card,
-        border: Border.all(
-          color: selected ? AppColors.primaryLight : AppColors.surfaceLight,
-        ),
-      ),
-      child: Text(label,
-          style: TextStyle(
-            fontFamily: AppTypography.displayFontFamily,
-            color: AppColors.textPrimary,
-            fontSize: 17,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 0.5,
-          )),
-    );
-  }
-
   Widget _dialogSectionLabel(String label) {
     return Text(label,
-        style: TextStyle(
+        style: const TextStyle(
           color: AppColors.textMuted,
           fontSize: 10,
           fontWeight: FontWeight.w900,
@@ -872,9 +852,9 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.16),
+        color: color.withValues(alpha: 0.16),
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.withOpacity(0.45)),
+        border: Border.all(color: color.withValues(alpha: 0.45)),
       ),
       child: Text(label,
           style: TextStyle(
@@ -914,7 +894,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 8),
           decoration: BoxDecoration(
-            color: selected ? color.withOpacity(0.15) : AppColors.card,
+            color: selected ? color.withValues(alpha: 0.15) : AppColors.card,
             borderRadius: BorderRadius.circular(6),
             border: Border.all(color: borderColor, width: selected ? 2 : 1),
           ),
@@ -924,7 +904,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                 width: 30,
                 height: 30,
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.18),
+                  color: color.withValues(alpha: 0.18),
                   borderRadius: BorderRadius.circular(5),
                 ),
                 child: Icon(icon, color: color, size: 16),
@@ -973,7 +953,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(PhosphorIcons.lock(PhosphorIconsStyle.fill),
-              size: 34, color: AppColors.textMuted.withOpacity(0.55)),
+              size: 34, color: AppColors.textMuted.withValues(alpha: 0.55)),
           const SizedBox(height: 10),
           Text(message,
               textAlign: TextAlign.center,
@@ -1005,7 +985,8 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
             decoration: BoxDecoration(
               color: AppColors.card,
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppColors.warning.withOpacity(0.45)),
+              border:
+                  Border.all(color: AppColors.warning.withValues(alpha: 0.45)),
             ),
             child: Row(
               children: [
@@ -1106,7 +1087,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                 label: Text('$roll'),
                 selected: selected,
                 onSelected: enabled ? (_) => onRollSelected(roll) : null,
-                selectedColor: AppColors.primary.withOpacity(0.35),
+                selectedColor: AppColors.primary.withValues(alpha: 0.35),
                 backgroundColor: AppColors.card,
                 disabledColor: AppColors.surfaceLight,
                 labelStyle: TextStyle(
@@ -1144,7 +1125,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
             width: double.infinity,
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: AppColors.background.withOpacity(0.5),
+              color: AppColors.background.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: AppColors.surfaceLight),
             ),
@@ -1198,8 +1179,9 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
           width: 88,
           padding: const EdgeInsets.symmetric(vertical: 14),
           decoration: BoxDecoration(
-            color:
-                selected ? AppColors.primary.withOpacity(0.25) : AppColors.card,
+            color: selected
+                ? AppColors.primary.withValues(alpha: 0.25)
+                : AppColors.card,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
               color: selected ? AppColors.primaryLight : AppColors.surfaceLight,
@@ -1214,67 +1196,6 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                 fontSize: 24,
                 fontWeight: FontWeight.w900,
               )),
-        ),
-      ),
-    );
-  }
-
-  Widget _skillCategoryRow({
-    required _SkillCategoryAccess row,
-    required bool selected,
-    required VoidCallback? onTap,
-    String? trailing,
-  }) {
-    final enabled = row.enabled && onTap != null;
-    final color = _familyColor(row.family);
-    final accessText = trailing ?? row.access ?? '—';
-
-    return Opacity(
-      opacity: enabled ? 1 : 0.48,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(4),
-        child: Container(
-          height: 38,
-          decoration: BoxDecoration(
-            color: selected ? color.withOpacity(0.2) : AppColors.card,
-            border: Border.all(
-              color: selected ? color : AppColors.surfaceLight,
-              width: selected ? 2 : 1,
-            ),
-          ),
-          child: Row(
-            children: [
-              Container(width: 5, color: enabled ? color : AppColors.textMuted),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  child: Text(row.label.toUpperCase(),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontFamily: AppTypography.displayFontFamily,
-                        color: AppColors.textPrimary,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w900,
-                      )),
-                ),
-              ),
-              Container(
-                width: 96,
-                height: double.infinity,
-                alignment: Alignment.center,
-                color: enabled ? color.withOpacity(0.18) : AppColors.background,
-                child: Text(accessText,
-                    style: TextStyle(
-                      color:
-                          enabled ? AppColors.textPrimary : AppColors.textMuted,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w900,
-                    )),
-              ),
-            ],
-          ),
         ),
       ),
     );
@@ -1299,7 +1220,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
           height: 48,
           padding: const EdgeInsets.symmetric(horizontal: 9),
           decoration: BoxDecoration(
-            color: selected ? color.withOpacity(0.18) : AppColors.card,
+            color: selected ? color.withValues(alpha: 0.18) : AppColors.card,
             borderRadius: BorderRadius.circular(6),
             border: Border.all(
               color: selected ? color : AppColors.surfaceLight,
@@ -1312,7 +1233,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                 width: 24,
                 height: 24,
                 decoration: BoxDecoration(
-                  color: color.withOpacity(enabled ? 0.18 : 0.08),
+                  color: color.withValues(alpha: enabled ? 0.18 : 0.08),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 alignment: Alignment.center,
@@ -1376,7 +1297,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
             color: AppColors.card,
             borderRadius: BorderRadius.circular(6),
             border: Border.all(
-              color: isOwned ? AppColors.success.withOpacity(0.6) : color,
+              color: isOwned ? AppColors.success.withValues(alpha: 0.6) : color,
               width: 1.5,
             ),
           ),
@@ -1386,9 +1307,9 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                 width: 58,
                 height: double.infinity,
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.16),
-                  border:
-                      Border(right: BorderSide(color: color.withOpacity(0.45))),
+                  color: color.withValues(alpha: 0.16),
+                  border: Border(
+                      right: BorderSide(color: color.withValues(alpha: 0.45))),
                 ),
                 child: Padding(
                   padding: const EdgeInsets.all(6),
@@ -1441,16 +1362,16 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surface,
-        title: Text('D8 CHARACTERISTIC ROLL',
+        title: const Text('D8 CHARACTERISTIC ROLL',
             style: TextStyle(color: AppColors.textPrimary)),
         content: TextField(
           controller: controller,
           autofocus: true,
           keyboardType: TextInputType.number,
-          style: TextStyle(color: AppColors.textPrimary),
+          style: const TextStyle(color: AppColors.textPrimary),
           decoration: InputDecoration(
             labelText: 'Roll for +1 $stat',
-            labelStyle: TextStyle(color: AppColors.textMuted),
+            labelStyle: const TextStyle(color: AppColors.textMuted),
             filled: true,
             fillColor: AppColors.background,
           ),
@@ -1478,7 +1399,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
             characteristic: stat,
             characteristicRoll: roll,
           );
-      if (!mounted) return;
+      if (!context.mounted) return;
       _refresh();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -1486,7 +1407,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
             backgroundColor: AppColors.success),
       );
     } catch (e) {
-      if (mounted) {
+      if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
               content: Text(trf(lang, 'common.error', {'e': '$e'})),
@@ -1755,7 +1676,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, _) => Center(
             child: Text(trf(lang, 'common.error', {'e': '$err'}),
-                style: TextStyle(color: AppColors.error))),
+                style: const TextStyle(color: AppColors.error))),
         data: (team) {
           final isOwner =
               currentUserId != null && team.ownerId == currentUserId;
@@ -1898,17 +1819,17 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            AppColors.primary.withOpacity(0.58),
-            AppColors.error.withOpacity(0.24),
+            AppColors.primary.withValues(alpha: 0.58),
+            AppColors.error.withValues(alpha: 0.24),
             AppColors.surface,
           ],
           stops: const [0, 0.42, 1],
         ),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.primary.withOpacity(0.52)),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.52)),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withOpacity(0.18),
+            color: AppColors.primary.withValues(alpha: 0.18),
             blurRadius: 28,
             offset: const Offset(0, 16),
           ),
@@ -1930,17 +1851,17 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    AppColors.error.withOpacity(0.72),
-                    AppColors.primary.withOpacity(0.42),
-                    AppColors.accent.withOpacity(0.18),
+                    AppColors.error.withValues(alpha: 0.72),
+                    AppColors.primary.withValues(alpha: 0.42),
+                    AppColors.accent.withValues(alpha: 0.18),
                   ],
                 ),
                 borderRadius: BorderRadius.circular(18),
                 border: Border.all(
-                    color: AppColors.accent.withOpacity(0.55), width: 2),
+                    color: AppColors.accent.withValues(alpha: 0.55), width: 2),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.error.withOpacity(0.3),
+                    color: AppColors.error.withValues(alpha: 0.3),
                     blurRadius: 24,
                     offset: const Offset(0, 12),
                   ),
@@ -1958,7 +1879,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                         fontFamily: AppTypography.displayFontFamily,
                         fontSize: 152,
                         fontWeight: FontWeight.w900,
-                        color: Colors.white.withOpacity(0.08),
+                        color: Colors.white.withValues(alpha: 0.08),
                         height: 1,
                       ),
                     ),
@@ -1985,7 +1906,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                             letterSpacing: -2,
                             shadows: [
                               Shadow(
-                                color: AppColors.primary.withOpacity(0.8),
+                                color: AppColors.primary.withValues(alpha: 0.8),
                                 blurRadius: 20,
                               ),
                             ],
@@ -2031,10 +1952,10 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: AppColors.warning.withOpacity(0.2),
+                          color: AppColors.warning.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                              color: AppColors.warning.withOpacity(0.5)),
+                              color: AppColors.warning.withValues(alpha: 0.5)),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -2046,7 +1967,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                                 color: AppColors.warning),
                             const SizedBox(width: 4),
                             Text(tr(lang, 'team.levelUp'),
-                                style: TextStyle(
+                                style: const TextStyle(
                                     fontSize: 10,
                                     fontWeight: FontWeight.bold,
                                     color: AppColors.warning,
@@ -2126,7 +2047,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 14, color: color.withOpacity(0.7)),
+        Icon(icon, size: 14, color: color.withValues(alpha: 0.7)),
         const SizedBox(width: 6),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -2216,7 +2137,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
   Widget _buildAttributesAndSkillsCard(BuildContext context, Character player,
       bool isOwner, String lang, Set<String>? startingSkillKeys) {
     final s = player.stats;
-    const canEdit = false;
+    final canEdit = isOwner;
 
     return _card(
       child: Column(
@@ -2274,7 +2195,8 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
             );
           }),
           const SizedBox(height: 22),
-          Divider(color: AppColors.surfaceLight.withOpacity(0.7), height: 1),
+          Divider(
+              color: AppColors.surfaceLight.withValues(alpha: 0.7), height: 1),
           const SizedBox(height: 18),
           _buildSkillsPanel(context, player, isOwner, lang, startingSkillKeys),
         ],
@@ -2303,7 +2225,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
             decoration: BoxDecoration(
-              color: AppColors.background.withOpacity(0.45),
+              color: AppColors.background.withValues(alpha: 0.45),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: AppColors.surfaceLight),
             ),
@@ -2393,20 +2315,21 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 24),
             decoration: BoxDecoration(
-              color: AppColors.background.withOpacity(0.5),
+              color: AppColors.background.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: AppColors.surfaceLight),
             ),
             child: Column(
               children: [
                 Icon(PhosphorIcons.lightning(PhosphorIconsStyle.regular),
-                    size: 32, color: AppColors.textMuted.withOpacity(0.3)),
+                    size: 32,
+                    color: AppColors.textMuted.withValues(alpha: 0.3)),
                 const SizedBox(height: 8),
                 Text(tr(lang, 'player.noSkills'),
                     style: TextStyle(
                       fontFamily: AppTypography.displayFontFamily,
                       fontSize: 16,
-                      color: AppColors.textMuted.withOpacity(0.5),
+                      color: AppColors.textMuted.withValues(alpha: 0.5),
                     )),
                 const SizedBox(height: 4),
                 Text(
@@ -2415,7 +2338,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                       : tr(lang, 'player.noSkillsYet'),
                   style: TextStyle(
                       fontSize: 11,
-                      color: AppColors.textMuted.withOpacity(0.4)),
+                      color: AppColors.textMuted.withValues(alpha: 0.4)),
                 ),
               ],
             ),
@@ -2442,9 +2365,10 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 14, vertical: 8),
                       decoration: BoxDecoration(
-                        color: color.withOpacity(0.18),
+                        color: color.withValues(alpha: 0.18),
                         borderRadius: BorderRadius.circular(999),
-                        border: Border.all(color: color.withOpacity(0.58)),
+                        border:
+                            Border.all(color: color.withValues(alpha: 0.58)),
                       ),
                       child: Text(
                         displayName,
@@ -2498,7 +2422,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
     final remaining = isMax ? 0 : next - player.spp;
 
     return _card(
-      borderColor: canLevel ? AppColors.warning.withOpacity(0.5) : null,
+      borderColor: canLevel ? AppColors.warning.withValues(alpha: 0.5) : null,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -2523,7 +2447,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                         letterSpacing: 0.5,
                       )),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.warning.withOpacity(0.18),
+                    backgroundColor: AppColors.warning.withValues(alpha: 0.18),
                     disabledBackgroundColor: AppColors.surfaceLight,
                     foregroundColor: AppColors.warning,
                     disabledForegroundColor: AppColors.textMuted,
@@ -2534,7 +2458,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                       borderRadius: BorderRadius.circular(6),
                       side: BorderSide(
                         color: canBuySkill
-                            ? AppColors.warning.withOpacity(0.45)
+                            ? AppColors.warning.withValues(alpha: 0.45)
                             : AppColors.surfaceLight,
                       ),
                     ),
@@ -2542,7 +2466,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                 )
               else
                 Icon(PhosphorIcons.arrowFatLinesUp(PhosphorIconsStyle.fill),
-                    size: 20, color: AppColors.accent.withOpacity(0.5)),
+                    size: 20, color: AppColors.accent.withValues(alpha: 0.5)),
             ],
           ),
           const SizedBox(height: 22),
@@ -2608,7 +2532,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
       return Container(
         height: 18,
         decoration: BoxDecoration(
-          color: AppColors.background.withOpacity(0.7),
+          color: AppColors.background.withValues(alpha: 0.7),
           borderRadius: BorderRadius.circular(999),
           border: Border.all(color: AppColors.surfaceLight),
         ),
@@ -2618,7 +2542,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
               widthFactor: value,
               child: Container(
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.82),
+                  color: color.withValues(alpha: 0.82),
                   borderRadius: BorderRadius.circular(999),
                 ),
               ),
@@ -2648,12 +2572,12 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: isCurrent
-            ? AppColors.accent.withOpacity(0.15)
+            ? AppColors.accent.withValues(alpha: 0.15)
             : AppColors.surfaceLight,
         borderRadius: BorderRadius.circular(4),
         border: Border.all(
           color: isCurrent
-              ? AppColors.accent.withOpacity(0.4)
+              ? AppColors.accent.withValues(alpha: 0.4)
               : AppColors.surfaceLight,
         ),
       ),
@@ -2687,7 +2611,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
     ];
 
     return _card(
-      borderColor: AppColors.accent.withOpacity(0.28),
+      borderColor: AppColors.accent.withValues(alpha: 0.28),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -2731,7 +2655,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: AppColors.background.withOpacity(0.42),
+          color: AppColors.background.withValues(alpha: 0.42),
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: AppColors.surfaceLight),
         ),
@@ -2774,7 +2698,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
       height: 170,
       padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
       decoration: BoxDecoration(
-        color: AppColors.background.withOpacity(0.38),
+        color: AppColors.background.withValues(alpha: 0.38),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: AppColors.surfaceLight),
       ),
@@ -2806,7 +2730,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                         widthFactor: 1,
                         child: Container(
                           decoration: BoxDecoration(
-                            color: AppColors.accent.withOpacity(0.72),
+                            color: AppColors.accent.withValues(alpha: 0.72),
                             borderRadius: BorderRadius.circular(6),
                           ),
                         ),
@@ -2837,8 +2761,9 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
       child: LinearProgressIndicator(
         value: progress,
         minHeight: 7,
-        backgroundColor: AppColors.surfaceLight.withOpacity(0.7),
-        valueColor: AlwaysStoppedAnimation(AppColors.accent.withOpacity(0.75)),
+        backgroundColor: AppColors.surfaceLight.withValues(alpha: 0.7),
+        valueColor:
+            AlwaysStoppedAnimation(AppColors.accent.withValues(alpha: 0.75)),
       ),
     );
   }
@@ -2858,7 +2783,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
         border: Border.all(color: borderColor ?? AppColors.surfaceLight),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.16),
+            color: Colors.black.withValues(alpha: 0.16),
             blurRadius: 18,
             offset: const Offset(0, 10),
           ),
@@ -2905,9 +2830,9 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.2),
+        color: color.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: color.withOpacity(0.5)),
+        border: Border.all(color: color.withValues(alpha: 0.5)),
       ),
       child: Text(
         label,
@@ -2925,9 +2850,9 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: AppColors.info.withOpacity(0.2),
+        color: AppColors.info.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: AppColors.info.withOpacity(0.5)),
+        border: Border.all(color: AppColors.info.withValues(alpha: 0.5)),
       ),
       child: Text(
         position.toUpperCase(),

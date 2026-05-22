@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
@@ -19,11 +22,179 @@ final myTacticsProvider =
   return repo.getMyTactics();
 });
 
-class MyTacticsScreen extends ConsumerWidget {
+class MyTacticsScreen extends ConsumerStatefulWidget {
   const MyTacticsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MyTacticsScreen> createState() => _MyTacticsScreenState();
+}
+
+class _MyTacticsScreenState extends ConsumerState<MyTacticsScreen> {
+  String? _selectedRosterId;
+
+  Map<String, dynamic> _exportableTactic(Map<String, dynamic> tactic) {
+    return {
+      'name': tactic['name'] ?? 'Tactica importada',
+      'base_roster_id': tactic['base_roster_id'],
+      'mode': tactic['mode'] ?? 'attack',
+      'placements': tactic['placements'] ?? const [],
+      'good_against': tactic['good_against'] ?? const [],
+      'notes': tactic['notes'] ?? '',
+    };
+  }
+
+  Future<void> _exportTactics(
+    List<Map<String, dynamic>> tactics,
+    String lang,
+  ) async {
+    if (tactics.isEmpty) return;
+    try {
+      final repo = ref.read(teamRepositoryProvider);
+      final details = await Future.wait(tactics.map((tactic) async {
+        final id = tactic['id'] as String?;
+        return id == null ? tactic : await repo.getTactic(id);
+      }));
+      final payload = {
+        'bbm_tactics_export': 1,
+        'exported_at': DateTime.now().toUtc().toIso8601String(),
+        'tactics': details.map(_exportableTactic).toList(),
+      };
+      const encoder = JsonEncoder.withIndent('  ');
+      await Clipboard.setData(ClipboardData(text: encoder.convert(payload)));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${details.length} táctica(s) copiadas como JSON'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(trf(lang, 'common.error', {'e': '$e'})),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
+  }
+
+  Future<void> _showImportDialog(String lang) async {
+    final controller = TextEditingController();
+    final jsonText = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: const Text('Importar tácticas',
+            style: TextStyle(color: AppColors.textPrimary)),
+        content: SizedBox(
+          width: 560,
+          child: TextField(
+            controller: controller,
+            minLines: 8,
+            maxLines: 14,
+            style: const TextStyle(
+              color: AppColors.textPrimary,
+              fontFamily: 'monospace',
+              fontSize: 12,
+            ),
+            decoration: const InputDecoration(
+              hintText: 'Pega aquí el JSON exportado',
+              hintStyle: TextStyle(color: AppColors.textMuted),
+              filled: true,
+              fillColor: AppColors.background,
+              border: OutlineInputBorder(),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(tr(lang, 'common.cancel'),
+                style: const TextStyle(color: AppColors.textMuted)),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, controller.text),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.accent),
+            child: const Text('Importar'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (jsonText == null || jsonText.trim().isEmpty) return;
+
+    try {
+      final decoded = jsonDecode(jsonText);
+      final tactics = _readImportedTactics(decoded);
+      if (tactics.isEmpty) throw const FormatException('JSON sin tácticas');
+      final repo = ref.read(teamRepositoryProvider);
+      for (final tactic in tactics) {
+        await repo.createTactic(tactic);
+      }
+      ref.invalidate(myTacticsProvider);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${tactics.length} táctica(s) importadas'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(trf(lang, 'common.error', {'e': '$e'})),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
+  }
+
+  List<Map<String, dynamic>> _readImportedTactics(Object? decoded) {
+    final rawTactics = decoded is Map<String, dynamic>
+        ? decoded['tactics'] ?? decoded
+        : decoded;
+    final list = rawTactics is List ? rawTactics : [rawTactics];
+    return list
+        .whereType<Map>()
+        .map((raw) => _normalizeImportedTactic(raw.cast<String, dynamic>()))
+        .toList();
+  }
+
+  Map<String, dynamic> _normalizeImportedTactic(Map<String, dynamic> raw) {
+    final rosterId = raw['base_roster_id'];
+    if (rosterId is! String || rosterId.isEmpty) {
+      throw const FormatException('Falta base_roster_id');
+    }
+    final placements = (raw['placements'] as List? ?? const [])
+        .whereType<Map>()
+        .map((placement) {
+      final data = placement.cast<String, dynamic>();
+      final row = data['row'];
+      final col = data['col'];
+      final positionId = data['position_id'];
+      if (row is! int || col is! int || positionId is! String) {
+        throw const FormatException('Placement inválido');
+      }
+      return {'row': row, 'col': col, 'position_id': positionId};
+    }).toList();
+    return {
+      'name': (raw['name'] as String?)?.trim().isNotEmpty == true
+          ? (raw['name'] as String).trim()
+          : 'Táctica importada',
+      'base_roster_id': rosterId,
+      'mode': raw['mode'] == 'defense' ? 'defense' : 'attack',
+      'placements': placements,
+      'good_against': (raw['good_against'] as List? ?? const [])
+          .whereType<String>()
+          .toList(),
+      'notes': raw['notes'] as String? ?? '',
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final lang = ref.watch(localeProvider);
     final tacticsAsync = ref.watch(myTacticsProvider);
     final rostersAsync = ref.watch(baseRostersProvider);
@@ -66,30 +237,58 @@ class MyTacticsScreen extends ConsumerWidget {
                         return _buildEmptyState(context, lang);
                       }
 
-                      // Build a map of roster names for display
-                      final rosterMap = <String, BaseTeam>{};
-                      rostersAsync.whenData((teams) {
-                        for (final t in teams) {
-                          rosterMap[t.id] = t;
-                        }
-                      });
+                      final rosterMap = {
+                        for (final team
+                            in rostersAsync.valueOrNull ?? const <BaseTeam>[])
+                          team.id: team,
+                      };
+                      final filteredTactics = _selectedRosterId == null
+                          ? tactics
+                          : tactics
+                              .where((tactic) =>
+                                  tactic['base_roster_id'] == _selectedRosterId)
+                              .toList();
 
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            '${tactics.length} TÁCTICAS GUARDADAS',
-                            style: TextStyle(
-                              fontFamily: AppTypography.displayFontFamily,
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.textMuted,
-                              letterSpacing: 0.8,
-                            ),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              Text(
+                                '${filteredTactics.length} TÁCTICAS GUARDADAS',
+                                style: TextStyle(
+                                  fontFamily: AppTypography.displayFontFamily,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textMuted,
+                                  letterSpacing: 0.8,
+                                ),
+                              ),
+                              OutlinedButton.icon(
+                                onPressed: () => _showImportDialog(lang),
+                                icon: const Icon(Icons.upload_file, size: 16),
+                                label: const Text('Importar'),
+                              ),
+                              OutlinedButton.icon(
+                                onPressed: filteredTactics.isEmpty
+                                    ? null
+                                    : () => _exportTactics(
+                                          filteredTactics,
+                                          lang,
+                                        ),
+                                icon: const Icon(Icons.file_download, size: 16),
+                                label: const Text('Exportar'),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 12),
-                          _buildTacticsGrid(
-                              context, ref, tactics, rosterMap, lang),
+                          _buildTeamFilter(tactics, rosterMap, lang),
+                          const SizedBox(height: 18),
+                          _buildGroupedTactics(
+                              context, ref, filteredTactics, rosterMap, lang),
                         ],
                       );
                     },
@@ -100,6 +299,152 @@ class MyTacticsScreen extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildTeamFilter(List<Map<String, dynamic>> tactics,
+      Map<String, BaseTeam> rosterMap, String lang) {
+    final rosterIds = tactics
+        .map((tactic) => tactic['base_roster_id'] as String? ?? '')
+        .where((id) => id.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort((a, b) =>
+          _rosterName(a, rosterMap).compareTo(_rosterName(b, rosterMap)));
+
+    if (rosterIds.length <= 1) return const SizedBox.shrink();
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        ChoiceChip(
+          label: const Text('Todos'),
+          selected: _selectedRosterId == null,
+          onSelected: (_) => setState(() => _selectedRosterId = null),
+          selectedColor: AppColors.primary.withOpacity(0.25),
+          backgroundColor: AppColors.card,
+          labelStyle: TextStyle(
+            color: _selectedRosterId == null
+                ? AppColors.textPrimary
+                : AppColors.textSecondary,
+            fontWeight: FontWeight.w700,
+          ),
+          side: BorderSide(
+            color: _selectedRosterId == null
+                ? AppColors.primary
+                : AppColors.surfaceLight,
+          ),
+        ),
+        ...rosterIds.map((rosterId) {
+          final selected = _selectedRosterId == rosterId;
+          return ChoiceChip(
+            avatar: _buildRosterLogo(rosterId, size: 20),
+            label: Text(_rosterName(rosterId, rosterMap)),
+            selected: selected,
+            onSelected: (_) => setState(() => _selectedRosterId = rosterId),
+            selectedColor: AppColors.primary.withOpacity(0.25),
+            backgroundColor: AppColors.card,
+            labelStyle: TextStyle(
+              color: selected ? AppColors.textPrimary : AppColors.textSecondary,
+              fontWeight: FontWeight.w700,
+            ),
+            side: BorderSide(
+              color: selected ? AppColors.primary : AppColors.surfaceLight,
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
+  Widget _buildGroupedTactics(
+      BuildContext context,
+      WidgetRef ref,
+      List<Map<String, dynamic>> tactics,
+      Map<String, BaseTeam> rosterMap,
+      String lang) {
+    final grouped = <String, List<Map<String, dynamic>>>{};
+    for (final tactic in tactics) {
+      final rosterId = tactic['base_roster_id'] as String? ?? '';
+      grouped.putIfAbsent(rosterId, () => []).add(tactic);
+    }
+
+    final rosterIds = grouped.keys.toList()
+      ..sort((a, b) =>
+          _rosterName(a, rosterMap).compareTo(_rosterName(b, rosterMap)));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (var index = 0; index < rosterIds.length; index++) ...[
+          _buildTeamSectionHeader(
+              rosterIds[index], grouped[rosterIds[index]]!.length, rosterMap),
+          const SizedBox(height: 10),
+          _buildTacticsGrid(
+              context, ref, grouped[rosterIds[index]]!, rosterMap, lang),
+          if (index != rosterIds.length - 1) const SizedBox(height: 24),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildTeamSectionHeader(
+      String rosterId, int count, Map<String, BaseTeam> rosterMap) {
+    return Row(
+      children: [
+        _buildRosterLogo(rosterId, size: 30),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            _rosterName(rosterId, rosterMap).toUpperCase(),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontFamily: AppTypography.displayFontFamily,
+              color: AppColors.textPrimary,
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.8,
+            ),
+          ),
+        ),
+        Text(
+          '$count',
+          style: const TextStyle(
+            color: AppColors.textMuted,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _rosterName(String rosterId, Map<String, BaseTeam> rosterMap) {
+    if (rosterId.isEmpty) return 'Sin equipo';
+    return rosterMap[rosterId]?.name ?? rosterId;
+  }
+
+  Widget _buildRosterLogo(String rosterId, {double size = 48}) {
+    return SizedBox(
+      width: size,
+      height: size,
+      child: rosterId.isNotEmpty
+          ? Image.asset(
+              'assets/teams/$rosterId/logo.webp',
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => Icon(
+                PhosphorIcons.shield(PhosphorIconsStyle.fill),
+                size: size * 0.65,
+                color: AppColors.textMuted,
+              ),
+            )
+          : Icon(
+              PhosphorIcons.shield(PhosphorIconsStyle.fill),
+              size: size * 0.65,
+              color: AppColors.textMuted,
+            ),
     );
   }
 
@@ -197,30 +542,38 @@ class MyTacticsScreen extends ConsumerWidget {
                       fontSize: 13, color: AppColors.textSecondary),
                 ),
                 const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: () => context.go('/tactics'),
-                    icon: Icon(PhosphorIcons.plus(PhosphorIconsStyle.bold),
-                        size: 16),
-                    label: Text(
-                      'NUEVA',
-                      style: TextStyle(
-                        fontFamily: AppTypography.displayFontFamily,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 0.5,
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: () => _showImportDialog(lang),
+                      icon: const Icon(Icons.upload_file, size: 16),
+                      label: const Text('IMPORTAR'),
+                    ),
+                    ElevatedButton.icon(
+                      onPressed: () => context.go('/tactics'),
+                      icon: Icon(PhosphorIcons.plus(PhosphorIconsStyle.bold),
+                          size: 16),
+                      label: Text(
+                        'NUEVA',
+                        style: TextStyle(
+                          fontFamily: AppTypography.displayFontFamily,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.accent,
+                        foregroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 10),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
                       ),
                     ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.accent,
-                      foregroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 10),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8)),
-                    ),
-                  ),
+                  ],
                 ),
               ],
             )
@@ -257,6 +610,12 @@ class MyTacticsScreen extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(width: 16),
+                OutlinedButton.icon(
+                  onPressed: () => _showImportDialog(lang),
+                  icon: const Icon(Icons.upload_file, size: 16),
+                  label: const Text('IMPORTAR'),
+                ),
+                const SizedBox(width: 8),
                 ElevatedButton.icon(
                   onPressed: () => context.go('/tactics'),
                   icon: Icon(PhosphorIcons.plus(PhosphorIconsStyle.bold),
@@ -325,6 +684,12 @@ class MyTacticsScreen extends ConsumerWidget {
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8)),
               ),
+            ),
+            const SizedBox(height: 10),
+            OutlinedButton.icon(
+              onPressed: () => _showImportDialog(lang),
+              icon: const Icon(Icons.upload_file, size: 16),
+              label: const Text('IMPORTAR JSON'),
             ),
           ],
         ),
@@ -398,21 +763,7 @@ class MyTacticsScreen extends ConsumerWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SizedBox(
-                    width: 48,
-                    height: 48,
-                    child: roster != null
-                        ? Image.asset(
-                            'assets/teams/${roster.id}/logo.webp',
-                            fit: BoxFit.contain,
-                            errorBuilder: (_, __, ___) => Icon(
-                                PhosphorIcons.shield(PhosphorIconsStyle.fill),
-                                size: 30,
-                                color: AppColors.textMuted),
-                          )
-                        : Icon(PhosphorIcons.shield(PhosphorIconsStyle.fill),
-                            size: 30, color: AppColors.textMuted),
-                  ),
+                  _buildRosterLogo(rosterId),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -439,13 +790,27 @@ class MyTacticsScreen extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  IconButton(
-                    icon: Icon(PhosphorIcons.trash(PhosphorIconsStyle.regular),
-                        size: 18, color: AppColors.error.withOpacity(0.6)),
-                    onPressed: () =>
-                        _confirmDelete(context, ref, id, name, lang),
-                    tooltip: tr(lang, 'myTactics.delete'),
-                    splashRadius: 18,
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.file_download, size: 18),
+                        color: AppColors.accent.withOpacity(0.8),
+                        onPressed: () => _exportTactics([tactic], lang),
+                        tooltip: 'Exportar',
+                        splashRadius: 18,
+                      ),
+                      IconButton(
+                        icon: Icon(
+                            PhosphorIcons.trash(PhosphorIconsStyle.regular),
+                            size: 18,
+                            color: AppColors.error.withOpacity(0.6)),
+                        onPressed: () =>
+                            _confirmDelete(context, ref, id, name, lang),
+                        tooltip: tr(lang, 'myTactics.delete'),
+                        splashRadius: 18,
+                      ),
+                    ],
                   ),
                 ],
               ),

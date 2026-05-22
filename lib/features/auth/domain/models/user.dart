@@ -6,15 +6,16 @@ part 'user.g.dart';
 @freezed
 class User with _$User {
   const factory User({
-    @JsonKey(name: 'user_id') required String id,
+    required String id,
     required String email,
     required String username,
     String? fullname,
     String? avatar,
-    @JsonKey(name: 'team_ids') @Default([]) List<String> teamIds,
+    @Default([]) List<String> teamIds,
   }) = _User;
 
-  factory User.fromJson(Map<String, dynamic> json) => _$UserFromJson(json);
+  factory User.fromJson(Map<String, dynamic> json) =>
+      _$UserFromJson(_normalizeUserJson(json));
 }
 
 @freezed
@@ -39,7 +40,8 @@ class LoginRequest with _$LoginRequest {
     required String password,
   }) = _LoginRequest;
 
-  factory LoginRequest.fromJson(Map<String, dynamic> json) => _$LoginRequestFromJson(json);
+  factory LoginRequest.fromJson(Map<String, dynamic> json) =>
+      _$LoginRequestFromJson(json);
 }
 
 @freezed
@@ -47,19 +49,57 @@ class RegisterRequest with _$RegisterRequest {
   const factory RegisterRequest({
     required String email,
     required String password,
-    @JsonKey(name: 'coach_name') required String coachName,
+    required String coachName,
   }) = _RegisterRequest;
 
-  factory RegisterRequest.fromJson(Map<String, dynamic> json) => _$RegisterRequestFromJson(json);
+  factory RegisterRequest.fromJson(Map<String, dynamic> json) =>
+      _$RegisterRequestFromJson(_normalizeRegisterRequestJson(json));
 }
 
 @freezed
 class TokenResponse with _$TokenResponse {
   const factory TokenResponse({
-    @JsonKey(name: 'access_token') required String accessToken,
-    @JsonKey(name: 'refresh_token') required String refreshToken,
-    @JsonKey(name: 'token_type') required String tokenType,
+    required String accessToken,
+    required String refreshToken,
+    required String tokenType,
   }) = _TokenResponse;
 
-  factory TokenResponse.fromJson(Map<String, dynamic> json) => _$TokenResponseFromJson(json);
+  factory TokenResponse.fromJson(Map<String, dynamic> json) =>
+      _$TokenResponseFromJson(_normalizeTokenResponseJson(json));
+}
+
+Map<String, dynamic> _normalizeUserJson(Map<String, dynamic> json) =>
+    _withAliases(json, {
+      'id': ['user_id'],
+      'teamIds': ['team_ids'],
+    });
+
+Map<String, dynamic> _normalizeRegisterRequestJson(Map<String, dynamic> json) =>
+    _withAliases(json, {
+      'coachName': ['coach_name'],
+    });
+
+Map<String, dynamic> _normalizeTokenResponseJson(Map<String, dynamic> json) =>
+    _withAliases(json, {
+      'accessToken': ['access_token'],
+      'refreshToken': ['refresh_token'],
+      'tokenType': ['token_type'],
+    });
+
+Map<String, dynamic> _withAliases(
+  Map<String, dynamic> json,
+  Map<String, List<String>> aliases,
+) {
+  final normalized = {...json};
+  for (final MapEntry(:key, :value) in aliases.entries) {
+    normalized[key] ??= _firstValue(json, value);
+  }
+  return normalized;
+}
+
+Object? _firstValue(Map<String, dynamic> json, List<String> keys) {
+  for (final key in keys) {
+    if (json.containsKey(key)) return json[key];
+  }
+  return null;
 }

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../core/theme/app_colors.dart';
 
 enum NotificationType {
@@ -49,7 +48,7 @@ class NotificationCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: _getTypeColor().withOpacity(0.2),
+                  color: _getTypeColor().withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
@@ -66,7 +65,7 @@ class NotificationCard extends StatelessWidget {
               if (time != null)
                 Text(
                   time!,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 11,
                     color: AppColors.textMuted,
                   ),
@@ -76,7 +75,7 @@ class NotificationCard extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             title,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 13,
               color: AppColors.textPrimary,
               height: 1.4,
@@ -90,13 +89,14 @@ class NotificationCard extends StatelessWidget {
                   TextButton(
                     onPressed: onTap,
                     style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
                       minimumSize: Size.zero,
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
                     child: Text(
                       actionText!,
-                      style: TextStyle(fontSize: 12),
+                      style: const TextStyle(fontSize: 12),
                     ),
                   ),
                 if (secondaryActionText != null) ...[
@@ -104,14 +104,15 @@ class NotificationCard extends StatelessWidget {
                   TextButton(
                     onPressed: onSecondaryTap,
                     style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
                       minimumSize: Size.zero,
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       foregroundColor: AppColors.textMuted,
                     ),
                     child: Text(
                       secondaryActionText!,
-                      style: TextStyle(fontSize: 12),
+                      style: const TextStyle(fontSize: 12),
                     ),
                   ),
                 ],
@@ -157,19 +158,6 @@ class NotificationCard extends StatelessWidget {
         return 'BAJA GRAVE';
       case NotificationType.invitation:
         return 'INVITACIÓN A LIGA';
-    }
-  }
-
-  IconData _getTypeIcon() {
-    switch (type) {
-      case NotificationType.levelUp:
-        return PhosphorIcons.arrowUp(PhosphorIconsStyle.fill);
-      case NotificationType.matchResult:
-        return PhosphorIcons.checkCircle(PhosphorIconsStyle.fill);
-      case NotificationType.injury:
-        return PhosphorIcons.bandaids(PhosphorIconsStyle.fill);
-      case NotificationType.invitation:
-        return PhosphorIcons.envelope(PhosphorIconsStyle.fill);
     }
   }
 }

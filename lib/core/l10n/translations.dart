@@ -540,6 +540,7 @@ const _t = <String, Map<String, String>>{
   'liveMatch.kickoffEvent': {'es': 'Evento de Patada', 'en': 'Kickoff Event'},
   'liveMatch.gate': {'es': 'Asistencia', 'en': 'Gate'},
   'liveMatch.rerollsUsed': {'es': 'Rerolls Usados', 'en': 'Rerolls Used'},
+  'liveMatch.remaining': {'es': 'restantes', 'en': 'remaining'},
   'liveMatch.quickAdd': {'es': 'Acción Rápida', 'en': 'Quick Add'},
   'liveMatch.completion': {'es': 'Pase', 'en': 'Completion'},
   'liveMatch.interception': {'es': 'Intercepción', 'en': 'Interception'},
@@ -556,6 +557,15 @@ const _t = <String, Map<String, String>>{
     'en': 'No injuries recorded'
   },
   'liveMatch.auditTrail': {'es': 'Historial de Cambios', 'en': 'Audit Trail'},
+  'liveMatch.auditId': {'es': 'ID', 'en': 'ID'},
+  'liveMatch.auditTeam': {'es': 'Equipo', 'en': 'Team'},
+  'liveMatch.auditMoment': {'es': 'Momento', 'en': 'Moment'},
+  'liveMatch.auditPlayer': {'es': 'Jugador', 'en': 'Player'},
+  'liveMatch.auditVictim': {'es': 'Víctima', 'en': 'Victim'},
+  'liveMatch.auditInjury': {'es': 'Lesión', 'en': 'Injury'},
+  'liveMatch.auditUser': {'es': 'Usuario', 'en': 'User'},
+  'liveMatch.auditTime': {'es': 'Hora', 'en': 'Time'},
+  'liveMatch.system': {'es': 'Sistema', 'en': 'System'},
   'liveMatch.events': {'es': 'Eventos', 'en': 'Events'},
   'liveMatch.complete': {'es': 'Finalizar Partido', 'en': 'Complete Match'},
   'liveMatch.completeTitle': {
@@ -628,7 +638,30 @@ const _t = <String, Map<String, String>>{
   'liveMatch.hirePlayer': {'es': 'Fichar Jugador', 'en': 'Hire Player'},
   'liveMatch.starPlayers': {'es': 'Jugadores Estrella', 'en': 'Star Players'},
   'liveMatch.inducements': {'es': 'Alicientes', 'en': 'Inducements'},
+  'liveMatch.matchInducements': {
+    'es': 'Incentivos del Partido',
+    'en': 'Match Inducements',
+  },
+  'liveMatch.variableCost': {'es': 'Coste variable', 'en': 'Variable cost'},
+  'liveMatch.requires': {'es': 'Requiere', 'en': 'Requires'},
+  'liveMatch.noTreasury': {
+    'es': 'Tesorería insuficiente',
+    'en': 'Not enough treasury',
+  },
+  'liveMatch.noInducementBudget': {
+    'es': 'Fondo insuficiente',
+    'en': 'Not enough inducement cash',
+  },
+  'liveMatch.unavailableForTeam': {
+    'es': 'No disponible para este equipo',
+    'en': 'Not available for this team',
+  },
+  'liveMatch.availableInducementCash': {
+    'es': 'Disponible',
+    'en': 'Available',
+  },
   'liveMatch.costGold': {'es': 'po', 'en': 'gp'},
+  'liveMatch.prayerRoll': {'es': 'D16', 'en': 'D16'},
   'liveMatch.purchased': {'es': 'Comprado', 'en': 'Purchased'},
   'liveMatch.notAvailable': {'es': 'No disponible', 'en': 'Not available'},
   'liveMatch.max': {'es': 'Máx', 'en': 'Max'},
@@ -1467,6 +1500,7 @@ const _t = <String, Map<String, String>>{
   // ── Common ──────────────────────────────────────────────────────────────
   'common.cancel': {'es': 'Cancelar', 'en': 'Cancel'},
   'common.add': {'es': 'Añadir', 'en': 'Add'},
+  'common.confirm': {'es': 'Confirmar', 'en': 'Confirm'},
   'common.error': {'es': 'Error: {e}', 'en': 'Error: {e}'},
   'common.retry': {'es': 'Reintentar', 'en': 'Retry'},
   'common.save': {'es': 'Guardar', 'en': 'Save'},
