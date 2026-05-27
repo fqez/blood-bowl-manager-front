@@ -316,9 +316,9 @@ La estructura por features, el uso de Riverpod y la intencion de modelar dominio
 - [X] Filtro por raza + busqueda en mis equipos [DONE]
 - [X] Posibilidad de mirar equipos de otros jugadores "amigos" o con código de jugador [DONE: acceso por código de equipo]
 - [X] Posibilidad de borrar equipos ya creados. [DONE]
-- [ ] Histórico de compras o modificación de jugadores con SPP
+- [X] Histórico de compras o modificación de jugadores con SPP [DONE: aparece en historial del jugador]
 - [X] Buscador en la sección de habilidades [DONE]
-- [ ] Jugadores estrella disponibles en la creación de equipo QUITAR
+- [X] Jugadores estrella disponibles en la creación de equipo QUITAR
 - [ ] Tabla de perks y fichas de perks multiidioma
 - [ ] Tooltips en perks que hablen de otros perks
 - [X] En la ventana de clima, refactorizar para DRY, se definen widgets iguales por duplicado. Centralizar widget y solo cambiar contenido.
@@ -347,7 +347,7 @@ La estructura por features, el uso de Riverpod y la intencion de modelar dominio
 - [X] La vista de mis equipos rediseñarla. [DONE]
 - [ ] En partido rapido rediseñar las tarjetas de selector de equipo: logo, valor equipo, nombre, raza
 - [X] Seccion de notificaciones de mis ligas más estrecho, que quepan 2 tarjetas de liga en grid [DONE]
-- [ ] Rediseño del calendario para que sea editable e incluya mas informacion cada tarjeta21
+- [ ] Rediseño del calendario para que sea editable e incluya mas informacion cada tarjeta21 [PARCIAL: calendario editable y modo manual implementados]
 - [ ] Fuente mas grande en las cajitas, tablas, etc
 - [ ] Darle una vuelta a la vista de mis ligas...
 - [ ] En la wiki, donde haya que tirar dado, poner a la izquierda en icono grande los dados que hay que tirar (como en la imagen pero solo 1 par de dados para todo).

@@ -58,6 +58,10 @@ class LiveMatchScreen extends ConsumerStatefulWidget {
 }
 
 class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
+  static const _preMatchPollInterval = Duration(seconds: 5);
+  static const _liveMatchPollInterval = Duration(seconds: 3);
+  static const _unknownMatchPollInterval = Duration(seconds: 5);
+
   bool _isSubmitting = false;
   Timer? _pollTimer;
   Timer? _clockTimer;
@@ -142,7 +146,7 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
 
   void _startInducementBudgetRefresh() {
     _inducementBudgetTimer?.cancel();
-    _inducementBudgetTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+    _inducementBudgetTimer = Timer.periodic(_preMatchPollInterval, (_) {
       if (!mounted || _isQM) return;
       final match = ref
           .read(_matchDetailProvider(
@@ -161,9 +165,34 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
 
   void _startPolling() {
     _pollTimer?.cancel();
-    _pollTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted) _refresh();
+    _scheduleNextPoll(Duration.zero);
+  }
+
+  void _scheduleNextPoll(Duration delay) {
+    _pollTimer?.cancel();
+    _pollTimer = Timer(delay, () {
+      if (!mounted) return;
+      final match = _currentMatchSnapshot();
+      if (match?.isPlayed == true) return;
+      _refresh();
+      _scheduleNextPoll(_pollIntervalFor(match));
     });
+  }
+
+  Match? _currentMatchSnapshot() {
+    return _isQM
+        ? ref.read(_quickMatchDetailProvider(widget.matchId)).valueOrNull
+        : ref
+            .read(_matchDetailProvider(
+                (leagueId: widget.leagueId, matchId: widget.matchId)))
+            .valueOrNull;
+  }
+
+  Duration _pollIntervalFor(Match? match) {
+    if (match == null) return _unknownMatchPollInterval;
+    if (match.isPending) return _preMatchPollInterval;
+    if (match.isInProgress) return _liveMatchPollInterval;
+    return _preMatchPollInterval;
   }
 
   /// Server sends UTC datetimes without 'Z' Ã¢â€ â€™ Dart parses as local.

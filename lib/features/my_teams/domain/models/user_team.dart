@@ -325,6 +325,7 @@ class UserTeamSummary {
   final int treasury;
   final int playerCount;
   final bool canManageRoster;
+  final String shareCode;
   final String? favouredOf;
   final List<String> specialRules;
   final List<TeamLeagueMembership> leagueMemberships;
@@ -340,6 +341,7 @@ class UserTeamSummary {
     required this.treasury,
     required this.playerCount,
     required this.canManageRoster,
+    required this.shareCode,
     this.favouredOf,
     this.specialRules = const [],
     required this.leagueMemberships,
@@ -359,6 +361,7 @@ class UserTeamSummary {
         treasury: (json['treasury'] as num?)?.toInt() ?? 1000000,
         playerCount: (json['player_count'] as num?)?.toInt() ?? 0,
         canManageRoster: json['can_manage_roster'] as bool? ?? true,
+        shareCode: json['share_code'] as String? ?? json['id'] as String? ?? '',
         favouredOf: json['favoured_of'] as String?,
         specialRules: (json['special_rules'] as List<dynamic>? ?? [])
             .map((e) => '$e')
@@ -401,6 +404,7 @@ class UserTeamDetail {
   final bool apothecaryAllowed;
   final int dedicatedFans;
   final String notes;
+  final String shareCode;
   final bool canManageRoster;
   final String? favouredOf;
   final List<String> specialRules;
@@ -429,6 +433,7 @@ class UserTeamDetail {
     required this.apothecaryAllowed,
     required this.dedicatedFans,
     required this.notes,
+    required this.shareCode,
     required this.canManageRoster,
     this.favouredOf,
     this.specialRules = const [],
@@ -469,6 +474,7 @@ class UserTeamDetail {
         apothecaryAllowed: json['apothecary_allowed'] as bool? ?? true,
         dedicatedFans: (json['dedicated_fans'] as num?)?.toInt() ?? 1,
         notes: json['notes'] as String? ?? '',
+        shareCode: json['share_code'] as String? ?? json['id'] as String? ?? '',
         canManageRoster: json['can_manage_roster'] as bool? ?? true,
         favouredOf: json['favoured_of'] as String?,
         specialRules: (json['special_rules'] as List<dynamic>? ?? [])

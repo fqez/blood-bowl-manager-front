@@ -173,6 +173,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const MyTeamsScreen(),
           ),
           GoRoute(
+            path: '/teams/shared/:shareCode',
+            name: 'shared-team-detail',
+            builder: (context, state) {
+              final shareCode = state.pathParameters['shareCode']!;
+              return MyTeamDetailScreen(teamId: '', shareCode: shareCode);
+            },
+          ),
+          GoRoute(
             path: '/teams/:teamId',
             name: 'my-team-detail',
             builder: (context, state) {

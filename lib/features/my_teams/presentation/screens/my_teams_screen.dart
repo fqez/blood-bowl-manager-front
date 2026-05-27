@@ -41,9 +41,9 @@ class _MyTeamsScreenState extends ConsumerState<MyTeamsScreen> {
 
     setState(() => _isOpeningSharedTeam = true);
     try {
-      await ref.read(teamRepositoryProvider).getUserTeamDetail(teamCode);
+      await ref.read(teamRepositoryProvider).getUserTeamByShareCode(teamCode);
       if (!mounted) return;
-      context.go('/teams/$teamCode');
+      context.go('/teams/shared/$teamCode');
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

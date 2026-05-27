@@ -653,50 +653,92 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
 
   void _confirmStartLeague(League league) {
     final lang = ref.read(localeProvider);
+    var scheduleMode = 'automatic';
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.card,
-        title: Text(tr(lang, 'league.startLeague')),
-        content: Text(
-          trf(lang, 'league.startLeagueConfirm', {
-            'count': '${league.teamsCount}',
-          }),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(tr(lang, 'common.cancel')),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: AppColors.card,
+          title: Text(tr(lang, 'league.startLeague')),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                trf(lang, 'league.startLeagueConfirm', {
+                  'count': '${league.teamsCount}',
+                }),
+              ),
+              const SizedBox(height: 16),
+              _scheduleModeTile(
+                selected: scheduleMode == 'automatic',
+                title: 'Calendario automatico',
+                subtitle: 'Genera todos los cruces al empezar.',
+                onTap: () => setDialogState(() => scheduleMode = 'automatic'),
+              ),
+              _scheduleModeTile(
+                selected: scheduleMode == 'manual',
+                title: 'Calendario manual',
+                subtitle: 'Empieza sin partidos y editalos en Calendario.',
+                onTap: () => setDialogState(() => scheduleMode = 'manual'),
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(ctx);
-              try {
-                final repo = ref.read(leagueRepositoryProvider);
-                await repo.startLeague(widget.leagueId);
-                ref.invalidate(leagueProvider(widget.leagueId));
-                ref.invalidate(matchesProvider(widget.leagueId));
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(tr(lang, 'league.leagueStarted'))),
-                  );
-                }
-              } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                        content: Text(trf(lang, 'common.error', {'e': '$e'}))),
-                  );
-                }
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.success,
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(tr(lang, 'common.cancel')),
             ),
-            child: Text(tr(lang, 'league.startLeague')),
-          ),
-        ],
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(ctx);
+                try {
+                  final repo = ref.read(leagueRepositoryProvider);
+                  await repo.startLeague(widget.leagueId,
+                      scheduleMode: scheduleMode);
+                  ref.invalidate(leagueProvider(widget.leagueId));
+                  ref.invalidate(matchesProvider(widget.leagueId));
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(tr(lang, 'league.leagueStarted'))),
+                    );
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                          content:
+                              Text(trf(lang, 'common.error', {'e': '$e'}))),
+                    );
+                  }
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.success,
+              ),
+              child: Text(tr(lang, 'league.startLeague')),
+            ),
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _scheduleModeTile({
+    required bool selected,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      onTap: onTap,
+      leading: Icon(
+        selected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+        color: selected ? AppColors.primary : AppColors.textSecondary,
+      ),
+      title: Text(title),
+      subtitle: Text(subtitle),
     );
   }
 
@@ -1173,6 +1215,11 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
   Widget _buildCalendarTab(League league) {
     final lang = ref.watch(localeProvider);
     final matchesAsync = ref.watch(matchesProvider(widget.leagueId));
+    final currentUserId = ref.watch(authStateProvider).valueOrNull?.user?.id;
+    final canEditCalendar = !_isDebugLeague &&
+        currentUserId != null &&
+        league.ownerId == currentUserId &&
+        league.status == LeagueStatus.active;
 
     return matchesAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -1184,23 +1231,84 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
         for (final match in matches) {
           matchesByRound.putIfAbsent(match.round, () => []).add(match);
         }
+        final maxRound = matchesByRound.isEmpty
+            ? 0
+            : matchesByRound.keys.reduce((a, b) => a > b ? a : b);
+        final roundCount = math.max(league.maxRounds, maxRound);
 
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: league.maxRounds,
-          itemBuilder: (context, index) {
-            final round = index + 1;
-            final roundMatches = matchesByRound[round] ?? [];
+        if (matches.isEmpty) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(PhosphorIcons.calendarBlank(PhosphorIconsStyle.fill),
+                      size: 44, color: AppColors.textMuted),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Sin partidos programados',
+                    style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  if (canEditCalendar)
+                    ElevatedButton.icon(
+                      onPressed: () => _showFixtureDialog(league),
+                      icon: Icon(PhosphorIcons.plus(PhosphorIconsStyle.bold),
+                          size: 18),
+                      label: const Text('Añadir encuentro'),
+                    ),
+                ],
+              ),
+            ),
+          );
+        }
 
-            return _buildRoundSection(
-                round, roundMatches, league.currentRound ?? 1);
-          },
+        return Column(
+          children: [
+            if (canEditCalendar)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: ElevatedButton.icon(
+                    onPressed: () => _showFixtureDialog(league),
+                    icon: Icon(PhosphorIcons.plus(PhosphorIconsStyle.bold),
+                        size: 18),
+                    label: const Text('Añadir encuentro'),
+                  ),
+                ),
+              ),
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: roundCount,
+                itemBuilder: (context, index) {
+                  final round = index + 1;
+                  final roundMatches = matchesByRound[round] ?? [];
+
+                  return _buildRoundSection(
+                    round,
+                    roundMatches,
+                    league.currentRound ?? 1,
+                    league,
+                    canEditCalendar,
+                  );
+                },
+              ),
+            ),
+          ],
         );
       },
     );
   }
 
-  Widget _buildRoundSection(int round, List<Match> matches, int currentRound) {
+  Widget _buildRoundSection(int round, List<Match> matches, int currentRound,
+      League league, bool canEditCalendar) {
     final lang = ref.watch(localeProvider);
     final isCurrent = round == currentRound;
     final isPast = round < currentRound;
@@ -1289,13 +1397,18 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
               ),
             )
           else
-            ...matches.map((match) => _buildMatchRow(match)),
+            ...matches.map((match) => _buildMatchRow(
+                  match,
+                  league: league,
+                  canEditCalendar: canEditCalendar,
+                )),
         ],
       ),
     );
   }
 
-  Widget _buildMatchRow(Match match) {
+  Widget _buildMatchRow(Match match,
+      {required League league, required bool canEditCalendar}) {
     final lang = ref.watch(localeProvider);
     final isCompact = MediaQuery.of(context).size.width < 700;
     final homeWon = match.isPlayed && match.scoreHome > match.scoreAway;
@@ -1350,6 +1463,31 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
                               : tr(lang, 'match.startMatch')),
                         )
                       : null;
+              final editActions = canEditCalendar && match.isPending
+                  ? Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          tooltip: 'Editar encuentro',
+                          onPressed: () =>
+                              _showFixtureDialog(league, match: match),
+                          icon: Icon(
+                              PhosphorIcons.pencilSimple(
+                                  PhosphorIconsStyle.regular),
+                              size: 18,
+                              color: AppColors.textSecondary),
+                        ),
+                        IconButton(
+                          tooltip: 'Borrar encuentro',
+                          onPressed: () => _confirmDeleteFixture(match),
+                          icon: Icon(
+                              PhosphorIcons.trash(PhosphorIconsStyle.regular),
+                              size: 18,
+                              color: AppColors.error),
+                        ),
+                      ],
+                    )
+                  : null;
 
               if (stackTeams) {
                 return Column(
@@ -1374,6 +1512,10 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
                       const SizedBox(height: 8),
                       Align(alignment: Alignment.center, child: liveAction),
                     ],
+                    if (editActions != null) ...[
+                      const SizedBox(height: 4),
+                      Align(alignment: Alignment.center, child: editActions),
+                    ],
                   ],
                 );
               }
@@ -1397,6 +1539,7 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
                     ),
                   ),
                   if (liveAction != null) liveAction,
+                  if (editActions != null) editActions,
                 ],
               );
             },
@@ -1404,6 +1547,169 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
         ),
       ),
     );
+  }
+
+  Future<void> _showFixtureDialog(League league, {Match? match}) async {
+    final isEditing = match != null;
+    final formKey = GlobalKey<FormState>();
+    final roundController = TextEditingController(
+      text: '${match?.round ?? math.max(1, league.maxRounds + 1)}',
+    );
+    String? homeTeamId = match?.home.teamId;
+    String? awayTeamId = match?.away.teamId;
+
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: AppColors.card,
+          title: Text(isEditing ? 'Editar encuentro' : 'Añadir encuentro'),
+          content: Form(
+            key: formKey,
+            child: SizedBox(
+              width: 420,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    controller: roundController,
+                    keyboardType: TextInputType.number,
+                    style: const TextStyle(color: AppColors.textPrimary),
+                    decoration: const InputDecoration(labelText: 'Jornada'),
+                    validator: (value) {
+                      final round = int.tryParse(value?.trim() ?? '');
+                      if (round == null || round < 1) return 'Jornada invalida';
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 14),
+                  DropdownButtonFormField<String>(
+                    initialValue: homeTeamId,
+                    isExpanded: true,
+                    dropdownColor: AppColors.surface,
+                    decoration: const InputDecoration(labelText: 'Local'),
+                    items: league.teams
+                        .map((team) => DropdownMenuItem(
+                              value: team.teamId,
+                              child: Text(team.teamName,
+                                  overflow: TextOverflow.ellipsis),
+                            ))
+                        .toList(),
+                    validator: (value) => value == null ? 'Elige local' : null,
+                    onChanged: (value) =>
+                        setDialogState(() => homeTeamId = value),
+                  ),
+                  const SizedBox(height: 14),
+                  DropdownButtonFormField<String>(
+                    initialValue: awayTeamId,
+                    isExpanded: true,
+                    dropdownColor: AppColors.surface,
+                    decoration: const InputDecoration(labelText: 'Visitante'),
+                    items: league.teams
+                        .map((team) => DropdownMenuItem(
+                              value: team.teamId,
+                              child: Text(team.teamName,
+                                  overflow: TextOverflow.ellipsis),
+                            ))
+                        .toList(),
+                    validator: (value) {
+                      if (value == null) return 'Elige visitante';
+                      if (value == homeTeamId) return 'Debe ser otro equipo';
+                      return null;
+                    },
+                    onChanged: (value) =>
+                        setDialogState(() => awayTeamId = value),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (formKey.currentState?.validate() ?? false) {
+                  Navigator.pop(ctx, true);
+                }
+              },
+              child: const Text('Guardar'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (saved != true || !mounted) return;
+
+    try {
+      final repository = ref.read(leagueRepositoryProvider);
+      final round = int.parse(roundController.text.trim());
+      if (isEditing) {
+        await repository.updateLeagueMatchFixture(
+          widget.leagueId,
+          match.id,
+          round: round,
+          homeTeamId: homeTeamId,
+          awayTeamId: awayTeamId,
+        );
+      } else {
+        await repository.createLeagueMatch(
+          widget.leagueId,
+          round: round,
+          homeTeamId: homeTeamId!,
+          awayTeamId: awayTeamId!,
+        );
+      }
+      ref.invalidate(leagueProvider(widget.leagueId));
+      ref.invalidate(matchesProvider(widget.leagueId));
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('$error'), backgroundColor: AppColors.error),
+      );
+    }
+  }
+
+  Future<void> _confirmDeleteFixture(Match match) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.card,
+        title: const Text('Borrar encuentro'),
+        content: Text(
+          '${match.home.teamName} vs ${match.away.teamName}',
+          style: const TextStyle(color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('Borrar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    try {
+      await ref
+          .read(leagueRepositoryProvider)
+          .deleteLeagueMatch(widget.leagueId, match.id);
+      ref.invalidate(leagueProvider(widget.leagueId));
+      ref.invalidate(matchesProvider(widget.leagueId));
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('$error'), backgroundColor: AppColors.error),
+      );
+    }
   }
 
   Widget _buildMatchSummaryHeader(Match match, String lang) {

@@ -85,7 +85,10 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
   String get playerId => widget.playerId;
   bool _isMutating = false;
 
-  void _refresh() => ref.invalidate(teamProvider(teamId));
+  void _refresh() {
+    ref.invalidate(teamProvider(teamId));
+    ref.invalidate(_playerUserTeamDetailProvider(teamId));
+  }
 
   Future<void> _showEditPlayerDialog(
       BuildContext context, Character player, String lang) async {
@@ -2633,8 +2636,9 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _sectionTitle(
-              lang == 'es' ? 'Historial de lesiones' : 'Injury history'),
+          _sectionTitle(lang == 'es'
+              ? 'Historial de lesiones y mejoras'
+              : 'Injuries and advancements'),
           const SizedBox(height: 18),
           if (loading && userPlayer == null)
             const Padding(
@@ -2676,7 +2680,9 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
         border: Border.all(color: AppColors.surfaceLight),
       ),
       child: Text(
-        lang == 'es' ? 'Sin lesiones registradas' : 'No injuries recorded',
+        lang == 'es'
+            ? 'Sin lesiones ni mejoras registradas'
+            : 'No injuries or advancements recorded',
         style: const TextStyle(
           color: AppColors.textMuted,
           fontSize: 12,
@@ -2864,8 +2870,9 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
       details.add(
           reduction == null || reduction.isEmpty ? stat : '$stat $reduction');
     }
-    if ((record.notes ?? '').trim().isNotEmpty)
+    if ((record.notes ?? '').trim().isNotEmpty) {
       details.add(record.notes!.trim());
+    }
     return details.join(' · ');
   }
 
@@ -2883,6 +2890,8 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
         return AppColors.dead;
       case 'lasting_injury':
         return AppColors.error;
+      case 'advancement':
+        return AppColors.success;
       default:
         return AppColors.warning;
     }
@@ -2894,6 +2903,8 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
         return PhosphorIcons.skull(PhosphorIconsStyle.fill);
       case 'sent_off':
         return PhosphorIcons.warning(PhosphorIconsStyle.fill);
+      case 'advancement':
+        return PhosphorIcons.arrowFatLinesUp(PhosphorIconsStyle.fill);
       default:
         return PhosphorIcons.firstAid(PhosphorIconsStyle.fill);
     }

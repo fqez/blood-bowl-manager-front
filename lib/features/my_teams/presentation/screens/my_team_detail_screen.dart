@@ -1,6 +1,7 @@
 // GENERATED: full rewrite to match roster management UI
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
@@ -19,8 +20,12 @@ import '../../../shared/utils/team_special_rules.dart';
 import '../../domain/models/user_team.dart';
 
 final userTeamDetailProvider =
-    FutureProvider.family<UserTeamDetail, String>((ref, teamId) async {
-  return ref.watch(teamRepositoryProvider).getUserTeamDetail(teamId);
+    FutureProvider.family<UserTeamDetail, String>((ref, key) async {
+  final repository = ref.watch(teamRepositoryProvider);
+  if (key.startsWith('share:')) {
+    return repository.getUserTeamByShareCode(key.substring(6));
+  }
+  return repository.getUserTeamDetail(key);
 });
 
 final _baseRosterDetailProvider =
@@ -30,10 +35,12 @@ final _baseRosterDetailProvider =
 
 class MyTeamDetailScreen extends ConsumerStatefulWidget {
   final String teamId;
+  final String? shareCode;
 
   /// When set, this screen is in league context (back → league, owner-gated edits)
   final String? leagueId;
-  const MyTeamDetailScreen({super.key, required this.teamId, this.leagueId});
+  const MyTeamDetailScreen(
+      {super.key, required this.teamId, this.leagueId, this.shareCode});
   @override
   ConsumerState<MyTeamDetailScreen> createState() => _MyTeamDetailScreenState();
 }
@@ -52,6 +59,10 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
   bool _notesDirty = false;
   bool _isMutating = false;
 
+  String get _detailKey => widget.shareCode == null
+      ? widget.teamId
+      : 'share:${widget.shareCode!.trim()}';
+
   @override
   void dispose() {
     _searchController.dispose();
@@ -59,7 +70,7 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
     super.dispose();
   }
 
-  void _refresh() => ref.invalidate(userTeamDetailProvider(widget.teamId));
+  void _refresh() => ref.invalidate(userTeamDetailProvider(_detailKey));
 
   Future<bool> _patch({
     String? name,
@@ -87,7 +98,7 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
             notes: notes,
             favouredOf: favouredOf,
           );
-      ref.invalidate(userTeamDetailProvider(widget.teamId));
+      ref.invalidate(userTeamDetailProvider(_detailKey));
       return true;
     } catch (e) {
       if (mounted) {
@@ -175,7 +186,7 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final lang = ref.watch(localeProvider);
-    final teamAsync = ref.watch(userTeamDetailProvider(widget.teamId));
+    final teamAsync = ref.watch(userTeamDetailProvider(_detailKey));
     final isWide = MediaQuery.of(context).size.width >= 800;
     final currentUserId = ref.watch(authStateProvider).valueOrNull?.user?.id;
     return Scaffold(
@@ -198,9 +209,13 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
                   children: [
                     _buildTeamHeader(team, isWide, lang),
                     const SizedBox(height: 12),
+                    _buildShareCodeSection(team, lang),
+                    const SizedBox(height: 12),
                     _buildTeamOverviewSection(team, isWide, lang),
-                    const SizedBox(height: 20),
-                    _buildNotesSection(team, isOwner, lang),
+                    if (isOwner) ...[
+                      const SizedBox(height: 20),
+                      _buildNotesSection(team, isOwner, lang),
+                    ],
                     const SizedBox(height: 20),
                     _buildPlayerSection(
                         team, isWide, isOwner, canHirePlayers, lang),
@@ -214,6 +229,57 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
             ),
           ]);
         },
+      ),
+    );
+  }
+
+  Widget _buildShareCodeSection(UserTeamDetail team, String lang) {
+    final code = team.shareCode.isNotEmpty ? team.shareCode : team.id;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.surfaceLight),
+      ),
+      child: Row(
+        children: [
+          Icon(PhosphorIcons.shareNetwork(PhosphorIconsStyle.fill),
+              size: 18, color: AppColors.accent),
+          const SizedBox(width: 10),
+          Text(
+            'Codigo para compartir',
+            style: const TextStyle(
+              color: AppColors.textMuted,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const Spacer(),
+          SelectableText(
+            code,
+            style: const TextStyle(
+              color: AppColors.accent,
+              fontFamily: 'monospace',
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.2,
+            ),
+          ),
+          const SizedBox(width: 8),
+          IconButton(
+            tooltip: tr(lang, 'createLeague.copyCode'),
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: code));
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(tr(lang, 'createLeague.codeCopied'))),
+              );
+            },
+            icon: Icon(PhosphorIcons.copy(PhosphorIconsStyle.regular),
+                color: AppColors.textSecondary),
+          ),
+        ],
       ),
     );
   }
@@ -1473,7 +1539,7 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
     final hiddenSkillCount = player.perks.length - visiblePerks.length;
     return InkWell(
       onTap: () {
-        final tid = widget.teamId;
+        final tid = team.id;
         final lid = widget.leagueId;
         if (lid != null) {
           context.go('/league/$lid/team/$tid/player/${player.id}');
@@ -1892,7 +1958,7 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
   }
 
   void _showHireDialog(BuildContext context) {
-    final teamAsync = ref.read(userTeamDetailProvider(widget.teamId));
+    final teamAsync = ref.read(userTeamDetailProvider(_detailKey));
     final team = teamAsync.valueOrNull;
     final currentUserId = ref.read(authStateProvider).valueOrNull?.user?.id;
     if (team == null || currentUserId == null || team.userId != currentUserId) {
@@ -1902,7 +1968,7 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
     showDialog(
       context: context,
       builder: (ctx) => _HirePlayerDialog(
-        teamId: widget.teamId,
+        teamId: team.id,
         baseRosterId: team.baseRosterId,
         currentPlayers: team.players,
         treasury: team.treasury,

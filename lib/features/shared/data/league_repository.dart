@@ -254,10 +254,61 @@ class LeagueRepository {
     }
   }
 
-  Future<League> startLeague(String leagueId) async {
+  Future<League> startLeague(String leagueId,
+      {String scheduleMode = 'automatic'}) async {
     try {
-      final response = await _dio.post('/leagues/$leagueId/start');
+      final response = await _dio.post('/leagues/$leagueId/start', data: {
+        'schedule_mode': scheduleMode,
+      });
       return League.fromJson(response.data);
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  Future<Match> createLeagueMatch(
+    String leagueId, {
+    required int round,
+    required String homeTeamId,
+    required String awayTeamId,
+  }) async {
+    try {
+      final response = await _dio.post('/leagues/$leagueId/matches', data: {
+        'round': round,
+        'home_team_id': homeTeamId,
+        'away_team_id': awayTeamId,
+      });
+      return Match.fromJson(response.data);
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  Future<Match> updateLeagueMatchFixture(
+    String leagueId,
+    String matchId, {
+    int? round,
+    String? homeTeamId,
+    String? awayTeamId,
+  }) async {
+    try {
+      final response = await _dio.patch(
+        '/leagues/$leagueId/matches/$matchId/fixture',
+        data: {
+          if (round != null) 'round': round,
+          if (homeTeamId != null) 'home_team_id': homeTeamId,
+          if (awayTeamId != null) 'away_team_id': awayTeamId,
+        },
+      );
+      return Match.fromJson(response.data);
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  Future<void> deleteLeagueMatch(String leagueId, String matchId) async {
+    try {
+      await _dio.delete('/leagues/$leagueId/matches/$matchId');
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }

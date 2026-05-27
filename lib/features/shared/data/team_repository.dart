@@ -1025,6 +1025,15 @@ class TeamRepository {
     }
   }
 
+  Future<UserTeamDetail> getUserTeamByShareCode(String shareCode) async {
+    try {
+      final response = await _dio.get('/user-teams/by-code/$shareCode');
+      return UserTeamDetail.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
   Future<void> deleteUserTeam(String teamId) async {
     try {
       await _dio.delete('/user-teams/$teamId');
