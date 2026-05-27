@@ -1548,6 +1548,10 @@ const _t = <String, Map<String, String>>{
     'es': 'Necesitas al menos 2 equipos para jugar un partido rápido.',
     'en': 'You need at least 2 teams to play a quick match.',
   },
+  'quickMatch.noEligibleTeams': {
+    'es': 'Necesitas al menos 2 equipos sin ligas inscritas.',
+    'en': 'You need at least 2 teams with no registered leagues.',
+  },
   'quickMatch.history': {'es': 'Historial', 'en': 'History'},
   'quickMatch.finished': {'es': 'Finalizado', 'en': 'Finished'},
   'quickMatch.inProgress': {'es': 'En curso', 'en': 'In Progress'},

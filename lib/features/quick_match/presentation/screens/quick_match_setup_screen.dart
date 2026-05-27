@@ -109,6 +109,14 @@ class _QuickMatchSetupScreenState extends ConsumerState<QuickMatchSetupScreen> {
   Widget _buildBody(List<UserTeamSummary> teams, String lang) {
     final wide = MediaQuery.of(context).size.width >= 900;
     final isCompact = MediaQuery.of(context).size.width < 700;
+    final eligibleTeams =
+        teams.where((team) => team.leagueMemberships.isEmpty).toList();
+    final eligibleTeamIds = eligibleTeams.map((team) => team.id).toSet();
+    final canCreate = _homeTeamId != null &&
+        _awayTeamId != null &&
+        eligibleTeamIds.contains(_homeTeamId) &&
+        eligibleTeamIds.contains(_awayTeamId) &&
+        !_creating;
 
     if (teams.isEmpty) {
       return Center(
@@ -133,6 +141,29 @@ class _QuickMatchSetupScreenState extends ConsumerState<QuickMatchSetupScreen> {
       );
     }
 
+    if (eligibleTeams.length < 2) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(PhosphorIcons.warning(PhosphorIconsStyle.regular),
+                color: AppColors.textMuted, size: 48),
+            const SizedBox(height: 16),
+            Text(tr(lang, 'quickMatch.noEligibleTeams'),
+                style: const TextStyle(color: AppColors.textMuted)),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () => context.go('/create-team'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+              ),
+              child: Text(tr(lang, 'nav.createTeam')),
+            ),
+          ],
+        ),
+      );
+    }
+
     return SingleChildScrollView(
       padding: EdgeInsets.symmetric(horizontal: wide ? 64 : 16, vertical: 32),
       child: Column(
@@ -143,24 +174,26 @@ class _QuickMatchSetupScreenState extends ConsumerState<QuickMatchSetupScreen> {
             Row(
               children: [
                 Expanded(
-                    child: _buildTeamSelector(teams, _homeTeamId, true, lang)),
+                    child: _buildTeamSelector(
+                        eligibleTeams, _homeTeamId, true, lang)),
                 const SizedBox(width: 24),
                 Icon(PhosphorIcons.sword(PhosphorIconsStyle.bold),
                     color: AppColors.primary, size: 40),
                 const SizedBox(width: 24),
                 Expanded(
-                    child: _buildTeamSelector(teams, _awayTeamId, false, lang)),
+                    child: _buildTeamSelector(
+                        eligibleTeams, _awayTeamId, false, lang)),
               ],
             )
           else ...[
-            _buildTeamSelector(teams, _homeTeamId, true, lang),
+            _buildTeamSelector(eligibleTeams, _homeTeamId, true, lang),
             const SizedBox(height: 16),
             Center(
               child: Icon(PhosphorIcons.sword(PhosphorIconsStyle.bold),
                   color: AppColors.primary, size: 32),
             ),
             const SizedBox(height: 16),
-            _buildTeamSelector(teams, _awayTeamId, false, lang),
+            _buildTeamSelector(eligibleTeams, _awayTeamId, false, lang),
           ],
           const SizedBox(height: 40),
 
@@ -170,10 +203,7 @@ class _QuickMatchSetupScreenState extends ConsumerState<QuickMatchSetupScreen> {
               width: isCompact ? double.infinity : 280,
               height: 48,
               child: ElevatedButton.icon(
-                onPressed:
-                    (_homeTeamId != null && _awayTeamId != null && !_creating)
-                        ? _create
-                        : null,
+                onPressed: canCreate ? _create : null,
                 icon: _creating
                     ? const SizedBox(
                         width: 18,
