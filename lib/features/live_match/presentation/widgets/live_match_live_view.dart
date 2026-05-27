@@ -1559,30 +1559,33 @@ extension _LiveMatchLiveView on _LiveMatchScreenState {
   Widget _buildQuickActions(Match match, String lang) {
     final actions = [
       _QA('TD', PhosphorIcons.trophy(PhosphorIconsStyle.fill), AppColors.accent,
-          'touchdown'),
+          'touchdown', '3 SPP'),
       _QA(
           tr(lang, 'liveMatch.completion'),
           PhosphorIcons.arrowBendUpRight(PhosphorIconsStyle.fill),
           AppColors.info,
-          'completion'),
+          'completion',
+          '1 SPP'),
       _QA(
           tr(lang, 'liveMatch.interception'),
           PhosphorIcons.handGrabbing(PhosphorIconsStyle.fill),
           AppColors.success,
-          'interception'),
+          'interception',
+          '2 SPP'),
       _QA('Lanzar comp.', PhosphorIcons.userSwitch(PhosphorIconsStyle.fill),
-          AppColors.info, 'throw_teammate'),
+          AppColors.info, 'throw_teammate', '1/+1 SPP'),
       _QA('KO', PhosphorIcons.lightningSlash(PhosphorIconsStyle.fill),
-          AppColors.warning, 'ko'),
+          AppColors.warning, 'ko', null),
       _QA(
-          tr(lang, 'liveMatch.casualty'),
+          lang == 'es' ? 'Lesión/Baja' : 'Injury/Casualty',
           PhosphorIcons.skull(PhosphorIconsStyle.fill),
           AppColors.error,
-          'casualty'),
+          'casualty',
+          '2 SPP'),
       _QA('RIP', PhosphorIcons.skull(PhosphorIconsStyle.fill),
-          AppColors.primaryDark, 'rip'),
+          AppColors.primaryDark, 'rip', null),
       _QA('Foul', PhosphorIcons.prohibit(PhosphorIconsStyle.fill),
-          AppColors.primaryLight, 'foul'),
+          AppColors.primaryLight, 'foul', null),
     ];
 
     return LayoutBuilder(
@@ -1594,12 +1597,13 @@ extension _LiveMatchLiveView on _LiveMatchScreenState {
           physics: const NeverScrollableScrollPhysics(),
           crossAxisSpacing: 8,
           mainAxisSpacing: 8,
-          childAspectRatio: compact ? 4.1 : 4.7,
+          childAspectRatio: compact ? 3.7 : 4.2,
           children: [
             ...actions.map((a) => _quickBtn(
                   label: a.label,
                   icon: a.icon,
                   color: a.color,
+                  sppLabel: a.sppLabel,
                   onTap: () => _showAddEventDialog(match, lang, a.type),
                 )),
           ],
@@ -1612,6 +1616,7 @@ extension _LiveMatchLiveView on _LiveMatchScreenState {
     required String label,
     required IconData icon,
     required Color color,
+    required String? sppLabel,
     required VoidCallback onTap,
   }) {
     return Material(
@@ -1656,15 +1661,34 @@ extension _LiveMatchLiveView on _LiveMatchScreenState {
                     ),
                     const SizedBox(width: 8),
                     Flexible(
-                      child: Text(
-                        label,
-                        style: const TextStyle(
-                          color: AppColors.textPrimary,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w900,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            label,
+                            style: const TextStyle(
+                              color: AppColors.textPrimary,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w900,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          if (sppLabel != null) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              sppLabel,
+                              style: const TextStyle(
+                                color: AppColors.warning,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ],
                       ),
                     ),
                   ],

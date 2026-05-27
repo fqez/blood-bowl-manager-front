@@ -2,7 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/models/user.dart';
 import '../repositories/auth_repository.dart';
 
-final authStateProvider = StateNotifierProvider<AuthNotifier, AsyncValue<AuthState>>((ref) {
+final authStateProvider =
+    StateNotifierProvider<AuthNotifier, AsyncValue<AuthState>>((ref) {
   return AuthNotifier(ref.watch(authRepositoryProvider));
 });
 
@@ -25,10 +26,12 @@ class AuthNotifier extends StateNotifier<AsyncValue<AuthState>> {
       if (accessToken != null) {
         final user = await _repository.getCurrentUser();
         if (user != null) {
+          final latestAccessToken = await _repository.getStoredAccessToken();
+          final latestRefreshToken = await _repository.getStoredRefreshToken();
           state = AsyncValue.data(AuthState(
             user: user,
-            accessToken: accessToken,
-            refreshToken: refreshToken,
+            accessToken: latestAccessToken ?? accessToken,
+            refreshToken: latestRefreshToken ?? refreshToken,
           ));
           return;
         }

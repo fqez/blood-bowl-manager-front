@@ -336,7 +336,8 @@ La estructura por features, el uso de Riverpod y la intencion de modelar dominio
 - [X] Reorganizar la sección de mis tácticas - el mapa debería aparecer lo primero [DONE]
 - [X] En la parte de mis tacticas en lugar de lista que sea un grid. Ademas que sea multiidioma las labels de ataque y defensa [DONE]
 - [ ] En la pantalla de tacticas, dividir las tacticas por equipo, con un filtro de equipo también
-- [ ] Quitar de la pantalla de tacticas las posiciones entre parentesis de los jugadores.
+- [X] Quitar de la pantalla de tacticas las posiciones entre parentesis de los jugadores.
+- [X] Añadir en la vista de partido, para cada accion rapida, cuantos SPP proporciona. [DONE]
 
 ![1778185342347](image/README/1778185342347.png)
 

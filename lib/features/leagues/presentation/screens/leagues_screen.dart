@@ -7,11 +7,21 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../core/l10n/locale_provider.dart';
 import '../../../../core/l10n/translations.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../auth/data/providers/auth_provider.dart';
 import '../../../shared/data/repositories.dart';
 import '../../domain/models/league_summary.dart';
 
 final myLeaguesSummaryProvider =
     FutureProvider<List<LeagueSummaryModel>>((ref) async {
+  final authState = ref.watch(authStateProvider);
+  final currentAuth = authState.valueOrNull;
+  if (authState.isLoading || currentAuth?.isLoading == true) {
+    return const <LeagueSummaryModel>[];
+  }
+  if (currentAuth?.isAuthenticated != true) {
+    return const <LeagueSummaryModel>[];
+  }
+
   return ref.watch(leagueRepositoryProvider).getMyLeaguesSummary();
 });
 

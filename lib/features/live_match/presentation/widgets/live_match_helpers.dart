@@ -20,7 +20,8 @@ class _QA {
   final IconData icon;
   final Color color;
   final String type;
-  const _QA(this.label, this.icon, this.color, this.type);
+  final String? sppLabel;
+  const _QA(this.label, this.icon, this.color, this.type, this.sppLabel);
 }
 
 // ══════════════════════════════════════════════

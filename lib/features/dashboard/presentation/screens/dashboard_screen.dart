@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../auth/data/providers/auth_provider.dart';
 import '../../../shared/data/repositories.dart';
 import '../../../league/domain/models/league.dart';
 import '../widgets/stat_card.dart';
@@ -11,14 +12,25 @@ import '../widgets/notification_card.dart';
 
 // Providers
 final myLeaguesProvider = FutureProvider<List<League>>((ref) async {
+  if (!_canLoadProtectedData(ref)) return const <League>[];
+
   final repository = ref.watch(leagueRepositoryProvider);
   return repository.getMyLeagues();
 });
 
 final invitationsProvider = FutureProvider<List<LeagueInvitation>>((ref) async {
+  if (!_canLoadProtectedData(ref)) return const <LeagueInvitation>[];
+
   final repository = ref.watch(leagueRepositoryProvider);
   return repository.getInvitations();
 });
+
+bool _canLoadProtectedData(Ref ref) {
+  final authState = ref.watch(authStateProvider);
+  final currentAuth = authState.valueOrNull;
+  if (authState.isLoading || currentAuth?.isLoading == true) return false;
+  return currentAuth?.isAuthenticated == true;
+}
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
