@@ -75,8 +75,28 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
     context.go('/league/${widget.leagueId}/match/${match.id}/live');
   }
 
-  void _showMatchSummaryDialog(Match match) {
+  Future<void> _showMatchSummaryDialog(Match match) async {
     final lang = ref.read(localeProvider);
+    var summaryMatch = match;
+
+    if (match.isPlayed && !_isDebugLeague) {
+      try {
+        summaryMatch = await ref
+            .read(leagueRepositoryProvider)
+            .getMatchDetail(widget.leagueId, match.id);
+      } catch (error) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('No se pudo cargar el detalle del partido: $error'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+        return;
+      }
+    }
+
+    if (!mounted) return;
 
     showDialog(
       context: context,
@@ -94,11 +114,11 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _buildMatchSummaryHeader(match, lang),
+                _buildMatchSummaryHeader(summaryMatch, lang),
                 const SizedBox(height: 18),
-                _buildReadOnlyMatchStats(match, lang),
+                _buildReadOnlyMatchStats(summaryMatch, lang),
                 const SizedBox(height: 18),
-                _buildMatchTimeline(match),
+                _buildMatchTimeline(summaryMatch),
               ],
             ),
           ),
@@ -1697,10 +1717,10 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
                     ),
                     if (selectedPoint != null) ...[
                       const SizedBox(height: 14),
-                      _timelineDetailCard(selectedPoint!),
+                      _timelineDetailCard(selectedPoint!, match),
                     ],
                     const SizedBox(height: 14),
-                    ...points.map(_timelineEventRow),
+                    ...points.map((point) => _timelineEventRow(point, match)),
                   ],
                 );
               },
@@ -1743,13 +1763,10 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
     );
   }
 
-  Widget _timelineDetailCard(_TimelinePoint point) {
+  Widget _timelineDetailCard(_TimelinePoint point, Match match) {
     final event = point.event;
-    final teamName = point.isHome ? 'Local' : 'Visitante';
-    final player = event.playerName ?? 'Jugador sin registrar';
-    final victim =
-        event.victimName == null ? '' : ' Rival: ${event.victimName}.';
-    final detail = event.detail ?? 'Sin detalle adicional';
+    final teamName = _eventTeamName(match, event.team);
+    final detail = _timelineEventDetails(event, match);
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -1771,7 +1788,7 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
           ),
           const SizedBox(height: 6),
           Text(
-            '$player. $detail.$victim',
+            detail.isEmpty ? 'Sin detalle adicional' : detail,
             style: TextStyle(
               color: AppColors.textSecondary,
               fontSize: 13,
@@ -1879,12 +1896,12 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
     }
   }
 
-  Widget _timelineEventRow(_TimelinePoint point) {
+  Widget _timelineEventRow(_TimelinePoint point, Match match) {
     final event = point.event;
-    final teamName = point.isHome ? 'Local' : 'Visitante';
-    final detail = event.detail ??
-        event.playerName ??
-        (event.victimName != null ? 'Sobre ${event.victimName}' : '');
+    final teamName = _eventTeamName(match, event.team);
+    final details = _timelineEventDetails(event, match);
+    final moment = _eventMomentLabel(event, point.minute);
+    final timestamp = _eventTimestampLabel(event.timestamp);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -1895,15 +1912,30 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
         border: Border.all(color: AppColors.surfaceLight),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 48,
-            child: Text(
-              "${point.minute}'",
-              style: TextStyle(
-                color: AppColors.accent,
-                fontWeight: FontWeight.w900,
-              ),
+            width: 64,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "${point.minute}'",
+                  style: TextStyle(
+                    color: AppColors.accent,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  moment,
+                  style: TextStyle(
+                    color: AppColors.textMuted,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
             ),
           ),
           Icon(_eventTypeIcon(event.type), size: 18, color: point.color),
@@ -1919,9 +1951,9 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
                       fontWeight: FontWeight.w800,
                     ),
                   ),
-                  if (detail.isNotEmpty)
+                  if (details.isNotEmpty)
                     TextSpan(
-                      text: '  $detail',
+                      text: '  $details',
                       style: TextStyle(
                         color: AppColors.textMuted,
                         fontWeight: FontWeight.w600,
@@ -1929,13 +1961,103 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
                     ),
                 ],
               ),
-              maxLines: 2,
+              maxLines: 4,
               overflow: TextOverflow.ellipsis,
             ),
           ),
+          if (timestamp.isNotEmpty) ...[
+            const SizedBox(width: 10),
+            Text(
+              timestamp,
+              style: TextStyle(
+                color: AppColors.textMuted,
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
         ],
       ),
     );
+  }
+
+  String _eventTeamName(Match match, String team) {
+    switch (team.toLowerCase()) {
+      case 'home':
+        return match.home.teamName;
+      case 'away':
+        return match.away.teamName;
+      default:
+        return 'Sistema';
+    }
+  }
+
+  String _eventMomentLabel(MatchEvent event, int minute) {
+    if (event.half > 0 || event.turn > 0) {
+      final half = event.half > 0 ? event.half : '-';
+      final turn = event.turn > 0 ? event.turn : '-';
+      return 'P$half T$turn';
+    }
+    return "Min $minute";
+  }
+
+  String _eventTimestampLabel(DateTime? timestamp) {
+    if (timestamp == null) return '';
+    final local = timestamp.toLocal();
+    final hour = local.hour.toString().padLeft(2, '0');
+    final minute = local.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
+  }
+
+  String _timelineEventDetails(MatchEvent event, Match match) {
+    final parts = <String>[];
+    if ((event.playerName ?? '').trim().isNotEmpty) {
+      parts.add('Jugador: ${event.playerName!.trim()}');
+    } else if ((event.playerId ?? '').trim().isNotEmpty) {
+      parts.add('Jugador: ${event.playerId!.trim()}');
+    }
+    if ((event.victimName ?? '').trim().isNotEmpty) {
+      parts.add('Víctima: ${event.victimName!.trim()}');
+    } else if ((event.victimId ?? '').trim().isNotEmpty) {
+      parts.add('Víctima: ${event.victimId!.trim()}');
+    }
+    if ((event.injury ?? '').trim().isNotEmpty) {
+      parts.add('Lesión: ${_eventInjuryLabel(event.injury!)}');
+    }
+    final detail = _visibleStoredEventDetail(event.detail);
+    if (detail.isNotEmpty) parts.add(detail);
+    if ((event.createdByName ?? '').trim().isNotEmpty) {
+      parts.add('Registrado por ${event.createdByName!.trim()}');
+    }
+    return parts.join(' · ');
+  }
+
+  String _visibleStoredEventDetail(String? detail) {
+    if (detail == null) return '';
+    return detail
+        .split('\n')
+        .where((line) => !line.startsWith('InducementSync:'))
+        .join(' · ')
+        .trim();
+  }
+
+  String _eventInjuryLabel(String injury) {
+    switch (injury.toLowerCase()) {
+      case 'sent_off':
+        return 'Expulsado';
+      case 'badly_hurt':
+        return 'Sin secuelas';
+      case 'miss_next_game':
+      case 'missing_next_game':
+        return 'Se pierde el próximo';
+      case 'lasting_injury':
+        return 'Lesión permanente';
+      case 'dead':
+      case 'rip':
+        return 'Muerto';
+      default:
+        return injury.replaceAll('_', ' ');
+    }
   }
 
   String _eventTypeLabel(String type) {
@@ -1943,16 +2065,40 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
       case 'touchdown':
         return 'Touchdown';
       case 'casualty':
-        return 'Baja';
+        return 'Lesión/Baja';
+      case 'badly_hurt':
+        return 'Herido leve';
+      case 'serious_injury':
+        return 'Lesión grave';
+      case 'rip':
+        return 'Muerto';
       case 'completion':
       case 'pass':
         return 'Pase';
+      case 'throw_teammate':
+        return 'Lanzar compañero';
       case 'interception':
-        return 'Intercepcion';
+        return 'Intercepción';
       case 'foul':
         return 'Falta';
       case 'ko':
         return 'KO';
+      case 'stun':
+        return 'Aturdido';
+      case 'score_change':
+        return 'Marcador';
+      case 'half_change':
+        return 'Cambio de parte';
+      case 'weather_change':
+        return 'Clima';
+      case 'kickoff_change':
+        return 'Patada inicial';
+      case 'reroll_change':
+      case 'reroll_total_change':
+        return 'Reroll';
+      case 'inducement_purchase':
+      case 'inducement_change':
+        return 'Incentivo';
       case 'turnover':
       case 'turn_change':
       case 'turn':
@@ -1967,20 +2113,38 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
       case 'touchdown':
         return AppColors.accent;
       case 'casualty':
+      case 'rip':
+      case 'serious_injury':
         return AppColors.error;
+      case 'badly_hurt':
       case 'completion':
       case 'pass':
+        return AppColors.info;
+      case 'throw_teammate':
         return AppColors.info;
       case 'interception':
         return AppColors.success;
       case 'foul':
         return AppColors.primaryLight;
       case 'ko':
+      case 'stun':
         return AppColors.warning;
+      case 'score_change':
+        return AppColors.accent;
+      case 'half_change':
       case 'turnover':
       case 'turn_change':
       case 'turn':
         return AppColors.skillAgility;
+      case 'weather_change':
+      case 'kickoff_change':
+        return AppColors.warning;
+      case 'reroll_change':
+      case 'reroll_total_change':
+        return const Color(0xFF9C27B0);
+      case 'inducement_purchase':
+      case 'inducement_change':
+        return AppColors.accent;
       default:
         return AppColors.textSecondary;
     }
@@ -1991,20 +2155,41 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
       case 'touchdown':
         return PhosphorIcons.trophy(PhosphorIconsStyle.fill);
       case 'casualty':
+      case 'rip':
+      case 'serious_injury':
         return PhosphorIcons.skull(PhosphorIconsStyle.fill);
+      case 'badly_hurt':
+        return PhosphorIcons.firstAid(PhosphorIconsStyle.fill);
       case 'completion':
       case 'pass':
         return PhosphorIcons.arrowBendUpRight(PhosphorIconsStyle.fill);
+      case 'throw_teammate':
+        return PhosphorIcons.userSwitch(PhosphorIconsStyle.fill);
       case 'interception':
         return PhosphorIcons.handGrabbing(PhosphorIconsStyle.fill);
       case 'foul':
         return PhosphorIcons.prohibit(PhosphorIconsStyle.fill);
       case 'ko':
+      case 'stun':
         return PhosphorIcons.lightningSlash(PhosphorIconsStyle.fill);
+      case 'score_change':
+        return PhosphorIcons.plusMinus(PhosphorIconsStyle.fill);
+      case 'half_change':
+        return PhosphorIcons.timer(PhosphorIconsStyle.fill);
       case 'turnover':
       case 'turn_change':
       case 'turn':
         return PhosphorIcons.arrowsClockwise(PhosphorIconsStyle.fill);
+      case 'weather_change':
+        return PhosphorIcons.cloudSun(PhosphorIconsStyle.fill);
+      case 'kickoff_change':
+        return PhosphorIcons.lightning(PhosphorIconsStyle.fill);
+      case 'reroll_change':
+      case 'reroll_total_change':
+        return PhosphorIcons.arrowsCounterClockwise(PhosphorIconsStyle.fill);
+      case 'inducement_purchase':
+      case 'inducement_change':
+        return PhosphorIcons.handCoins(PhosphorIconsStyle.fill);
       default:
         return PhosphorIcons.circle(PhosphorIconsStyle.fill);
     }
@@ -2015,16 +2200,31 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
       case 'touchdown':
         return 1;
       case 'casualty':
+      case 'rip':
+      case 'serious_injury':
         return 0.86;
+      case 'badly_hurt':
+        return 0.76;
       case 'ko':
+      case 'stun':
         return 0.72;
       case 'interception':
         return 0.68;
       case 'completion':
       case 'pass':
+      case 'throw_teammate':
         return 0.56;
       case 'foul':
         return 0.5;
+      case 'score_change':
+      case 'half_change':
+      case 'weather_change':
+      case 'kickoff_change':
+      case 'reroll_change':
+      case 'reroll_total_change':
+      case 'inducement_purchase':
+      case 'inducement_change':
+        return 0.44;
       case 'turnover':
       case 'turn_change':
       case 'turn':

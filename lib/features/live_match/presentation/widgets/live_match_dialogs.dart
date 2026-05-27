@@ -33,19 +33,73 @@ extension _LiveMatchDialogs on _LiveMatchScreenState {
       initialTeam: initialTeam,
       homePlayers: _homePlayers ?? [],
       awayPlayers: _awayPlayers ?? [],
-      onAdd: (draft) => _addEvent(
-        type: draft.type,
-        team: draft.team,
-        playerId: draft.playerId,
-        playerName: draft.playerName,
-        victimId: draft.victimId,
-        victimName: draft.victimName,
-        injury: draft.injury,
-        detail: _withMatchAuditContext(match, draft.detail),
-        half: draft.half,
-        turn: draft.turn,
-      ),
+      onAdd: (draft) async {
+        final eventAdded = await _addEvent(
+          type: draft.type,
+          team: draft.team,
+          playerId: draft.playerId,
+          playerName: draft.playerName,
+          victimId: draft.victimId,
+          victimName: draft.victimName,
+          injury: draft.sentOff ? 'sent_off' : draft.injury,
+          detail: _withMatchAuditContext(match, draft.detail),
+          half: draft.half,
+          turn: draft.turn,
+        );
+        if (!eventAdded) return false;
+        await _applyDraftPlayerCondition(draft, lang);
+        return true;
+      },
     );
+  }
+
+  Future<bool> _applyDraftPlayerCondition(
+    MatchEventDraft draft,
+    String lang,
+  ) async {
+    if (draft.type == 'casualty' && draft.injuryCategory != null) {
+      if (draft.victimId == null) return true;
+      final victimIsHome = draft.team != 'home';
+      final team = victimIsHome ? _homeTeam : _awayTeam;
+      final player = _findLivePlayer(
+        draft.victimId!,
+        victimIsHome ? _homePlayers : _awayPlayers,
+        team,
+      );
+      if (team == null || player == null) {
+        _snack(lang == 'es'
+            ? 'No se pudo encontrar al jugador lesionado'
+            : 'Could not find the injured player');
+        return false;
+      }
+      return _updateLivePlayerStatus(
+        team: team,
+        player: player,
+        status: _statusForConditionCategory(draft.injuryCategory!),
+        injuryCategory: draft.injuryCategory,
+        injuryNote: draft.injuryNote,
+        lastingInjuryRoll: draft.lastingInjuryRoll,
+        isHome: victimIsHome,
+        lang: lang,
+      );
+    }
+
+    if (draft.type == 'foul' && draft.sentOff) {
+      return true;
+    }
+
+    return true;
+  }
+
+  UserPlayer? _findLivePlayer(
+    String playerId,
+    List<UserPlayer>? livePlayers,
+    UserTeamDetail? team,
+  ) {
+    for (final player in [...?livePlayers, ...?team?.players]) {
+      if (player.id == playerId) return player;
+    }
+    return null;
   }
 
   Future<PrayerToNuffleResult?> _showPrayerToNuffleDialog({

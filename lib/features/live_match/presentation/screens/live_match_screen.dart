@@ -301,10 +301,7 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
 
     final selectedIds = isHome ? _selectedHomePlayers : _selectedAwayPlayers;
     selectedIds.clear();
-    final eligibleIds = team.players
-        .where((player) => player.status == 'healthy')
-        .map((player) => player.id)
-        .toSet();
+    final eligibleIds = team.players.map((player) => player.id).toSet();
     if (persistedSquad.isNotEmpty) {
       selectedIds.addAll(persistedSquad.where(eligibleIds.contains));
     } else {
@@ -334,6 +331,10 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
         teamRepo.getUserTeamDetail(match.home.teamId),
         teamRepo.getUserTeamDetail(match.away.teamId),
       ]);
+      final baseResults = await Future.wait([
+        teamRepo.getBaseTeamDetail(results[0].baseRosterId),
+        teamRepo.getBaseTeamDetail(results[1].baseRosterId),
+      ]);
       await _restoreInducementBudgetState(results[0], results[1]);
       await _maybeMigrateLegacyInducementsToServer(match);
       if (mounted) {
@@ -356,20 +357,20 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
           _homePlayers = homeSquad.isNotEmpty
               ? results[0]
                   .players
-                  .where(
-                      (p) => homeSquad.contains(p.id) && p.status == 'healthy')
+                  .where((p) => homeSquad.contains(p.id))
                   .toList()
               : results[0].players.where((p) => p.status == 'healthy').toList();
           _awayPlayers = awaySquad.isNotEmpty
               ? results[1]
                   .players
-                  .where(
-                      (p) => awaySquad.contains(p.id) && p.status == 'healthy')
+                  .where((p) => awaySquad.contains(p.id))
                   .toList()
               : results[1].players.where((p) => p.status == 'healthy').toList();
           // Keep team details for reroll budget in live view
           _homeTeam ??= results[0];
           _awayTeam ??= results[1];
+          _homeBaseRoster ??= baseResults[0];
+          _awayBaseRoster ??= baseResults[1];
         });
       }
     } catch (_) {}
@@ -727,9 +728,10 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
     int? gate,
   }) async {
     try {
+      late final Match updated;
       if (_isQM) {
         final repo = ref.read(quickMatchRepositoryProvider);
-        await repo.updateMatchState(
+        updated = await repo.updateMatchState(
           widget.matchId,
           scoreHome: scoreHome,
           scoreAway: scoreAway,
@@ -752,7 +754,7 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
         );
       } else {
         final repo = ref.read(leagueRepositoryProvider);
-        await repo.updateMatchState(
+        updated = await repo.updateMatchState(
           widget.leagueId,
           widget.matchId,
           scoreHome: scoreHome,
@@ -780,6 +782,9 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
           mvpAway: mvpAway,
           gate: gate,
         );
+      }
+      if (mounted && updated.isPending) {
+        setState(() => _optimisticPreMatch = updated);
       }
       _refresh();
     } catch (e) {
@@ -833,7 +838,7 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
     }
   }
 
-  Future<void> _addEvent({
+  Future<bool> _addEvent({
     required String type,
     required String team,
     String? playerId,
@@ -889,8 +894,10 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
           ),
         );
       }
+      return true;
     } catch (e) {
       if (mounted) _snack('Error: $e');
+      return false;
     }
   }
 

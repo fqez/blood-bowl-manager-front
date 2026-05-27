@@ -24,6 +24,20 @@ class _QA {
   const _QA(this.label, this.icon, this.color, this.type, this.sppLabel);
 }
 
+class _PlayerStatusOption {
+  final String value;
+  final String label;
+  final Color color;
+  final IconData icon;
+
+  const _PlayerStatusOption({
+    required this.value,
+    required this.label,
+    required this.color,
+    required this.icon,
+  });
+}
+
 // ══════════════════════════════════════════════
 //  CONSTANTS
 // ══════════════════════════════════════════════

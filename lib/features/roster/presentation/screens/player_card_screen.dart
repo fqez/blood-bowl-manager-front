@@ -10,6 +10,7 @@ import '../../../../core/l10n/translations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/perk_assets.dart';
 import '../../../auth/data/providers/auth_provider.dart';
+import '../../../my_teams/domain/models/user_team.dart';
 import '../../../shared/data/repositories.dart';
 import '../../../shared/utils/player_position_labels.dart';
 import '../../domain/models/team.dart';
@@ -21,6 +22,11 @@ import '../../../shared/presentation/widgets/skill_popup.dart';
 final _playerBaseRosterProvider =
     FutureProvider.family<BaseTeam, String>((ref, rosterId) async {
   return ref.watch(teamRepositoryProvider).getBaseTeamDetail(rosterId);
+});
+
+final _playerUserTeamDetailProvider =
+    FutureProvider.family<UserTeamDetail, String>((ref, teamId) async {
+  return ref.watch(teamRepositoryProvider).getUserTeamDetail(teamId);
 });
 
 class _SkillAdvancementChoice {
@@ -1351,71 +1357,6 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
     );
   }
 
-  Future<void> _showCharacteristicRollDialog(
-      BuildContext context, Character player, String stat) async {
-    final lang = ref.read(localeProvider);
-    final controller = TextEditingController();
-    final roll = await showDialog<int>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        title: const Text('D8 CHARACTERISTIC ROLL',
-            style: TextStyle(color: AppColors.textPrimary)),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          keyboardType: TextInputType.number,
-          style: const TextStyle(color: AppColors.textPrimary),
-          decoration: InputDecoration(
-            labelText: 'Roll for +1 $stat',
-            labelStyle: const TextStyle(color: AppColors.textMuted),
-            filled: true,
-            fillColor: AppColors.background,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('CANCEL'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, int.tryParse(controller.text)),
-            child: const Text('APPLY'),
-          ),
-        ],
-      ),
-    );
-    if (roll == null) return;
-
-    try {
-      setState(() => _isMutating = true);
-      await ref.read(teamRepositoryProvider).applyPlayerAdvancement(
-            teamId,
-            playerId,
-            advancementType: 'characteristic_improvement',
-            characteristic: stat,
-            characteristicRoll: roll,
-          );
-      if (!context.mounted) return;
-      _refresh();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text('$stat improved'),
-            backgroundColor: AppColors.success),
-      );
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text(trf(lang, 'common.error', {'e': '$e'})),
-              backgroundColor: AppColors.error),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isMutating = false);
-    }
-  }
-
   Color _familyColor(String family) {
     switch (family.toLowerCase()) {
       case 'g':
@@ -1654,6 +1595,14 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
         !startingSkillKeys.contains(_skillKey(skill.name));
   }
 
+  UserPlayer? _userPlayerFromDetail(UserTeamDetail? team, String playerId) {
+    if (team == null) return null;
+    for (final player in team.players) {
+      if (player.id == playerId) return player;
+    }
+    return null;
+  }
+
   // -- Build -----------------------------------------------------------------
 
   @override
@@ -1679,6 +1628,10 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
               currentUserId != null && team.ownerId == currentUserId;
           final baseRoster =
               ref.watch(_playerBaseRosterProvider(team.baseTeamId)).valueOrNull;
+          final userTeamDetailAsync =
+              ref.watch(_playerUserTeamDetailProvider(teamId));
+          final userPlayer =
+              _userPlayerFromDetail(userTeamDetailAsync.valueOrNull, playerId);
           final player = team.characters.firstWhere(
             (c) => c.id == playerId,
             orElse: () => throw Exception(tr(lang, 'player.notFound')),
@@ -1697,11 +1650,27 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                           context, team, player, isOwner, lang, baseRoster),
                       const SizedBox(height: 24),
                       if (isWide)
-                        _buildWideLayout(context, team, player, isOwner, lang,
-                            startingSkillKeys, baseRoster)
+                        _buildWideLayout(
+                            context,
+                            team,
+                            player,
+                            isOwner,
+                            lang,
+                            startingSkillKeys,
+                            baseRoster,
+                            userPlayer,
+                            userTeamDetailAsync.isLoading)
                       else
-                        _buildNarrowLayout(context, team, player, isOwner, lang,
-                            startingSkillKeys, baseRoster),
+                        _buildNarrowLayout(
+                            context,
+                            team,
+                            player,
+                            isOwner,
+                            lang,
+                            startingSkillKeys,
+                            baseRoster,
+                            userPlayer,
+                            userTeamDetailAsync.isLoading),
                     ],
                   ),
                 ),
@@ -2077,7 +2046,9 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
       bool isOwner,
       String lang,
       Set<String>? startingSkillKeys,
-      BaseTeam? baseRoster) {
+      BaseTeam? baseRoster,
+      UserPlayer? userPlayer,
+      bool injuriesLoading) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -2086,8 +2057,8 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
           flex: 3,
           child: Column(
             children: [
-              _buildAttributesAndSkillsCard(
-                  context, player, isOwner, lang, startingSkillKeys),
+              _buildAttributesAndSkillsCard(context, player, isOwner, lang,
+                  startingSkillKeys, baseRoster),
             ],
           ),
         ),
@@ -2099,6 +2070,9 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
             children: [
               _buildLevelTrackerCard(
                   context, player, isOwner, lang, baseRoster),
+              const SizedBox(height: 20),
+              _buildInjuryTimelineCard(
+                  player, userPlayer, injuriesLoading, lang),
               const SizedBox(height: 20),
               _buildPerformanceRecordsCard(player, lang),
             ],
@@ -2115,13 +2089,17 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
       bool isOwner,
       String lang,
       Set<String>? startingSkillKeys,
-      BaseTeam? baseRoster) {
+      BaseTeam? baseRoster,
+      UserPlayer? userPlayer,
+      bool injuriesLoading) {
     return Column(
       children: [
         _buildLevelTrackerCard(context, player, isOwner, lang, baseRoster),
         const SizedBox(height: 20),
         _buildAttributesAndSkillsCard(
-            context, player, isOwner, lang, startingSkillKeys),
+            context, player, isOwner, lang, startingSkillKeys, baseRoster),
+        const SizedBox(height: 20),
+        _buildInjuryTimelineCard(player, userPlayer, injuriesLoading, lang),
         const SizedBox(height: 20),
         _buildPerformanceRecordsCard(player, lang),
         const SizedBox(height: 40),
@@ -2131,10 +2109,15 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
 
   // -- Attributes & Skills Card ---------------------------------------------
 
-  Widget _buildAttributesAndSkillsCard(BuildContext context, Character player,
-      bool isOwner, String lang, Set<String>? startingSkillKeys) {
+  Widget _buildAttributesAndSkillsCard(
+      BuildContext context,
+      Character player,
+      bool isOwner,
+      String lang,
+      Set<String>? startingSkillKeys,
+      BaseTeam? baseRoster) {
     final s = player.stats;
-    final canEdit = isOwner;
+    final baseStats = _basePositionFor(baseRoster, player)?.stats;
 
     return _card(
       child: Column(
@@ -2143,18 +2126,6 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
           Row(
             children: [
               _sectionTitle(tr(lang, 'player.coreAttributes')),
-              const Spacer(),
-              if (canEdit)
-                TextButton.icon(
-                  onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('Proximamente: Manual Modification'))),
-                  icon: Icon(PhosphorIcons.sliders(PhosphorIconsStyle.fill),
-                      size: 14, color: AppColors.textMuted),
-                  label: const Text('MANUAL MODIFICATION',
-                      style:
-                          TextStyle(fontSize: 10, color: AppColors.textMuted)),
-                ),
             ],
           ),
           const SizedBox(height: 18),
@@ -2167,26 +2138,20 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
               spacing: 12,
               runSpacing: 12,
               children: [
-                _statColumn('MA', '${s.ma}', canEdit, context, player, 'MA',
-                    AppColors.textSecondary,
-                    width: tileWidth),
-                _statColumn('ST', '${s.st}', canEdit, context, player, 'ST',
-                    AppColors.textSecondary,
-                    width: tileWidth),
-                _statColumn('AG', '${s.ag}+', canEdit, context, player, 'AG',
-                    AppColors.textSecondary,
+                _statColumn(
+                    'MA', '${s.ma}', _statValueColor('MA', s.ma, baseStats?.ma),
                     width: tileWidth),
                 _statColumn(
-                    'PA',
-                    s.pa > 0 ? '${s.pa}+' : '-',
-                    canEdit && s.pa > 0,
-                    context,
-                    player,
-                    'PA',
-                    AppColors.textSecondary,
+                    'ST', '${s.st}', _statValueColor('ST', s.st, baseStats?.st),
                     width: tileWidth),
-                _statColumn('AV', '${s.av}+', canEdit, context, player, 'AV',
-                    AppColors.textSecondary,
+                _statColumn('AG', '${s.ag}+',
+                    _statValueColor('AG', s.ag, baseStats?.ag),
+                    width: tileWidth),
+                _statColumn('PA', s.pa > 0 ? '${s.pa}+' : '-',
+                    _statValueColor('PA', s.pa, baseStats?.pa),
+                    width: tileWidth),
+                _statColumn('AV', '${s.av}+',
+                    _statValueColor('AV', s.av, baseStats?.av),
                     width: tileWidth),
               ],
             );
@@ -2201,94 +2166,54 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
     );
   }
 
-  Widget _statColumn(String label, String value, bool canEdit,
-      BuildContext context, Character player, String stat, Color color,
+  Widget _statColumn(String label, String value, Color color,
       {required double width}) {
     return SizedBox(
       width: width,
-      child: Column(
-        children: [
-          // Plus button
-          if (canEdit)
-            _statButton(
-                '+',
-                _isMutating
-                    ? null
-                    : () =>
-                        _showCharacteristicRollDialog(context, player, stat)),
-          if (!canEdit) const SizedBox(height: 28),
-          const SizedBox(height: 4),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
-            decoration: BoxDecoration(
-              color: AppColors.background.withValues(alpha: 0.45),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.surfaceLight),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
+        decoration: BoxDecoration(
+          color: AppColors.background.withValues(alpha: 0.45),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: AppColors.surfaceLight),
+        ),
+        child: Column(
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontFamily: AppTypography.displayFontFamily,
+                fontSize: 30,
+                fontWeight: FontWeight.w900,
+                color: AppColors.textMuted,
+                letterSpacing: 0.6,
+              ),
             ),
-            child: Column(
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontFamily: AppTypography.displayFontFamily,
-                    fontSize: 30,
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.textMuted,
-                    letterSpacing: 0.6,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  value,
-                  style: TextStyle(
-                    fontFamily: AppTypography.displayFontFamily,
-                    fontSize: 46,
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.textPrimary,
-                    height: 1,
-                  ),
-                ),
-              ],
+            const SizedBox(height: 8),
+            Text(
+              value,
+              style: TextStyle(
+                fontFamily: AppTypography.displayFontFamily,
+                fontSize: 46,
+                fontWeight: FontWeight.w900,
+                color: color,
+                height: 1,
+              ),
             ),
-          ),
-          const SizedBox(height: 4),
-          // Minus button
-          if (canEdit)
-            _statButton(
-                '-',
-                () => ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Proximamente: $label -1')))),
-          if (!canEdit) const SizedBox(height: 28),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget _statButton(String label, VoidCallback? onTap) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(4),
-      child: Container(
-        width: 28,
-        height: 28,
-        decoration: BoxDecoration(
-          color: AppColors.surfaceLight,
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: Center(
-          child: Text(
-            label,
-            style: TextStyle(
-              fontFamily: AppTypography.displayFontFamily,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textSecondary,
-            ),
-          ),
-        ),
-      ),
-    );
+  Color _statValueColor(String stat, int current, int? base) {
+    if (base == null || current == base) return AppColors.textPrimary;
+    final improved = switch (stat) {
+      'AG' || 'PA' => current > 0 && current < base,
+      _ => current > base,
+    };
+    return improved ? AppColors.success : AppColors.error;
   }
 
   // -- Skills Panel ----------------------------------------------------------
@@ -2692,6 +2617,286 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
         ),
       ),
     );
+  }
+
+  // -- Injury Timeline Card --------------------------------------------------
+
+  Widget _buildInjuryTimelineCard(
+      Character player, UserPlayer? userPlayer, bool loading, String lang) {
+    final history = [...?userPlayer?.injuryHistory]..sort((a, b) =>
+        (b.createdAt ?? DateTime(0)).compareTo(a.createdAt ?? DateTime(0)));
+    final legacyNote = player.injuryDetails?.trim();
+    final hasLegacyNote = legacyNote != null && legacyNote.isNotEmpty;
+
+    return _card(
+      borderColor: AppColors.warning.withValues(alpha: 0.28),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _sectionTitle(
+              lang == 'es' ? 'Historial de lesiones' : 'Injury history'),
+          const SizedBox(height: 18),
+          if (loading && userPlayer == null)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 10),
+              child: LinearProgressIndicator(
+                minHeight: 3,
+                backgroundColor: AppColors.surfaceLight,
+                valueColor: AlwaysStoppedAnimation(AppColors.warning),
+              ),
+            )
+          else if (history.isEmpty && !hasLegacyNote && !player.missNextGame)
+            _emptyTimelineState(lang)
+          else ...[
+            if (history.isNotEmpty)
+              ...history.asMap().entries.map(
+                    (entry) => _injuryTimelineItem(
+                      entry.value,
+                      isLast: entry.key == history.length - 1 &&
+                          !hasLegacyNote &&
+                          !player.missNextGame,
+                      lang: lang,
+                    ),
+                  ),
+            if (hasLegacyNote || player.missNextGame)
+              _legacyInjuryTimelineItem(player, legacyNote, lang),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _emptyTimelineState(String lang) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+      decoration: BoxDecoration(
+        color: AppColors.background.withValues(alpha: 0.38),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.surfaceLight),
+      ),
+      child: Text(
+        lang == 'es' ? 'Sin lesiones registradas' : 'No injuries recorded',
+        style: const TextStyle(
+          color: AppColors.textMuted,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  Widget _injuryTimelineItem(UserPlayerInjuryRecord record,
+      {required bool isLast, required String lang}) {
+    final color = _injuryRecordColor(record);
+    final details = _injuryRecordDetails(record, lang);
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(
+              width: 30,
+              child: Column(
+                children: [
+                  Container(
+                    width: 22,
+                    height: 22,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: color.withValues(alpha: 0.18),
+                      border: Border.all(color: color.withValues(alpha: 0.55)),
+                    ),
+                    child:
+                        Icon(_injuryRecordIcon(record), size: 12, color: color),
+                  ),
+                  if (!isLast)
+                    Expanded(
+                      child: Container(
+                        width: 2,
+                        margin: const EdgeInsets.only(top: 6),
+                        color: AppColors.surfaceLight,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.background.withValues(alpha: 0.42),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: color.withValues(alpha: 0.22)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            _injuryRecordTitle(record),
+                            style: TextStyle(
+                              color: color,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          _formatTimelineDate(record.createdAt, lang),
+                          style: const TextStyle(
+                            color: AppColors.textMuted,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (details.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        details,
+                        style: const TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 11,
+                          height: 1.3,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _legacyInjuryTimelineItem(
+      Character player, String? legacyNote, String lang) {
+    final statusLabel = player.missNextGame
+        ? (lang == 'es' ? 'Se pierde el proximo partido' : 'Misses next game')
+        : (lang == 'es' ? 'Lesion registrada' : 'Recorded injury');
+    final note = legacyNote ?? '';
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 30,
+            child: Center(
+              child: Container(
+                width: 22,
+                height: 22,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.warning.withValues(alpha: 0.18),
+                  border: Border.all(
+                      color: AppColors.warning.withValues(alpha: 0.55)),
+                ),
+                child: Icon(PhosphorIcons.firstAid(PhosphorIconsStyle.fill),
+                    size: 12, color: AppColors.warning),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.background.withValues(alpha: 0.42),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                    color: AppColors.warning.withValues(alpha: 0.22)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(statusLabel,
+                      style: const TextStyle(
+                          color: AppColors.warning,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w900)),
+                  if (note.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Text(note,
+                        style: const TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 11,
+                            height: 1.3)),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _injuryRecordTitle(UserPlayerInjuryRecord record) {
+    if (record.label.trim().isNotEmpty) return record.label;
+    return record.type
+        .replaceAll('_', ' ')
+        .split(' ')
+        .where((part) => part.isNotEmpty)
+        .map((part) => '${part[0].toUpperCase()}${part.substring(1)}')
+        .join(' ');
+  }
+
+  String _injuryRecordDetails(UserPlayerInjuryRecord record, String lang) {
+    final details = <String>[];
+    if (record.roll != null) {
+      details
+          .add(lang == 'es' ? 'Tirada ${record.roll}' : 'Roll ${record.roll}');
+    }
+    if ((record.stat ?? '').isNotEmpty) {
+      final stat = record.stat!.toUpperCase();
+      final reduction = record.reduction;
+      details.add(
+          reduction == null || reduction.isEmpty ? stat : '$stat $reduction');
+    }
+    if ((record.notes ?? '').trim().isNotEmpty)
+      details.add(record.notes!.trim());
+    return details.join(' · ');
+  }
+
+  String _formatTimelineDate(DateTime? date, String lang) {
+    if (date == null) return '';
+    final day = date.day.toString().padLeft(2, '0');
+    final month = date.month.toString().padLeft(2, '0');
+    if (lang == 'es') return '$day/$month/${date.year}';
+    return '$month/$day/${date.year}';
+  }
+
+  Color _injuryRecordColor(UserPlayerInjuryRecord record) {
+    switch (record.type) {
+      case 'dead':
+        return AppColors.dead;
+      case 'lasting_injury':
+        return AppColors.error;
+      default:
+        return AppColors.warning;
+    }
+  }
+
+  IconData _injuryRecordIcon(UserPlayerInjuryRecord record) {
+    switch (record.type) {
+      case 'dead':
+        return PhosphorIcons.skull(PhosphorIconsStyle.fill);
+      case 'sent_off':
+        return PhosphorIcons.warning(PhosphorIconsStyle.fill);
+      default:
+        return PhosphorIcons.firstAid(PhosphorIconsStyle.fill);
+    }
   }
 
   Widget _statGraph(List<_GraphValue> values) {

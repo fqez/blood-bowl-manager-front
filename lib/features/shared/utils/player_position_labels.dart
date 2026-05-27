@@ -1,3 +1,6 @@
+import 'package:flutter/material.dart';
+
+import '../../../core/theme/app_colors.dart';
 import '../../my_teams/domain/models/user_team.dart';
 import '../../roster/domain/models/team.dart';
 
@@ -32,6 +35,42 @@ String localizedPlayerPosition(
   final position = findBasePositionForPlayer(roster, player);
   final raw = position?.position ?? position?.name ?? player.positionLabel;
   return localizedPositionText(raw, lang);
+}
+
+Color userPlayerStatColor(
+  UserPlayer player,
+  BaseTeam? roster,
+  String stat,
+  String value,
+) {
+  final normalizedStat = stat.toUpperCase();
+  if (player.hasReducedStat(normalizedStat)) return AppColors.error;
+
+  final current = _parseStatValue(value);
+  final baseStats = findBasePositionForPlayer(roster, player)?.stats;
+  final base = switch (normalizedStat) {
+    'MA' => baseStats?.ma,
+    'ST' => baseStats?.st,
+    'AG' => baseStats?.ag,
+    'PA' => baseStats?.pa,
+    'AV' => baseStats?.av,
+    _ => null,
+  };
+
+  if (current == null || base == null || current == base) {
+    return AppColors.textPrimary;
+  }
+
+  final improved = switch (normalizedStat) {
+    'AG' || 'PA' => current > 0 && current < base,
+    _ => current > base,
+  };
+  return improved ? AppColors.success : AppColors.error;
+}
+
+int? _parseStatValue(String value) {
+  final match = RegExp(r'\d+').firstMatch(value);
+  return match == null ? null : int.tryParse(match.group(0)!);
 }
 
 String localizedPositionText(String raw, String lang) {

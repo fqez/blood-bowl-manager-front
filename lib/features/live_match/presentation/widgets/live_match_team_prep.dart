@@ -1531,7 +1531,6 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
 
     final purchases =
         isHome ? _homeInducementPurchases : _awayInducementPurchases;
-    final uses = isHome ? _homeInducementUses : _awayInducementUses;
     final currentCount = purchases[rule.id] ?? 0;
     final nextCount = currentCount + delta;
     if (nextCount < 0 || nextCount > offer.maxPerTeam) return;
@@ -1882,31 +1881,16 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
                           roster: baseRoster, lang: lang),
                       style: const TextStyle(
                           color: AppColors.textSecondary, fontSize: 10))),
-                  DataCell(Text(p.stats.ma.toString(),
-                      style: const TextStyle(
-                          color: AppColors.textPrimary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold))),
-                  DataCell(Text(p.stats.st.toString(),
-                      style: const TextStyle(
-                          color: AppColors.textPrimary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold))),
-                  DataCell(Text(p.stats.ag.toString(),
-                      style: const TextStyle(
-                          color: AppColors.textPrimary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold))),
-                  DataCell(Text(p.stats.pa ?? '-',
-                      style: const TextStyle(
-                          color: AppColors.textPrimary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold))),
-                  DataCell(Text(p.stats.av.toString(),
-                      style: const TextStyle(
-                          color: AppColors.textPrimary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold))),
+                  DataCell(_prepStatText(
+                      p, baseRoster, 'MA', p.stats.ma.toString())),
+                  DataCell(_prepStatText(
+                      p, baseRoster, 'ST', p.stats.st.toString())),
+                  DataCell(_prepStatText(
+                      p, baseRoster, 'AG', p.stats.ag.toString())),
+                  DataCell(
+                      _prepStatText(p, baseRoster, 'PA', p.stats.pa ?? '-')),
+                  DataCell(_prepStatText(
+                      p, baseRoster, 'AV', p.stats.av.toString())),
                   DataCell(Wrap(
                     spacing: 4,
                     runSpacing: 2,
@@ -1962,6 +1946,18 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
                 ]);
           }).toList(),
         ),
+      ),
+    );
+  }
+
+  Widget _prepStatText(
+      UserPlayer player, BaseTeam? baseRoster, String stat, String value) {
+    return Text(
+      value,
+      style: TextStyle(
+        color: userPlayerStatColor(player, baseRoster, stat, value),
+        fontSize: 12,
+        fontWeight: FontWeight.bold,
       ),
     );
   }

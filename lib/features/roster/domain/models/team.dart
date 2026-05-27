@@ -227,10 +227,29 @@ Map<String, dynamic> _normalizeCharacterJson(Map<String, dynamic> json) => {
       'cost': json['cost'] ?? json['current_value'],
       'normalSkills': json['normalSkills'] ?? json['normal_skills'],
       'doubleSkills': json['doubleSkills'] ?? json['double_skills'],
+      'status': _normalizePlayerStatusJson(json['status']),
       'career': json['career'],
       'injuryDetails': json['injuryDetails'] ?? json['injury_details'],
       'missNextGame': json['missNextGame'] ?? json['miss_next_game'],
     };
+
+String _normalizePlayerStatusJson(Object? status) {
+  switch (status) {
+    case 'missing_next_game':
+      return 'mng';
+    case 'badly_hurt':
+    case 'seriously_injured':
+    case 'sent_off':
+      return 'injured';
+    case 'healthy':
+    case 'injured':
+    case 'mng':
+    case 'dead':
+      return status as String;
+    default:
+      return 'healthy';
+  }
+}
 
 Map<String, dynamic> _normalizeCareerStatsJson(Map<String, dynamic> json) => {
       ...json,

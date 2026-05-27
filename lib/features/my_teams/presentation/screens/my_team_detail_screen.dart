@@ -1241,7 +1241,7 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
           Switch(
             value: team.apothecary && team.apothecaryAllowed,
             onChanged: canToggle ? (value) => _patch(apothecary: value) : null,
-            activeColor: AppColors.success,
+            activeThumbColor: AppColors.success,
             materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
         ],
@@ -1521,11 +1521,21 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
                 ),
               ),
             // Stats
-            _statCell('${player.stats.ma}'),
-            _statCell('${player.stats.st}'),
-            _statCell(player.stats.ag),
-            _statCell(player.stats.pa ?? '-'),
-            _statCell(player.stats.av),
+            _statCell('${player.stats.ma}',
+                color: userPlayerStatColor(
+                    player, baseRoster, 'MA', '${player.stats.ma}')),
+            _statCell('${player.stats.st}',
+                color: userPlayerStatColor(
+                    player, baseRoster, 'ST', '${player.stats.st}')),
+            _statCell(player.stats.ag,
+                color: userPlayerStatColor(
+                    player, baseRoster, 'AG', player.stats.ag)),
+            _statCell(player.stats.pa ?? '-',
+                color: userPlayerStatColor(
+                    player, baseRoster, 'PA', player.stats.pa ?? '-')),
+            _statCell(player.stats.av,
+                color: userPlayerStatColor(
+                    player, baseRoster, 'AV', player.stats.av)),
             const SizedBox(width: 10),
             // Skills
             Expanded(
@@ -1705,16 +1715,16 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
     );
   }
 
-  Widget _statCell(String value) {
+  Widget _statCell(String value, {Color color = AppColors.textPrimary}) {
     return SizedBox(
       width: 38,
       child: Center(
         child: Text(
           value,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w900,
-            color: AppColors.textPrimary,
+            color: color,
             height: 1,
           ),
         ),
@@ -2132,6 +2142,7 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
     );
 
     if (confirmed != true) return;
+    if (!context.mounted) return;
 
     final newName = nameController.text.trim();
     final newNumber = int.tryParse(numberController.text.trim());
@@ -2141,6 +2152,7 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
 
     if (!nameChanged && !numberChanged) return;
 
+    final messenger = ScaffoldMessenger.of(context);
     try {
       await ref.read(teamRepositoryProvider).updatePlayer(
             widget.teamId,
@@ -2150,7 +2162,7 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
           );
       _refresh();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(
             content: Text(
                 'Jugador actualizado: $newName #${newNumber ?? player.number}'),
@@ -2160,7 +2172,7 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(
               content: Text('Error: $e'), backgroundColor: AppColors.error),
         );

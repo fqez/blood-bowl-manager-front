@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
@@ -27,6 +29,10 @@ class MatchEventDraft {
   final String? victimId;
   final String? victimName;
   final String? injury;
+  final String? injuryCategory;
+  final String? injuryNote;
+  final int? lastingInjuryRoll;
+  final bool sentOff;
   final String? detail;
   final int half;
   final int turn;
@@ -39,11 +45,17 @@ class MatchEventDraft {
     this.victimId,
     this.victimName,
     this.injury,
+    this.injuryCategory,
+    this.injuryNote,
+    this.lastingInjuryRoll,
+    this.sentOff = false,
     this.detail,
     required this.half,
     required this.turn,
   });
 }
+
+typedef MatchEventSubmit = FutureOr<bool> Function(MatchEventDraft draft);
 
 Future<void> showMatchEventDialog({
   required BuildContext context,
@@ -52,7 +64,7 @@ Future<void> showMatchEventDialog({
   required String eventType,
   required List<UserPlayer> homePlayers,
   required List<UserPlayer> awayPlayers,
-  required ValueChanged<MatchEventDraft> onAdd,
+  required MatchEventSubmit onAdd,
   String initialTeam = 'home',
   bool allowTeamSelection = true,
 }) async {
@@ -62,11 +74,17 @@ Future<void> showMatchEventDialog({
   String playerNameText = '';
   String victimNameText = '';
   String? selectedInjury;
+  String casualtyCategory = 'badly_hurt';
+  int lastingInjuryRoll = 1;
   String detail = '';
   bool superbThrow = false;
   bool landedStanding = false;
+  bool foulSentOff = false;
+  bool submitting = false;
 
   final isThrowTeammate = eventType == 'throw_teammate';
+  final isCasualty = eventType == 'casualty';
+  final isFoul = eventType == 'foul';
 
   final needsVictim = [
         'casualty',
@@ -78,7 +96,7 @@ Future<void> showMatchEventDialog({
       ].contains(eventType) ||
       isThrowTeammate;
   final needsInjury =
-      ['casualty', 'rip', 'badly_hurt', 'serious_injury'].contains(eventType);
+      ['rip', 'badly_hurt', 'serious_injury'].contains(eventType);
 
   List<UserPlayer> getPlayers(String team) =>
       team == 'home' ? homePlayers : awayPlayers;
@@ -235,7 +253,8 @@ Future<void> showMatchEventDialog({
                         const SizedBox(height: 16),
                         if (hasRoster)
                           DropdownButtonFormField<UserPlayer>(
-                            value: selectedPlayer,
+                            key: ValueKey('player-$selectedTeam'),
+                            initialValue: selectedPlayer,
                             dropdownColor: AppColors.card,
                             isExpanded: true,
                             style:
@@ -275,7 +294,10 @@ Future<void> showMatchEventDialog({
                           const SizedBox(height: 12),
                           if (getVictimCandidates(selectedTeam).isNotEmpty)
                             DropdownButtonFormField<UserPlayer>(
-                              value: selectedVictim,
+                              key: ValueKey(
+                                'victim-$selectedTeam-${selectedPlayer?.id ?? ''}',
+                              ),
+                              initialValue: selectedVictim,
                               dropdownColor: AppColors.card,
                               isExpanded: true,
                               style:
@@ -342,10 +364,91 @@ Future<void> showMatchEventDialog({
                                 setS(() => landedStanding = v ?? false),
                           ),
                         ],
+                        if (isCasualty) ...[
+                          const SizedBox(height: 12),
+                          DropdownButtonFormField<String>(
+                            initialValue: casualtyCategory,
+                            dropdownColor: AppColors.card,
+                            style:
+                                const TextStyle(color: AppColors.textPrimary),
+                            decoration: _inputDeco(
+                                lang == 'es' ? 'Resultado' : 'Result'),
+                            items: _casualtyConditionOptions(lang)
+                                .map((option) => DropdownMenuItem<String>(
+                                      value: option.value,
+                                      child: Row(
+                                        children: [
+                                          Icon(option.icon,
+                                              size: 16, color: option.color),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            option.label,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ],
+                                      ),
+                                    ))
+                                .toList(),
+                            onChanged: submitting
+                                ? null
+                                : (value) {
+                                    if (value != null) {
+                                      setS(() => casualtyCategory = value);
+                                    }
+                                  },
+                          ),
+                          if (casualtyCategory == 'lasting_injury') ...[
+                            const SizedBox(height: 12),
+                            DropdownButtonFormField<int>(
+                              initialValue: lastingInjuryRoll,
+                              dropdownColor: AppColors.card,
+                              style:
+                                  const TextStyle(color: AppColors.textPrimary),
+                              decoration: _inputDeco('D6'),
+                              items: List.generate(6, (index) => index + 1)
+                                  .map((roll) => DropdownMenuItem<int>(
+                                        value: roll,
+                                        child: Text(_lastingInjuryRollLabel(
+                                            roll, lang)),
+                                      ))
+                                  .toList(),
+                              onChanged: submitting
+                                  ? null
+                                  : (value) {
+                                      if (value != null) {
+                                        setS(() => lastingInjuryRoll = value);
+                                      }
+                                    },
+                            ),
+                          ],
+                        ],
+                        if (isFoul) ...[
+                          const SizedBox(height: 12),
+                          CheckboxListTile(
+                            value: foulSentOff,
+                            dense: true,
+                            activeColor: AppColors.warning,
+                            contentPadding: EdgeInsets.zero,
+                            title: Text(
+                              lang == 'es'
+                                  ? 'Jugador expulsado'
+                                  : 'Player sent off',
+                              style: const TextStyle(
+                                color: AppColors.textSecondary,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            onChanged: submitting
+                                ? null
+                                : (value) =>
+                                    setS(() => foulSentOff = value ?? false),
+                          ),
+                        ],
                         if (needsInjury) ...[
                           const SizedBox(height: 12),
                           DropdownButtonFormField<String>(
-                            value: selectedInjury,
+                            initialValue: selectedInjury,
                             dropdownColor: AppColors.card,
                             style:
                                 const TextStyle(color: AppColors.textPrimary),
@@ -405,33 +508,60 @@ Future<void> showMatchEventDialog({
                       const SizedBox(width: 12),
                       ElevatedButton.icon(
                         icon: Icon(matchEventIcon(eventType), size: 18),
-                        onPressed: () {
-                          final cleanDetail = detail.trim();
-                          final eventDetail = isThrowTeammate
-                              ? 'Soberbio: ${superbThrow ? 'sí' : 'no'} · Cae de pie: ${landedStanding ? 'sí' : 'no'}${cleanDetail.isEmpty ? '' : ' · $cleanDetail'}'
-                              : cleanDetail;
-                          Navigator.pop(ctx);
-                          onAdd(MatchEventDraft(
-                            type: eventType,
-                            team: selectedTeam,
-                            playerId: selectedPlayer?.id,
-                            playerName: selectedPlayer != null
-                                ? '#${selectedPlayer!.number} ${selectedPlayer!.name}'
-                                : (playerNameText.isEmpty
-                                    ? null
-                                    : playerNameText),
-                            victimId: selectedVictim?.id,
-                            victimName: selectedVictim != null
-                                ? '#${selectedVictim!.number} ${selectedVictim!.name}'
-                                : (victimNameText.isEmpty
-                                    ? null
-                                    : victimNameText),
-                            injury: selectedInjury,
-                            detail: eventDetail.isEmpty ? null : eventDetail,
-                            half: match.currentHalf,
-                            turn: match.currentTurn,
-                          ));
-                        },
+                        onPressed: submitting
+                            ? null
+                            : () async {
+                                setS(() => submitting = true);
+                                final cleanDetail = detail.trim();
+                                final eventDetail = isThrowTeammate
+                                    ? 'Soberbio: ${superbThrow ? 'sí' : 'no'} · Cae de pie: ${landedStanding ? 'sí' : 'no'}${cleanDetail.isEmpty ? '' : ' · $cleanDetail'}'
+                                    : cleanDetail;
+                                final injuryCategory = isCasualty &&
+                                        casualtyCategory != 'badly_hurt'
+                                    ? casualtyCategory
+                                    : null;
+                                final shouldClose = await onAdd(MatchEventDraft(
+                                  type: eventType,
+                                  team: selectedTeam,
+                                  playerId: selectedPlayer?.id,
+                                  playerName: selectedPlayer != null
+                                      ? '#${selectedPlayer!.number} ${selectedPlayer!.name}'
+                                      : (playerNameText.isEmpty
+                                          ? null
+                                          : playerNameText),
+                                  victimId: selectedVictim?.id,
+                                  victimName: selectedVictim != null
+                                      ? '#${selectedVictim!.number} ${selectedVictim!.name}'
+                                      : (victimNameText.isEmpty
+                                          ? null
+                                          : victimNameText),
+                                  injury: isCasualty
+                                      ? _casualtyInjuryLabel(
+                                          casualtyCategory,
+                                          lastingInjuryRoll,
+                                          lang,
+                                        )
+                                      : selectedInjury,
+                                  injuryCategory: injuryCategory,
+                                  injuryNote:
+                                      cleanDetail.isEmpty ? null : cleanDetail,
+                                  lastingInjuryRoll:
+                                      casualtyCategory == 'lasting_injury'
+                                          ? lastingInjuryRoll
+                                          : null,
+                                  sentOff: isFoul && foulSentOff,
+                                  detail:
+                                      eventDetail.isEmpty ? null : eventDetail,
+                                  half: match.currentHalf,
+                                  turn: match.currentTurn,
+                                ));
+                                if (!ctx.mounted) return;
+                                if (shouldClose) {
+                                  Navigator.pop(ctx);
+                                } else {
+                                  setS(() => submitting = false);
+                                }
+                              },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: evColor,
                           foregroundColor: Colors.white,
@@ -582,4 +712,84 @@ Widget _teamChip({
       ),
     ),
   );
+}
+
+class _MatchConditionOption {
+  final String value;
+  final String label;
+  final Color color;
+  final IconData icon;
+
+  const _MatchConditionOption({
+    required this.value,
+    required this.label,
+    required this.color,
+    required this.icon,
+  });
+}
+
+List<_MatchConditionOption> _casualtyConditionOptions(String lang) => [
+      _MatchConditionOption(
+        value: 'badly_hurt',
+        label: lang == 'es' ? 'Sin secuelas' : 'No long-term effect',
+        color: AppColors.warning,
+        icon: PhosphorIcons.firstAid(PhosphorIconsStyle.fill),
+      ),
+      _MatchConditionOption(
+        value: 'miss_next_game',
+        label: lang == 'es' ? 'Se pierde el próximo' : 'Miss next game',
+        color: AppColors.warning,
+        icon: PhosphorIcons.calendarX(PhosphorIconsStyle.fill),
+      ),
+      _MatchConditionOption(
+        value: 'lasting_injury',
+        label: lang == 'es' ? 'Lesión permanente' : 'Lasting injury',
+        color: AppColors.error,
+        icon: PhosphorIcons.firstAidKit(PhosphorIconsStyle.fill),
+      ),
+      _MatchConditionOption(
+        value: 'dead',
+        label: lang == 'es' ? 'Muerto' : 'Dead',
+        color: AppColors.dead,
+        icon: PhosphorIcons.skull(PhosphorIconsStyle.fill),
+      ),
+    ];
+
+String _casualtyInjuryLabel(String category, int roll, String lang) {
+  switch (category) {
+    case 'miss_next_game':
+      return lang == 'es' ? 'Se pierde el próximo' : 'Miss next game';
+    case 'lasting_injury':
+      return _lastingInjuryRollLabel(roll, lang);
+    case 'dead':
+      return lang == 'es' ? 'Muerto' : 'Dead';
+    default:
+      return lang == 'es' ? 'Sin secuelas' : 'No long-term effect';
+  }
+}
+
+String _lastingInjuryRollLabel(int roll, String lang) {
+  switch (roll) {
+    case 1:
+    case 2:
+      return lang == 'es'
+          ? '$roll - Cabeza fracturada (-1 AV)'
+          : '$roll - Head injury (-1 AV)';
+    case 3:
+      return lang == 'es'
+          ? '3 - Rodilla aplastada (-1 MA)'
+          : '3 - Smashed knee (-1 MA)';
+    case 4:
+      return lang == 'es' ? '4 - Brazo roto (-1 PA)' : '4 - Broken arm (-1 PA)';
+    case 5:
+      return lang == 'es'
+          ? '5 - Cadera dislocada (-1 AG)'
+          : '5 - Dislocated hip (-1 AG)';
+    case 6:
+      return lang == 'es'
+          ? '6 - Rotura de hombro (-1 ST)'
+          : '6 - Broken shoulder (-1 ST)';
+    default:
+      return '$roll';
+  }
 }

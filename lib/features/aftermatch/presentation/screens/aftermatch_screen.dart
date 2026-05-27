@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
@@ -401,6 +402,10 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
   int _scoreAway = 0;
   int _tdHome = 0;
   int _tdAway = 0;
+  final TextEditingController _tdHomeController =
+      TextEditingController(text: '0');
+  final TextEditingController _tdAwayController =
+      TextEditingController(text: '0');
   int _casHome = 0;
   int _casAway = 0;
   int _compHome = 0;
@@ -420,8 +425,6 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
   int _awayFanFactor = 1;
   bool _homeStalling = false;
   bool _awayStalling = false;
-  int? _homeWinnings;
-  int? _awayWinnings;
 
   // ── Section 3: Dedicated Fans ──
   int? _homeFanRoll;
@@ -462,12 +465,32 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
         height: 0.95,
       );
 
+  @override
+  void dispose() {
+    _tdHomeController.dispose();
+    _tdAwayController.dispose();
+    super.dispose();
+  }
+
+  void _setControllerNumber(TextEditingController controller, int value) {
+    final text = value.toString();
+    if (controller.text == text) return;
+    controller.value = TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
+    );
+  }
+
   void _initFromMatch(Match match) {
     if (_initialized) return;
     _initialized = true;
 
     _scoreHome = match.scoreHome;
     _scoreAway = match.scoreAway;
+    _tdHome = match.scoreHome;
+    _tdAway = match.scoreAway;
+    _setControllerNumber(_tdHomeController, _tdHome);
+    _setControllerNumber(_tdAwayController, _tdAway);
     _gate = match.gate ?? 0;
     _rerollsHome = match.rerollsUsedHome;
     _rerollsAway = match.rerollsUsedAway;
@@ -482,8 +505,6 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
       }
 
       switch (eventType) {
-        case 'touchdown':
-          isHome ? _tdHome++ : _tdAway++;
         case 'casualty':
           isHome ? _casHome++ : _casAway++;
         case 'completion':
@@ -510,6 +531,8 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
 
     _tdHome = _scoreHome;
     _tdAway = _scoreAway;
+    _setControllerNumber(_tdHomeController, _tdHome);
+    _setControllerNumber(_tdAwayController, _tdAway);
     _casHome = random.nextInt(4);
     _casAway = random.nextInt(4);
     _compHome = random.nextInt(7);
@@ -572,6 +595,22 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
             .round();
   }
 
+  int _currentHomeWinnings([WinningsRules? rules]) => _calcWinnings(
+        _homeFanFactor,
+        _awayFanFactor,
+        _tdHome,
+        _homeStalling,
+        rules,
+      );
+
+  int _currentAwayWinnings([WinningsRules? rules]) => _calcWinnings(
+        _awayFanFactor,
+        _homeFanFactor,
+        _tdAway,
+        _awayStalling,
+        rules,
+      );
+
   Color _expensiveColor(String code) {
     switch (code) {
       case 'crisis_avoided':
@@ -627,39 +666,47 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
     _awayCatastropheD6B = null;
   }
 
-  void _setPostMatchStat(String type, String team, int value) {
+  void _setPostMatchStat(
+    String type,
+    String team,
+    int value, {
+    bool syncText = true,
+  }) {
+    final safeValue = max(0, value);
     setState(() {
       switch ('$team:$type') {
         case 'home:touchdown':
-          _tdHome = value;
-          _scoreHome = value;
+          _tdHome = safeValue;
+          _scoreHome = safeValue;
+          if (syncText) _setControllerNumber(_tdHomeController, safeValue);
         case 'away:touchdown':
-          _tdAway = value;
-          _scoreAway = value;
+          _tdAway = safeValue;
+          _scoreAway = safeValue;
+          if (syncText) _setControllerNumber(_tdAwayController, safeValue);
         case 'home:casualty':
-          _casHome = value;
+          _casHome = safeValue;
         case 'away:casualty':
-          _casAway = value;
+          _casAway = safeValue;
         case 'home:completion':
-          _compHome = value;
+          _compHome = safeValue;
         case 'away:completion':
-          _compAway = value;
+          _compAway = safeValue;
         case 'home:interception':
-          _intHome = value;
+          _intHome = safeValue;
         case 'away:interception':
-          _intAway = value;
+          _intAway = safeValue;
         case 'home:foul':
-          _foulHome = value;
+          _foulHome = safeValue;
         case 'away:foul':
-          _foulAway = value;
+          _foulAway = safeValue;
         case 'home:ko':
-          _koHome = value;
+          _koHome = safeValue;
         case 'away:ko':
-          _koAway = value;
+          _koAway = safeValue;
         case 'home:reroll':
-          _rerollsHome = value;
+          _rerollsHome = safeValue;
         case 'away:reroll':
-          _rerollsAway = value;
+          _rerollsAway = safeValue;
       }
     });
   }
@@ -702,6 +749,7 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
       onAdd: (draft) {
         _addPostMatchEvent(draft);
         _setPostMatchStat(type, team, nextValue);
+        return true;
       },
     );
   }
@@ -827,24 +875,10 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
         throw Exception(
             'Completa la tirada de seguidores del equipo visitante');
       }
-      final homeTreasury = (_homeTeam?.treasury ?? 0) +
-          (_homeWinnings ??
-              _calcWinnings(
-                _homeFanFactor,
-                _awayFanFactor,
-                _tdHome,
-                _homeStalling,
-                winningsRules,
-              ));
-      final awayTreasury = (_awayTeam?.treasury ?? 0) +
-          (_awayWinnings ??
-              _calcWinnings(
-                _awayFanFactor,
-                _homeFanFactor,
-                _tdAway,
-                _awayStalling,
-                winningsRules,
-              ));
+      final homeTreasury =
+          (_homeTeam?.treasury ?? 0) + _currentHomeWinnings(winningsRules);
+      final awayTreasury =
+          (_awayTeam?.treasury ?? 0) + _currentAwayWinnings(winningsRules);
       final homeFinalTreasury = _expensiveFinalTreasury(
         rules: rules,
         treasury: homeTreasury,
@@ -1147,22 +1181,11 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
           const SizedBox(height: 22),
 
           // Stats grid
-          _statRow(tr(lang, 'aftermatch.touchdowns'), _tdHome, _tdAway,
-              AppColors.accent, PhosphorIcons.trophy(PhosphorIconsStyle.fill),
-              onHomeChanged: (v) => _handlePostMatchStatChanged(
-                    match: match,
-                    type: 'touchdown',
-                    team: 'home',
-                    currentValue: _tdHome,
-                    nextValue: v,
-                  ),
-              onAwayChanged: (v) => _handlePostMatchStatChanged(
-                    match: match,
-                    type: 'touchdown',
-                    team: 'away',
-                    currentValue: _tdAway,
-                    nextValue: v,
-                  )),
+          _touchdownRow(
+            tr(lang, 'aftermatch.touchdowns'),
+            AppColors.accent,
+            PhosphorIcons.trophy(PhosphorIconsStyle.fill),
+          ),
           _statRow(tr(lang, 'aftermatch.casualties'), _casHome, _casAway,
               AppColors.error, PhosphorIcons.skull(PhosphorIconsStyle.fill),
               onHomeChanged: (v) => _handlePostMatchStatChanged(
@@ -1326,7 +1349,10 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
                 _playedPlayers(_homeTeam?.players ?? [], match.homeSquad),
             awayPlayers:
                 _playedPlayers(_awayTeam?.players ?? [], match.awaySquad),
-            onAdd: _addPostMatchEvent,
+            onAdd: (draft) {
+              _addPostMatchEvent(draft);
+              return true;
+            },
           ),
         ),
       ],
@@ -1515,6 +1541,115 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
     );
   }
 
+  Widget _touchdownRow(String label, Color color, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 7),
+      child: Row(
+        children: [
+          _editableMiniCounter(
+            value: _tdHome,
+            controller: _tdHomeController,
+            onChanged: (v, {bool syncText = true}) => _setPostMatchStat(
+              'touchdown',
+              'home',
+              v,
+              syncText: syncText,
+            ),
+            color: AppColors.info,
+          ),
+          const Spacer(),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 19, color: color),
+              const SizedBox(width: 9),
+              Text(label,
+                  style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700)),
+            ],
+          ),
+          const Spacer(),
+          _editableMiniCounter(
+            value: _tdAway,
+            controller: _tdAwayController,
+            onChanged: (v, {bool syncText = true}) => _setPostMatchStat(
+              'touchdown',
+              'away',
+              v,
+              syncText: syncText,
+            ),
+            color: AppColors.error,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _editableMiniCounter({
+    required int value,
+    required TextEditingController controller,
+    required void Function(int value, {bool syncText}) onChanged,
+    required Color color,
+  }) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _miniBtn(PhosphorIcons.minus(PhosphorIconsStyle.bold),
+            value > 0 ? () => onChanged(value - 1) : null),
+        SizedBox(
+          width: 52,
+          height: 38,
+          child: TextField(
+            controller: controller,
+            textAlign: TextAlign.center,
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            style: TextStyle(
+              color: color,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              fontFamily: AppTypography.displayFontFamily,
+            ),
+            decoration: InputDecoration(
+              isDense: true,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+              filled: true,
+              fillColor: AppColors.surface.withValues(alpha: 0.72),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: AppColors.surfaceLight),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: AppColors.surfaceLight),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: color, width: 1.5),
+              ),
+            ),
+            onChanged: (text) {
+              if (text.isEmpty) return;
+              final parsed = int.tryParse(text);
+              if (parsed != null) onChanged(parsed, syncText: false);
+            },
+            onEditingComplete: () {
+              if (controller.text.isEmpty) {
+                _setControllerNumber(controller, value);
+              }
+              FocusScope.of(context).unfocus();
+            },
+          ),
+        ),
+        _miniBtn(PhosphorIcons.plus(PhosphorIconsStyle.bold),
+            () => onChanged(value + 1)),
+      ],
+    );
+  }
+
   Widget _miniCounter(int value, ValueChanged<int> onChanged, Color color) {
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -1634,10 +1769,8 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
 
   Widget _buildWinningsSection() {
     final rules = ref.watch(winningsRulesProvider).valueOrNull;
-    _homeWinnings = _calcWinnings(
-        _homeFanFactor, _awayFanFactor, _tdHome, _homeStalling, rules);
-    _awayWinnings = _calcWinnings(
-        _awayFanFactor, _homeFanFactor, _tdAway, _awayStalling, rules);
+    final homeWinnings = _currentHomeWinnings(rules);
+    final awayWinnings = _currentAwayWinnings(rules);
     final lang = ref.watch(localeProvider);
 
     return _sectionCard(
@@ -1655,7 +1788,7 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
             opponentFanFactor: _awayFanFactor,
             touchdowns: _tdHome,
             stalling: _homeStalling,
-            winnings: _homeWinnings!,
+            winnings: homeWinnings,
             color: AppColors.info,
           );
 
@@ -1665,7 +1798,7 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
             opponentFanFactor: _homeFanFactor,
             touchdowns: _tdAway,
             stalling: _awayStalling,
-            winnings: _awayWinnings!,
+            winnings: awayWinnings,
             color: AppColors.error,
           );
 
@@ -2801,8 +2934,11 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
   Widget _buildExpensiveMistakesSection() {
     final lang = ref.watch(localeProvider);
     final rulesAsync = ref.watch(expensiveMistakesRulesProvider);
-    final homeTreasury = (_homeTeam?.treasury ?? 0) + (_homeWinnings ?? 0);
-    final awayTreasury = (_awayTeam?.treasury ?? 0) + (_awayWinnings ?? 0);
+    final winningsRules = ref.watch(winningsRulesProvider).valueOrNull;
+    final homeTreasury =
+        (_homeTeam?.treasury ?? 0) + _currentHomeWinnings(winningsRules);
+    final awayTreasury =
+        (_awayTeam?.treasury ?? 0) + _currentAwayWinnings(winningsRules);
 
     return _sectionCard(
       icon: PhosphorIcons.warning(PhosphorIconsStyle.fill),

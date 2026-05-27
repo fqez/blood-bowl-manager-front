@@ -31,6 +31,10 @@ extension _LiveMatchLiveView on _LiveMatchScreenState {
                   _buildQuickActionsPanel(match, lang),
                   const SizedBox(height: 28),
 
+                  // Rosters
+                  _buildMatchRosterPanel(match, lang),
+                  const SizedBox(height: 28),
+
                   // Gate + Rerolls
                   _buildGateAndRerolls(match, lang),
                   const SizedBox(height: 28),
@@ -948,6 +952,811 @@ extension _LiveMatchLiveView on _LiveMatchScreenState {
     );
   }
 
+  Widget _buildMatchRosterPanel(Match match, String lang) {
+    final homeTeam = _homeTeam;
+    final awayTeam = _awayTeam;
+    final allPerks = ref.watch(allPerksProvider).valueOrNull ?? const [];
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.card.withValues(alpha: 0.88),
+        borderRadius: BorderRadius.circular(22),
+        border:
+            Border.all(color: AppColors.surfaceLight.withValues(alpha: 0.72)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.16),
+            blurRadius: 24,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: AppColors.info.withValues(alpha: 0.13),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: AppColors.info.withValues(alpha: 0.32),
+                  ),
+                ),
+                child: Icon(
+                  PhosphorIcons.usersThree(PhosphorIconsStyle.fill),
+                  color: AppColors.info,
+                  size: 19,
+                ),
+              ),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Text(
+                  'JUGADORES',
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (_rosterLoading && (homeTeam == null || awayTeam == null))
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: Center(
+                child: CircularProgressIndicator(color: AppColors.primary),
+              ),
+            )
+          else if (homeTeam == null || awayTeam == null)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 18),
+              child: Text(
+                'Cargando jugadores...',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+              ),
+            )
+          else
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final stacked = constraints.maxWidth < 980;
+                final tables = [
+                  _buildLiveRosterTable(
+                    match: match,
+                    team: homeTeam,
+                    baseRoster: _homeBaseRoster,
+                    teamLabel: match.home.teamName,
+                    players: _liveRosterPlayers(homeTeam, true),
+                    isHome: true,
+                    lang: lang,
+                    allPerks: allPerks,
+                    accent: AppColors.info,
+                  ),
+                  _buildLiveRosterTable(
+                    match: match,
+                    team: awayTeam,
+                    baseRoster: _awayBaseRoster,
+                    teamLabel: match.away.teamName,
+                    players: _liveRosterPlayers(awayTeam, false),
+                    isHome: false,
+                    lang: lang,
+                    allPerks: allPerks,
+                    accent: AppColors.error,
+                  ),
+                ];
+                if (stacked) {
+                  return Column(
+                    children: [
+                      tables[0],
+                      const SizedBox(height: 12),
+                      tables[1],
+                    ],
+                  );
+                }
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: tables[0]),
+                    const SizedBox(width: 12),
+                    Expanded(child: tables[1]),
+                  ],
+                );
+              },
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLiveRosterTable({
+    required Match match,
+    required UserTeamDetail team,
+    required BaseTeam? baseRoster,
+    required String teamLabel,
+    required List<UserPlayer> players,
+    required bool isHome,
+    required String lang,
+    required List<Map<String, dynamic>> allPerks,
+    required Color accent,
+  }) {
+    players = [...players]..sort((a, b) => a.number.compareTo(b.number));
+
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: AppColors.surfaceLight),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            color: accent.withValues(alpha: 0.12),
+            child: Text(
+              teamLabel.toUpperCase(),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: accent,
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0.6,
+              ),
+            ),
+          ),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: DataTable(
+              showCheckboxColumn: false,
+              headingRowColor: WidgetStateProperty.all(AppColors.surface),
+              columnSpacing: 10,
+              horizontalMargin: 10,
+              headingRowHeight: 34,
+              dataRowMinHeight: 42,
+              dataRowMaxHeight: 70,
+              headingTextStyle: const TextStyle(
+                color: AppColors.textMuted,
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+              ),
+              columns: const [
+                DataColumn(label: Text('#')),
+                DataColumn(label: Text('NOMBRE')),
+                DataColumn(label: Text('MA'), numeric: true),
+                DataColumn(label: Text('ST'), numeric: true),
+                DataColumn(label: Text('AG'), numeric: true),
+                DataColumn(label: Text('PA'), numeric: true),
+                DataColumn(label: Text('AV'), numeric: true),
+                DataColumn(label: Text('HABILIDADES')),
+                DataColumn(label: Text('ESTADO')),
+              ],
+              rows: players.map((player) {
+                final liveStatus =
+                    _liveMatchPlayerStatus(match, player, isHome);
+                void openPlayer() => _showLivePlayerDialog(
+                      team: team,
+                      player: player,
+                      baseRoster: baseRoster,
+                      liveStatus: liveStatus,
+                      isHome: isHome,
+                      lang: lang,
+                      allPerks: allPerks,
+                    );
+
+                return DataRow(
+                  cells: [
+                    DataCell(
+                      Text(
+                        player.number.toString().padLeft(2, '0'),
+                        style: const TextStyle(
+                          color: AppColors.primary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      onTap: openPlayer,
+                    ),
+                    DataCell(
+                      SizedBox(
+                        width: 130,
+                        child: Text(
+                          player.name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      onTap: openPlayer,
+                    ),
+                    DataCell(
+                        _statText(
+                            player, baseRoster, 'MA', '${player.stats.ma}'),
+                        onTap: openPlayer),
+                    DataCell(
+                        _statText(
+                            player, baseRoster, 'ST', '${player.stats.st}'),
+                        onTap: openPlayer),
+                    DataCell(
+                        _statText(player, baseRoster, 'AG', player.stats.ag),
+                        onTap: openPlayer),
+                    DataCell(
+                        _statText(
+                            player, baseRoster, 'PA', player.stats.pa ?? '-'),
+                        onTap: openPlayer),
+                    DataCell(
+                        _statText(player, baseRoster, 'AV', player.stats.av),
+                        onTap: openPlayer),
+                    DataCell(
+                      SizedBox(
+                        width: 230,
+                        child: _buildLiveSkillWrap(
+                          player,
+                          allPerks,
+                          lang,
+                          interactive: false,
+                        ),
+                      ),
+                      onTap: openPlayer,
+                    ),
+                    DataCell(_statusBadge(liveStatus, lang), onTap: openPlayer),
+                  ],
+                );
+              }).toList(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<UserPlayer> _liveRosterPlayers(UserTeamDetail team, bool isHome) {
+    final selectedIds = isHome ? _selectedHomePlayers : _selectedAwayPlayers;
+    final loadedPlayers = isHome ? _homePlayers : _awayPlayers;
+    final ids = selectedIds.isNotEmpty
+        ? selectedIds
+        : (loadedPlayers ?? const <UserPlayer>[]).map((p) => p.id).toSet();
+    if (ids.isEmpty) return const [];
+    return team.players.where((player) => ids.contains(player.id)).toList();
+  }
+
+  Widget _statText(
+      UserPlayer player, BaseTeam? baseRoster, String stat, String value) {
+    return Text(
+      value,
+      style: TextStyle(
+        color: userPlayerStatColor(player, baseRoster, stat, value),
+        fontSize: 12,
+        fontWeight: FontWeight.w900,
+      ),
+    );
+  }
+
+  Widget _buildLiveSkillWrap(
+      UserPlayer player, List<Map<String, dynamic>> allPerks, String lang,
+      {bool interactive = true}) {
+    if (player.perks.isEmpty) {
+      return const Text(
+        '-',
+        style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+      );
+    }
+    return Wrap(
+      spacing: 4,
+      runSpacing: 3,
+      children: player.perks
+          .map((perk) => _liveSkillChip(
+                perk,
+                allPerks,
+                lang,
+                interactive: interactive,
+              ))
+          .toList(),
+    );
+  }
+
+  Widget _liveSkillChip(
+      UserPlayerPerk perk, List<Map<String, dynamic>> allPerks, String lang,
+      {required bool interactive}) {
+    final displayName = localizedPerkName(allPerks, perk.name, lang);
+    final chip = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(5),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+      ),
+      child: Text(
+        displayName.toUpperCase(),
+        style: const TextStyle(
+          color: AppColors.textSecondary,
+          fontSize: 9,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+    if (!interactive) return chip;
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        showSkillPopup(
+          context,
+          ref,
+          skillName: perk.name,
+          family: perk.category,
+        );
+      }),
+      child: chip,
+    );
+  }
+
+  Widget _statusBadge(String status, String lang) {
+    final color = _playerStatusColor(status);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
+      ),
+      child: Text(
+        _playerStatusLabel(status, lang).toUpperCase(),
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+          color: color,
+        ),
+      ),
+    );
+  }
+
+  String _liveMatchPlayerStatus(Match match, UserPlayer player, bool isHome) {
+    final side = isHome ? 'home' : 'away';
+    final sentOff = match.events.any((event) =>
+        event.type == 'foul' &&
+        event.team == side &&
+        event.playerId == player.id &&
+        event.injury == 'sent_off');
+    return sentOff ? 'sent_off' : player.status;
+  }
+
+  Future<void> _showLivePlayerDialog({
+    required UserTeamDetail team,
+    required UserPlayer player,
+    required BaseTeam? baseRoster,
+    required String liveStatus,
+    required bool isHome,
+    required String lang,
+    required List<Map<String, dynamic>> allPerks,
+  }) async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) {
+          final statusColor = _playerStatusColor(liveStatus);
+          final screenWidth = MediaQuery.of(dialogContext).size.width;
+          final popupWidth = screenWidth < 620 ? screenWidth * 0.94 : 620.0;
+
+          return Dialog(
+            backgroundColor: Colors.transparent,
+            insetPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: popupWidth,
+                maxHeight: MediaQuery.of(dialogContext).size.height * 0.88,
+              ),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                      color: statusColor.withValues(alpha: 0.35), width: 1.5),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.4),
+                      blurRadius: 24,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: SingleChildScrollView(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                width: 54,
+                                height: 54,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color:
+                                      AppColors.primary.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(
+                                    color: AppColors.primary
+                                        .withValues(alpha: 0.35),
+                                  ),
+                                ),
+                                child: Text(
+                                  player.number.toString().padLeft(2, '0'),
+                                  style: const TextStyle(
+                                    color: AppColors.primary,
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      player.name,
+                                      style: TextStyle(
+                                        fontFamily:
+                                            AppTypography.displayFontFamily,
+                                        color: AppColors.textPrimary,
+                                        fontSize: 28,
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      team.name,
+                                      style: const TextStyle(
+                                        color: AppColors.textMuted,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              IconButton(
+                                onPressed: () =>
+                                    Navigator.of(dialogContext).pop(),
+                                icon: Icon(
+                                  PhosphorIcons.x(PhosphorIconsStyle.bold),
+                                  color: AppColors.textMuted,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 18),
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: _statusBadge(liveStatus, lang),
+                          ),
+                          const SizedBox(height: 18),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              _detailStat('MA', '${player.stats.ma}',
+                                  color: userPlayerStatColor(player, baseRoster,
+                                      'MA', '${player.stats.ma}')),
+                              _detailStat('ST', '${player.stats.st}',
+                                  color: userPlayerStatColor(player, baseRoster,
+                                      'ST', '${player.stats.st}')),
+                              _detailStat('AG', player.stats.ag,
+                                  color: userPlayerStatColor(player, baseRoster,
+                                      'AG', player.stats.ag)),
+                              _detailStat('PA', player.stats.pa ?? '-',
+                                  color: userPlayerStatColor(player, baseRoster,
+                                      'PA', player.stats.pa ?? '-')),
+                              _detailStat('AV', player.stats.av,
+                                  color: userPlayerStatColor(player, baseRoster,
+                                      'AV', player.stats.av)),
+                            ],
+                          ),
+                          const SizedBox(height: 18),
+                          const Text(
+                            'HABILIDADES',
+                            style: TextStyle(
+                              color: AppColors.textMuted,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 0.8,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          _buildLiveSkillWrap(player, allPerks, lang),
+                          const SizedBox(height: 18),
+                          _buildPlayerIncidentHistory(player, lang),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _detailStat(String label, String value,
+      {Color color = AppColors.textPrimary}) {
+    return Container(
+      width: 78,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.surfaceLight),
+      ),
+      child: Column(
+        children: [
+          Text(label,
+              style: const TextStyle(
+                  color: AppColors.textMuted,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold)),
+          const SizedBox(height: 3),
+          Text(value,
+              style: TextStyle(
+                  color: color, fontSize: 16, fontWeight: FontWeight.w900)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPlayerIncidentHistory(UserPlayer player, String lang) {
+    final history = [...player.injuryHistory]..sort((a, b) =>
+        (b.createdAt ?? DateTime(0)).compareTo(a.createdAt ?? DateTime(0)));
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          (lang == 'es' ? 'HISTORIAL' : 'HISTORY').toUpperCase(),
+          style: const TextStyle(
+            color: AppColors.textMuted,
+            fontSize: 11,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 0.8,
+          ),
+        ),
+        const SizedBox(height: 8),
+        if (history.isEmpty)
+          Text(
+            lang == 'es'
+                ? 'Sin incidencias registradas'
+                : 'No incidents recorded',
+            style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+          )
+        else
+          ...history.map((record) => _incidentHistoryRow(record, lang)),
+      ],
+    );
+  }
+
+  Widget _incidentHistoryRow(UserPlayerInjuryRecord record, String lang) {
+    final color = _conditionColor(record.type);
+    final parts = <String>[
+      record.label,
+      if (record.roll != null) 'D6 ${record.roll}',
+      if (record.reduction != null) record.reduction!,
+    ];
+    final notes = record.notes?.trim();
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withValues(alpha: 0.28)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            parts.join(' · '),
+            style: TextStyle(
+              color: color,
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          if (notes != null && notes.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              notes,
+              style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Future<bool> _updateLivePlayerStatus({
+    required UserTeamDetail team,
+    required UserPlayer player,
+    required String status,
+    String? injuryCategory,
+    String? injuryNote,
+    int? lastingInjuryRoll,
+    required bool isHome,
+    required String lang,
+  }) async {
+    try {
+      final updated = await ref.read(teamRepositoryProvider).updatePlayer(
+            team.id,
+            player.id,
+            status: status,
+            injuryCategory: injuryCategory,
+            injuryNote: injuryNote,
+            lastingInjuryRoll: lastingInjuryRoll,
+          );
+      if (!mounted) return false;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _updateLocalState(() {
+          if (isHome) {
+            _homeTeam = updated;
+            _homePlayers = _liveSquadPlayers(updated, _selectedHomePlayers);
+          } else {
+            _awayTeam = updated;
+            _awayPlayers = _liveSquadPlayers(updated, _selectedAwayPlayers);
+          }
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content:
+                Text(lang == 'es' ? 'Estado actualizado' : 'Status updated'),
+          ),
+        );
+      });
+      return true;
+    } catch (error) {
+      if (!mounted) return false;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('$error'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return false;
+    }
+  }
+
+  List<UserPlayer> _liveSquadPlayers(
+      UserTeamDetail team, Set<String> selectedIds) {
+    if (selectedIds.isEmpty) {
+      return team.players
+          .where((player) => player.status == 'healthy')
+          .toList();
+    }
+    return team.players
+        .where((player) => selectedIds.contains(player.id))
+        .toList();
+  }
+
+  String _statusForConditionCategory(String category) {
+    switch (category) {
+      case 'miss_next_game':
+      case 'lasting_injury':
+        return 'missing_next_game';
+      case 'sent_off':
+        return 'sent_off';
+      case 'dead':
+        return 'dead';
+      default:
+        return 'healthy';
+    }
+  }
+
+  Color _conditionColor(String type) {
+    switch (type) {
+      case 'dead':
+        return AppColors.dead;
+      case 'lasting_injury':
+        return AppColors.error;
+      case 'sent_off':
+      case 'miss_next_game':
+        return AppColors.warning;
+      default:
+        return AppColors.textMuted;
+    }
+  }
+
+  List<_PlayerStatusOption> _playerStatusOptions(String lang) => [
+        _PlayerStatusOption(
+          value: 'healthy',
+          label: lang == 'es' ? 'Activo' : 'Active',
+          color: AppColors.success,
+          icon: PhosphorIcons.checkCircle(PhosphorIconsStyle.fill),
+        ),
+        _PlayerStatusOption(
+          value: 'badly_hurt',
+          label: lang == 'es' ? 'Herido leve' : 'Badly hurt',
+          color: AppColors.warning,
+          icon: PhosphorIcons.firstAid(PhosphorIconsStyle.fill),
+        ),
+        _PlayerStatusOption(
+          value: 'seriously_injured',
+          label: lang == 'es' ? 'Lesionado' : 'Injured',
+          color: AppColors.error,
+          icon: PhosphorIcons.heartbeat(PhosphorIconsStyle.fill),
+        ),
+        _PlayerStatusOption(
+          value: 'missing_next_game',
+          label: lang == 'es' ? 'Se pierde el próximo' : 'Miss next game',
+          color: AppColors.warning,
+          icon: PhosphorIcons.calendarX(PhosphorIconsStyle.fill),
+        ),
+        _PlayerStatusOption(
+          value: 'dead',
+          label: lang == 'es' ? 'Muerto' : 'Dead',
+          color: AppColors.dead,
+          icon: PhosphorIcons.skull(PhosphorIconsStyle.fill),
+        ),
+        _PlayerStatusOption(
+          value: 'sent_off',
+          label: lang == 'es' ? 'Expulsado' : 'Sent off',
+          color: AppColors.warning,
+          icon: PhosphorIcons.prohibit(PhosphorIconsStyle.fill),
+        ),
+      ];
+
+  String _playerStatusLabel(String status, String lang) {
+    return _playerStatusOptions(lang)
+        .firstWhere(
+          (option) => option.value == status,
+          orElse: () => _PlayerStatusOption(
+            value: status,
+            label: status,
+            color: AppColors.textMuted,
+            icon: PhosphorIcons.circle(PhosphorIconsStyle.regular),
+          ),
+        )
+        .label;
+  }
+
+  Color _playerStatusColor(String status) {
+    switch (status) {
+      case 'healthy':
+        return AppColors.success;
+      case 'badly_hurt':
+      case 'missing_next_game':
+        return AppColors.warning;
+      case 'seriously_injured':
+        return AppColors.error;
+      case 'dead':
+        return AppColors.dead;
+      case 'sent_off':
+        return AppColors.warning;
+      default:
+        return AppColors.textMuted;
+    }
+  }
+
   Widget _buildTeamResources(Match match, String lang) {
     final hasInducements = !_isQM &&
         (_homeInducementPurchases.isNotEmpty ||
@@ -1582,8 +2391,6 @@ extension _LiveMatchLiveView on _LiveMatchScreenState {
           AppColors.error,
           'casualty',
           '2 SPP'),
-      _QA('RIP', PhosphorIcons.skull(PhosphorIconsStyle.fill),
-          AppColors.primaryDark, 'rip', null),
       _QA('Foul', PhosphorIcons.prohibit(PhosphorIconsStyle.fill),
           AppColors.primaryLight, 'foul', null),
     ];

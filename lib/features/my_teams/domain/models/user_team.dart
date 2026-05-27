@@ -95,6 +95,43 @@ class UserPlayerCareer {
       );
 }
 
+// ─────────────────────── Injury History ─────────────────────
+
+class UserPlayerInjuryRecord {
+  final String id;
+  final String type;
+  final String label;
+  final String? notes;
+  final int? roll;
+  final String? stat;
+  final String? reduction;
+  final DateTime? createdAt;
+
+  const UserPlayerInjuryRecord({
+    required this.id,
+    required this.type,
+    required this.label,
+    this.notes,
+    this.roll,
+    this.stat,
+    this.reduction,
+    this.createdAt,
+  });
+
+  factory UserPlayerInjuryRecord.fromJson(Map<String, dynamic> json) {
+    return UserPlayerInjuryRecord(
+      id: json['id'] as String? ?? '',
+      type: json['type'] as String? ?? '',
+      label: json['label'] as String? ?? '',
+      notes: json['notes'] as String?,
+      roll: (json['roll'] as num?)?.toInt(),
+      stat: json['stat'] as String?,
+      reduction: json['reduction'] as String?,
+      createdAt: DateTime.tryParse(json['created_at'] as String? ?? ''),
+    );
+  }
+}
+
 // ─────────────────────────── Player ──────────────────────────
 
 class UserPlayer {
@@ -109,6 +146,8 @@ class UserPlayer {
   final int level;
   final int spp;
   final String status;
+  final List<String> injuries;
+  final List<UserPlayerInjuryRecord> injuryHistory;
   final String? image;
   final UserPlayerCareer career;
   final bool temporaryForMatch;
@@ -127,6 +166,8 @@ class UserPlayer {
     required this.level,
     required this.spp,
     required this.status,
+    this.injuries = const [],
+    this.injuryHistory = const [],
     this.image,
     required this.career,
     this.temporaryForMatch = false,
@@ -149,6 +190,13 @@ class UserPlayer {
         level: (json['level'] as num?)?.toInt() ?? 1,
         spp: (json['spp'] as num?)?.toInt() ?? 0,
         status: json['status'] as String? ?? 'healthy',
+        injuries: (json['injuries'] as List<dynamic>? ?? [])
+            .map((e) => '$e')
+            .toList(),
+        injuryHistory: (json['injury_history'] as List<dynamic>? ?? [])
+            .map((e) =>
+                UserPlayerInjuryRecord.fromJson(e as Map<String, dynamic>))
+            .toList(),
         image: json['image'] as String?,
         career: json['career'] != null
             ? UserPlayerCareer.fromJson(json['career'] as Map<String, dynamic>)
@@ -167,6 +215,31 @@ class UserPlayer {
   bool get isActive => status == 'healthy';
   bool get isDead => status == 'dead';
 
+  Set<String> get reducedStats {
+    final reduced = <String>{};
+    for (final record in injuryHistory) {
+      final stat = record.stat?.toUpperCase();
+      if (stat != null && stat.isNotEmpty) reduced.add(stat);
+    }
+    for (final injury in injuries) {
+      switch (injury) {
+        case 'head_injury':
+          reduced.add('AV');
+        case 'smashed_knee':
+          reduced.add('MA');
+        case 'broken_arm':
+          reduced.add('PA');
+        case 'dislocated_hip':
+          reduced.add('AG');
+        case 'broken_shoulder':
+          reduced.add('ST');
+      }
+    }
+    return reduced;
+  }
+
+  bool hasReducedStat(String stat) => reducedStats.contains(stat);
+
   Color get statusColor {
     switch (status) {
       case 'healthy':
@@ -177,6 +250,8 @@ class UserPlayer {
         return AppColors.injured;
       case 'dead':
         return AppColors.dead;
+      case 'sent_off':
+        return AppColors.warning;
       default:
         return AppColors.textMuted;
     }
@@ -194,6 +269,8 @@ class UserPlayer {
         return 'MNG';
       case 'dead':
         return 'Muerto';
+      case 'sent_off':
+        return 'Expulsado';
       default:
         return status;
     }

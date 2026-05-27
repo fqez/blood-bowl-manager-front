@@ -976,6 +976,10 @@ class TeamRepository {
     String playerId, {
     String? name,
     int? number,
+    String? status,
+    String? injuryCategory,
+    String? injuryNote,
+    int? lastingInjuryRoll,
   }) async {
     try {
       final response = await _dio.patch(
@@ -983,6 +987,11 @@ class TeamRepository {
         data: {
           if (name != null) 'name': name,
           if (number != null) 'number': number,
+          if (status != null) 'status': status,
+          if (injuryCategory != null) 'injury_category': injuryCategory,
+          if (injuryNote != null) 'injury_note': injuryNote,
+          if (lastingInjuryRoll != null)
+            'lasting_injury_roll': lastingInjuryRoll,
         },
       );
       return UserTeamDetail.fromJson(response.data as Map<String, dynamic>);
