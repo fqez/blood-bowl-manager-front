@@ -254,7 +254,7 @@ Future<void> showMatchEventDialog({
                         if (hasRoster)
                           DropdownButtonFormField<UserPlayer>(
                             key: ValueKey('player-$selectedTeam'),
-                            initialValue: selectedPlayer,
+                            value: selectedPlayer,
                             dropdownColor: AppColors.card,
                             isExpanded: true,
                             style:
@@ -297,7 +297,7 @@ Future<void> showMatchEventDialog({
                               key: ValueKey(
                                 'victim-$selectedTeam-${selectedPlayer?.id ?? ''}',
                               ),
-                              initialValue: selectedVictim,
+                              value: selectedVictim,
                               dropdownColor: AppColors.card,
                               isExpanded: true,
                               style:
@@ -367,7 +367,7 @@ Future<void> showMatchEventDialog({
                         if (isCasualty) ...[
                           const SizedBox(height: 12),
                           DropdownButtonFormField<String>(
-                            initialValue: casualtyCategory,
+                            value: casualtyCategory,
                             dropdownColor: AppColors.card,
                             style:
                                 const TextStyle(color: AppColors.textPrimary),
@@ -400,7 +400,7 @@ Future<void> showMatchEventDialog({
                           if (casualtyCategory == 'lasting_injury') ...[
                             const SizedBox(height: 12),
                             DropdownButtonFormField<int>(
-                              initialValue: lastingInjuryRoll,
+                              value: lastingInjuryRoll,
                               dropdownColor: AppColors.card,
                               style:
                                   const TextStyle(color: AppColors.textPrimary),
@@ -448,7 +448,7 @@ Future<void> showMatchEventDialog({
                         if (needsInjury) ...[
                           const SizedBox(height: 12),
                           DropdownButtonFormField<String>(
-                            initialValue: selectedInjury,
+                            value: selectedInjury,
                             dropdownColor: AppColors.card,
                             style:
                                 const TextStyle(color: AppColors.textPrimary),
