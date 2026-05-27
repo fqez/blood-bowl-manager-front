@@ -1125,9 +1125,13 @@ class TeamRepository {
   Future<List<BaseTeam>> getBaseTeams() async {
     try {
       final response = await _dio.get('/base-rosters/');
-      return (response.data as List)
+      final teams = (response.data as List)
           .map((json) => BaseTeam.fromJson(json))
           .toList();
+      teams.sort(
+        (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+      );
+      return teams;
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }
