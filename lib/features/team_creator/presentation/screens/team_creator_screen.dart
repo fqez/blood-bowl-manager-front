@@ -13,6 +13,7 @@ import '../../../shared/data/repositories.dart';
 import '../../../shared/presentation/widgets/skill_popup.dart';
 import '../../../shared/presentation/widgets/star_player_popup.dart';
 import '../../../shared/presentation/widgets/team_hero_header.dart';
+import '../../../shared/utils/team_special_rules.dart';
 import '../widgets/budget_bar.dart';
 import '../widgets/team_creator_confirm_step.dart';
 import '../widgets/team_creator_race_step.dart';
@@ -53,6 +54,7 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
   bool _loadingRaceDetail = false;
   bool _isCreating = false;
   bool _starPlayersExpanded = false;
+  String? _favouredOf;
 
   static const int _startingBudget = 1000000;
 
@@ -89,6 +91,9 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
 
   bool get _isValidRoster {
     if (_rosterCount < 11) return false;
+    if (rosterCanChooseFavoured(_selectedRace?.id) && _favouredOf == null) {
+      return false;
+    }
     return true;
   }
 
@@ -104,6 +109,7 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
       _roster.clear();
       _rerolls = 0;
       _dedicatedFans = 1;
+      _favouredOf = null;
     });
 
     try {
@@ -394,6 +400,7 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
           spent: _teamValue,
           remaining: _remaining,
           isValidRoster: _isValidRoster,
+          favouredOfLabel: favouredLabel(_favouredOf),
         );
       default:
         return const SizedBox.shrink();
@@ -690,6 +697,44 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
               ),
               const SizedBox(height: 16),
             ],
+            if (rosterCanChooseFavoured(race?.id)) ...[
+              Text(
+                'FAVORITO DE',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textMuted,
+                  letterSpacing: 1,
+                ),
+              ),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<String>(
+                initialValue: _favouredOf,
+                isExpanded: true,
+                dropdownColor: AppColors.surface,
+                decoration: InputDecoration(
+                  isDense: true,
+                  errorText: _favouredOf == null ? 'Elige una regla' : null,
+                  filled: true,
+                  fillColor: AppColors.background,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: AppColors.surfaceLight),
+                  ),
+                ),
+                hint: const Text('Elegir dios'),
+                items: chaosFavouredLabels.entries
+                    .map(
+                      (entry) => DropdownMenuItem(
+                        value: entry.key,
+                        child: Text(entry.value),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (value) => setState(() => _favouredOf = value),
+              ),
+              const SizedBox(height: 16),
+            ],
           ],
         ),
       );
@@ -701,7 +746,9 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
       if (raceId == null) return const SizedBox.shrink();
 
       final lang = ref.watch(localeProvider);
-      final asyncStar = ref.watch(starPlayersForTeamProvider(raceId));
+      final asyncStar = ref.watch(
+        starPlayersForTeamProvider('$raceId|${_favouredOf ?? ''}'),
+      );
 
       return asyncStar.when(
         loading: () => const SizedBox.shrink(),
@@ -1050,7 +1097,9 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
     Widget buildRosterStatus() {
       final hasTeamName = _teamName.trim().isNotEmpty;
       final hasValidRoster = _rosterCount >= 11 && _remaining >= 0;
-      final isValid = hasTeamName && hasValidRoster;
+      final hasFavoured =
+          !rosterCanChooseFavoured(_selectedRace?.id) || _favouredOf != null;
+      final isValid = hasTeamName && hasValidRoster && hasFavoured;
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -1097,7 +1146,9 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
                         isValid
                             ? 'Cumples con el mínimo de 11 jugadores y no superas el presupuesto.'
                             : hasTeamName
-                                ? 'Necesitas al menos 11 jugadores (tienes $_rosterCount).'
+                                ? hasFavoured
+                                    ? 'Necesitas al menos 11 jugadores (tienes $_rosterCount).'
+                                    : 'Elige la regla Favoured of del equipo.'
                                 : 'Introduce el nombre del equipo para continuar.',
                         style: TextStyle(
                             fontSize: 12, color: AppColors.textSecondary),
@@ -1671,7 +1722,7 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
       case 0:
         return _selectedRace != null;
       case 1:
-        return _teamName.trim().isNotEmpty && _rosterCount >= 11;
+        return _teamName.trim().isNotEmpty && _isValidRoster;
       case 2:
         return _teamName.trim().isNotEmpty && _isValidRoster;
       default:
@@ -1739,6 +1790,7 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
         assistantCoaches: _assistantCoaches,
         apothecary: _apothecary,
         dedicatedFans: _dedicatedFans,
+        favouredOf: _favouredOf,
       );
 
       if (mounted) {

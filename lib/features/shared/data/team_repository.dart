@@ -23,10 +23,11 @@ final allStarPlayersProvider =
 });
 
 final starPlayersForTeamProvider =
-    FutureProvider.family<List<Map<String, dynamic>>, String>(
-        (ref, teamId) async {
+    FutureProvider.family<List<Map<String, dynamic>>, String>((ref, key) async {
   final repo = ref.watch(teamRepositoryProvider);
-  return repo.getStarPlayersForTeam(teamId);
+  final parts = key.split('|');
+  final favouredOf = parts.length > 1 && parts[1].isNotEmpty ? parts[1] : null;
+  return repo.getStarPlayersForTeam(parts.first, favouredOf: favouredOf);
 });
 
 final expensiveMistakesRulesProvider =
@@ -810,6 +811,7 @@ class TeamRepository {
     int assistantCoaches = 0,
     bool apothecary = false,
     int dedicatedFans = 1,
+    String? favouredOf,
   }) async {
     try {
       final response = await _dio.post('/user-teams/', data: {
@@ -821,6 +823,7 @@ class TeamRepository {
         'assistant_coaches': assistantCoaches,
         'apothecary': apothecary,
         'dedicated_fans': dedicatedFans,
+        if (favouredOf != null) 'favoured_of': favouredOf,
       });
       return response.data['id'] as String;
     } on DioException catch (e) {
@@ -881,6 +884,7 @@ class TeamRepository {
     int? dedicatedFans,
     int? treasury,
     String? notes,
+    String? favouredOf,
   }) async {
     try {
       final response = await _dio.patch('/user-teams/$teamId', data: {
@@ -893,6 +897,7 @@ class TeamRepository {
         if (dedicatedFans != null) 'dedicated_fans': dedicatedFans,
         if (treasury != null) 'treasury': treasury,
         if (notes != null) 'notes': notes,
+        if (favouredOf != null) 'favoured_of': favouredOf,
       });
       return UserTeamDetail.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
@@ -1190,9 +1195,16 @@ class TeamRepository {
   }
 
   Future<List<Map<String, dynamic>>> getStarPlayersForTeam(
-      String teamId) async {
+    String teamId, {
+    String? favouredOf,
+  }) async {
     try {
-      final response = await _dio.get('/star-players/team/$teamId');
+      final response = await _dio.get(
+        '/star-players/team/$teamId',
+        queryParameters: {
+          if (favouredOf != null) 'favoured_of': favouredOf,
+        },
+      );
       return (response.data as List).cast<Map<String, dynamic>>();
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);

@@ -19,6 +19,7 @@ import '../../../shared/data/repositories.dart';
 import '../../../shared/presentation/widgets/match_event_dialog.dart';
 import '../../../shared/presentation/widgets/skill_popup.dart';
 import '../../../shared/utils/player_position_labels.dart';
+import '../../../shared/utils/team_special_rules.dart';
 import '../../data/active_match_provider.dart';
 
 part '../widgets/live_match_helpers.dart';

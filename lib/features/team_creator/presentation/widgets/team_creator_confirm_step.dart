@@ -17,6 +17,7 @@ class TeamCreatorConfirmStep extends StatelessWidget {
     required this.spent,
     required this.remaining,
     required this.isValidRoster,
+    this.favouredOfLabel,
   });
 
   final String? teamId;
@@ -29,6 +30,7 @@ class TeamCreatorConfirmStep extends StatelessWidget {
   final int spent;
   final int remaining;
   final bool isValidRoster;
+  final String? favouredOfLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -175,6 +177,13 @@ class TeamCreatorConfirmStep extends StatelessWidget {
               value: apothecary ? 'Sí' : 'No',
               color: apothecary ? AppColors.success : AppColors.textMuted,
             ),
+            if (favouredOfLabel != null)
+              _SummaryItem(
+                icon: PhosphorIcons.lightning(PhosphorIconsStyle.fill),
+                label: 'Favorito',
+                value: favouredOfLabel!,
+                color: AppColors.primary,
+              ),
           ],
         ),
         const SizedBox(height: 16),

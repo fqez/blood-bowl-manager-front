@@ -325,6 +325,8 @@ class UserTeamSummary {
   final int treasury;
   final int playerCount;
   final bool canManageRoster;
+  final String? favouredOf;
+  final List<String> specialRules;
   final List<TeamLeagueMembership> leagueMemberships;
   final String? icon;
   final DateTime createdAt;
@@ -338,6 +340,8 @@ class UserTeamSummary {
     required this.treasury,
     required this.playerCount,
     required this.canManageRoster,
+    this.favouredOf,
+    this.specialRules = const [],
     required this.leagueMemberships,
     this.icon,
     required this.createdAt,
@@ -355,6 +359,10 @@ class UserTeamSummary {
         treasury: (json['treasury'] as num?)?.toInt() ?? 1000000,
         playerCount: (json['player_count'] as num?)?.toInt() ?? 0,
         canManageRoster: json['can_manage_roster'] as bool? ?? true,
+        favouredOf: json['favoured_of'] as String?,
+        specialRules: (json['special_rules'] as List<dynamic>? ?? [])
+            .map((e) => '$e')
+            .toList(),
         leagueMemberships: (json['league_memberships'] as List<dynamic>? ?? [])
             .map(
                 (e) => TeamLeagueMembership.fromJson(e as Map<String, dynamic>))
@@ -394,6 +402,8 @@ class UserTeamDetail {
   final int dedicatedFans;
   final String notes;
   final bool canManageRoster;
+  final String? favouredOf;
+  final List<String> specialRules;
   final List<TeamLeagueMembership> leagueMemberships;
   final String? icon;
   final String? wallpaper;
@@ -420,6 +430,8 @@ class UserTeamDetail {
     required this.dedicatedFans,
     required this.notes,
     required this.canManageRoster,
+    this.favouredOf,
+    this.specialRules = const [],
     required this.leagueMemberships,
     this.icon,
     this.wallpaper,
@@ -458,6 +470,10 @@ class UserTeamDetail {
         dedicatedFans: (json['dedicated_fans'] as num?)?.toInt() ?? 1,
         notes: json['notes'] as String? ?? '',
         canManageRoster: json['can_manage_roster'] as bool? ?? true,
+        favouredOf: json['favoured_of'] as String?,
+        specialRules: (json['special_rules'] as List<dynamic>? ?? [])
+            .map((e) => '$e')
+            .toList(),
         leagueMemberships: (json['league_memberships'] as List<dynamic>? ?? [])
             .map(
                 (e) => TeamLeagueMembership.fromJson(e as Map<String, dynamic>))
@@ -479,6 +495,9 @@ class UserTeamDetail {
 
   int get activePlayerCount =>
       players.where((p) => p.status == 'healthy').length;
+
+  bool get canChooseFavoured =>
+      baseRosterId == 'chaos_chosen' || baseRosterId == 'chaos_renegades';
 }
 
 class TeamValueBreakdown {

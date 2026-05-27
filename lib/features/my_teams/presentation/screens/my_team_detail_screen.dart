@@ -15,6 +15,7 @@ import '../../../shared/data/repositories.dart';
 import '../../../shared/presentation/widgets/skill_popup.dart';
 import '../../../shared/presentation/widgets/team_hero_header.dart';
 import '../../../shared/utils/player_position_labels.dart';
+import '../../../shared/utils/team_special_rules.dart';
 import '../../domain/models/user_team.dart';
 
 final userTeamDetailProvider =
@@ -69,6 +70,7 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
     int? assistantCoaches,
     bool? apothecary,
     String? notes,
+    String? favouredOf,
   }) async {
     if (_isMutating) return false;
     setState(() => _isMutating = true);
@@ -83,6 +85,7 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
             assistantCoaches: assistantCoaches,
             apothecary: apothecary,
             notes: notes,
+            favouredOf: favouredOf,
           );
       ref.invalidate(userTeamDetailProvider(widget.teamId));
       return true;
@@ -340,6 +343,14 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
                   color: AppColors.textMuted,
                   tooltip: tr(lang, 'team.editTeamName'),
                 ),
+              if (isOwner && team.canChooseFavoured)
+                IconButton(
+                  icon: Icon(PhosphorIcons.lightning(PhosphorIconsStyle.fill),
+                      size: 18),
+                  onPressed: () => _showEditFavouredDialog(team),
+                  color: AppColors.textMuted,
+                  tooltip: 'Editar Favorito de',
+                ),
               if (isOwner)
                 IconButton(
                   icon: Icon(PhosphorIcons.trash(PhosphorIconsStyle.bold),
@@ -541,10 +552,13 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
                 'REGLAS ESPECIALES',
                 AppColors.accent,
               ),
-              if (baseRoster == null || baseRoster.specialRules.isEmpty)
+              if (team.specialRules.isEmpty &&
+                  (baseRoster == null || baseRoster.specialRules.isEmpty))
                 _softChip('Sin reglas especiales', AppColors.textMuted)
               else
-                ...baseRoster.specialRules
+                ...(team.specialRules.isNotEmpty
+                        ? team.specialRules
+                        : baseRoster!.specialRules)
                     .map((rule) => _softChip(rule, AppColors.accent)),
             ],
           ),
@@ -1961,6 +1975,72 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
       SnackBar(
           content: Text(tr(lang, 'team.teamNameUpdated')),
           backgroundColor: AppColors.success),
+    );
+  }
+
+  Future<void> _showEditFavouredDialog(UserTeamDetail team) async {
+    if (!team.canChooseFavoured) return;
+    var selected = team.favouredOf;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: AppColors.surface,
+          title: const Text(
+            'Editar Favorito de',
+            style: TextStyle(color: AppColors.textPrimary),
+          ),
+          content: DropdownButtonFormField<String>(
+            initialValue: selected,
+            isExpanded: true,
+            dropdownColor: AppColors.surface,
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: AppColors.background,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            items: chaosFavouredLabels.entries
+                .map(
+                  (entry) => DropdownMenuItem(
+                    value: entry.key,
+                    child: Text(entry.value),
+                  ),
+                )
+                .toList(),
+            onChanged: (value) => setDialogState(() => selected = value),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed:
+                  selected == null ? null : () => Navigator.pop(ctx, true),
+              style:
+                  ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+              child: const Text('Guardar'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (confirmed != true || selected == null || selected == team.favouredOf) {
+      return;
+    }
+
+    final saved = await _patch(favouredOf: selected);
+    if (!saved || !mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Regla Favoured of actualizada'),
+        backgroundColor: AppColors.success,
+      ),
     );
   }
 

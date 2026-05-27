@@ -336,9 +336,7 @@ extension _LiveMatchDialogs on _LiveMatchScreenState {
       final repo = ref.read(teamRepositoryProvider);
       final allDetails = await repo.getAllStarPlayerDetails();
       starPlayers = allDetails
-          .where((sp) => (sp['plays_for'] as List? ?? [])
-              .cast<String>()
-              .contains(team.baseRosterId))
+          .where((sp) => starPlayerAvailableForUserTeam(sp, team))
           .toList();
     } catch (_) {}
 
