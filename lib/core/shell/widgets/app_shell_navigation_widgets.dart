@@ -7,6 +7,8 @@ import '../../l10n/locale_provider.dart';
 import '../../l10n/translations.dart';
 import '../../../features/auth/data/providers/auth_provider.dart';
 
+enum _AppShellUserMenuAction { logout }
+
 class AppShellNavItem {
   final IconData icon;
   final IconData selectedIcon;
@@ -419,6 +421,7 @@ class AppShellUserSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authStateProvider);
+    final lang = ref.watch(localeProvider);
     final user = authState.valueOrNull?.user;
     final initial = user?.username.substring(0, 1).toUpperCase() ?? 'U';
 
@@ -489,11 +492,35 @@ class AppShellUserSection extends ConsumerWidget {
             ),
           ),
           const _AppShellLangToggle(),
-          IconButton(
-            icon: Icon(PhosphorIcons.gear(PhosphorIconsStyle.regular)),
-            onPressed: () {},
-            iconSize: 20,
-            color: AppColors.textMuted,
+          PopupMenuButton<_AppShellUserMenuAction>(
+            tooltip: tr(lang, 'common.menu'),
+            icon: Icon(
+              PhosphorIcons.gear(PhosphorIconsStyle.regular),
+              size: 20,
+              color: AppColors.textMuted,
+            ),
+            color: AppColors.surface,
+            onSelected: (action) async {
+              if (action == _AppShellUserMenuAction.logout) {
+                await ref.read(authStateProvider.notifier).logout();
+              }
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: _AppShellUserMenuAction.logout,
+                child: Row(
+                  children: [
+                    Icon(
+                      PhosphorIcons.signOut(PhosphorIconsStyle.regular),
+                      size: 18,
+                      color: AppColors.textSecondary,
+                    ),
+                    const SizedBox(width: 10),
+                    Text(tr(lang, 'common.logout')),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),

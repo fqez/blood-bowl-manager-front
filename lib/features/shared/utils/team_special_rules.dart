@@ -12,7 +12,6 @@ const chaosFavouredLabels = <String, String>{
 };
 
 const _favouredStarRequirements = <String, String>{
-  'hakflem_skuttlespike': 'any',
   'bilerot_vomitflesh': 'nurgle',
   'guffle_pusmaw': 'nurgle',
   'withergrasp_doubledrool': 'nurgle',
