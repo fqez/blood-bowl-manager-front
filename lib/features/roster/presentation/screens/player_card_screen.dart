@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,6 +17,7 @@ import '../../../shared/data/repositories.dart';
 import '../../../shared/utils/player_position_labels.dart';
 import '../../domain/models/team.dart';
 import '../screens/roster_screen.dart';
+import '../utils/player_image_picker.dart';
 import '../../../shared/presentation/widgets/skill_popup.dart';
 
 // ignore_for_file: deprecated_member_use
@@ -24,8 +27,8 @@ final _playerBaseRosterProvider =
   return ref.watch(teamRepositoryProvider).getBaseTeamDetail(rosterId);
 });
 
-final _playerUserTeamDetailProvider =
-    FutureProvider.family<UserTeamDetail, String>((ref, teamId) async {
+final _playerUserTeamDetailProvider = FutureProvider.autoDispose
+    .family<UserTeamDetail, String>((ref, teamId) async {
   return ref.watch(teamRepositoryProvider).getUserTeamDetail(teamId);
 });
 
@@ -91,115 +94,154 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
   }
 
   Future<void> _showEditPlayerDialog(
-      BuildContext context, Character player, String lang) async {
+    BuildContext context,
+    Character player,
+    String lang, {
+    String? image,
+  }) async {
     final nameController = TextEditingController(text: player.name);
     final numberController =
         TextEditingController(text: player.number.toString());
+    var draftImage = image?.trim() ?? '';
+    final imageUrlController = TextEditingController(
+      text: _isEmbeddedPlayerImage(draftImage) ? '' : draftImage,
+    );
     final formKey = GlobalKey<FormState>();
 
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        title: Row(
-          children: [
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: AppColors.accent.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Center(
-                child: Text(
-                  '#${player.number}',
-                  style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.accent),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(tr(lang, 'player.editPlayer'),
-                  style: const TextStyle(
-                      color: AppColors.textPrimary, fontSize: 18)),
-            ),
-          ],
-        ),
-        content: Form(
-          key: formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: AppColors.surface,
+          title: Row(
             children: [
-              TextFormField(
-                controller: nameController,
-                style: const TextStyle(color: AppColors.textPrimary),
-                decoration: InputDecoration(
-                  labelText: tr(lang, 'player.name'),
-                  labelStyle: const TextStyle(color: AppColors.textMuted),
-                  filled: true,
-                  fillColor: AppColors.background,
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8)),
-                  prefixIcon: Icon(
-                      PhosphorIcons.user(PhosphorIconsStyle.regular),
-                      size: 18,
-                      color: AppColors.textMuted),
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: AppColors.accent.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(6),
                 ),
-                validator: (v) => v == null || v.trim().isEmpty
-                    ? tr(lang, 'player.nameEmpty')
-                    : null,
-                maxLength: 50,
+                child: Center(
+                  child: Text(
+                    '#${player.number}',
+                    style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.accent),
+                  ),
+                ),
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: numberController,
-                style: const TextStyle(color: AppColors.textPrimary),
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  labelText: tr(lang, 'player.number'),
-                  labelStyle: const TextStyle(color: AppColors.textMuted),
-                  filled: true,
-                  fillColor: AppColors.background,
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8)),
-                  prefixIcon: Icon(
-                      PhosphorIcons.tShirt(PhosphorIconsStyle.regular),
-                      size: 18,
-                      color: AppColors.textMuted),
-                ),
-                validator: (v) {
-                  if (v == null || v.trim().isEmpty) {
-                    return tr(lang, 'player.numberRequired');
-                  }
-                  final n = int.tryParse(v);
-                  if (n == null || n < 1 || n > 99) {
-                    return tr(lang, 'player.numberRange');
-                  }
-                  return null;
-                },
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(tr(lang, 'player.editPlayer'),
+                    style: const TextStyle(
+                        color: AppColors.textPrimary, fontSize: 18)),
               ),
             ],
           ),
+          content: SizedBox(
+            width: min(460.0, MediaQuery.of(ctx).size.width - 48),
+            child: Form(
+              key: formKey,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextFormField(
+                      controller: nameController,
+                      style: const TextStyle(color: AppColors.textPrimary),
+                      decoration: InputDecoration(
+                        labelText: tr(lang, 'player.name'),
+                        labelStyle: const TextStyle(color: AppColors.textMuted),
+                        filled: true,
+                        fillColor: AppColors.background,
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                        prefixIcon: Icon(
+                            PhosphorIcons.user(PhosphorIconsStyle.regular),
+                            size: 18,
+                            color: AppColors.textMuted),
+                      ),
+                      validator: (v) => v == null || v.trim().isEmpty
+                          ? tr(lang, 'player.nameEmpty')
+                          : null,
+                      maxLength: 50,
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: numberController,
+                      style: const TextStyle(color: AppColors.textPrimary),
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: tr(lang, 'player.number'),
+                        labelStyle: const TextStyle(color: AppColors.textMuted),
+                        filled: true,
+                        fillColor: AppColors.background,
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                        prefixIcon: Icon(
+                            PhosphorIcons.tShirt(PhosphorIconsStyle.regular),
+                            size: 18,
+                            color: AppColors.textMuted),
+                      ),
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) {
+                          return tr(lang, 'player.numberRequired');
+                        }
+                        final n = int.tryParse(v);
+                        if (n == null || n < 1 || n > 99) {
+                          return tr(lang, 'player.numberRange');
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    _playerImageEditor(
+                      lang: lang,
+                      image: draftImage,
+                      urlController: imageUrlController,
+                      onUrlChanged: (value) => setDialogState(() {
+                        draftImage = value.trim();
+                      }),
+                      onPick: () async {
+                        final dataUri = await _pickPlayerImageDataUri(lang);
+                        if (dataUri == null || !ctx.mounted) return;
+                        setDialogState(() {
+                          draftImage = dataUri;
+                          imageUrlController.clear();
+                        });
+                      },
+                      onRemove: draftImage.isEmpty
+                          ? null
+                          : () => setDialogState(() {
+                                draftImage = '';
+                                imageUrlController.clear();
+                              }),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(tr(lang, 'common.cancel'),
+                  style: const TextStyle(color: AppColors.textMuted)),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (formKey.currentState?.validate() ?? false) {
+                  Navigator.pop(ctx, true);
+                }
+              },
+              style:
+                  ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+              child: Text(tr(lang, 'common.save')),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(tr(lang, 'common.cancel'),
-                style: const TextStyle(color: AppColors.textMuted)),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (formKey.currentState?.validate() ?? false) {
-                Navigator.pop(ctx, true);
-              }
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
-            child: Text(tr(lang, 'common.save')),
-          ),
-        ],
       ),
     );
     if (!context.mounted) return;
@@ -208,11 +250,14 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
 
     final newName = nameController.text.trim();
     final newNumber = int.tryParse(numberController.text.trim());
+    final newImage = draftImage.trim();
+    final currentImage = image?.trim() ?? '';
 
     final nameChanged = newName != player.name;
     final numberChanged = newNumber != null && newNumber != player.number;
+    final imageChanged = newImage != currentImage;
 
-    if (!nameChanged && !numberChanged) return;
+    if (!nameChanged && !numberChanged && !imageChanged) return;
 
     try {
       await ref.read(teamRepositoryProvider).updatePlayer(
@@ -220,6 +265,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
             player.id,
             name: nameChanged ? newName : null,
             number: numberChanged ? newNumber : null,
+            image: imageChanged ? newImage : null,
           );
       if (!context.mounted) return;
       _refresh();
@@ -239,6 +285,140 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
         );
       }
     }
+  }
+
+  Future<String?> _pickPlayerImageDataUri(String lang) async {
+    try {
+      return await pickPlayerImageDataUri();
+    } catch (error, stackTrace) {
+      debugPrint('Could not pick player image: $error\n$stackTrace');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(tr(lang, 'player.imagePickError')),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+      return null;
+    }
+  }
+
+  bool _isEmbeddedPlayerImage(String source) =>
+      source.startsWith('data:image/');
+
+  Uint8List? _bytesFromDataUri(String source) {
+    final commaIndex = source.indexOf(',');
+    if (commaIndex < 0 || !source.substring(0, commaIndex).contains('base64')) {
+      return null;
+    }
+    try {
+      return base64Decode(source.substring(commaIndex + 1));
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Widget _playerImageEditor({
+    required String lang,
+    required String image,
+    required TextEditingController urlController,
+    required ValueChanged<String> onUrlChanged,
+    required Future<void> Function() onPick,
+    required VoidCallback? onRemove,
+  }) {
+    final hasImage = image.trim().isNotEmpty;
+    final isUploaded = _isEmbeddedPlayerImage(image);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          height: 142,
+          decoration: BoxDecoration(
+            color: AppColors.background,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: AppColors.surfaceLight),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: hasImage
+              ? Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    _playerPortraitImage(image),
+                    if (isUploaded)
+                      Positioned(
+                        left: 10,
+                        bottom: 10,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 9, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.66),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            tr(lang, 'player.uploadedImage'),
+                            style: const TextStyle(
+                              color: AppColors.textPrimary,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                )
+              : Center(
+                  child: Icon(
+                    PhosphorIcons.image(PhosphorIconsStyle.regular),
+                    color: AppColors.textMuted,
+                    size: 34,
+                  ),
+                ),
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 10,
+          runSpacing: 8,
+          children: [
+            OutlinedButton.icon(
+              onPressed: onPick,
+              icon: Icon(PhosphorIcons.uploadSimple(PhosphorIconsStyle.bold),
+                  size: 16),
+              label: Text(tr(lang, 'player.pickImage')),
+            ),
+            TextButton.icon(
+              onPressed: onRemove,
+              icon:
+                  Icon(PhosphorIcons.trash(PhosphorIconsStyle.bold), size: 16),
+              label: Text(tr(lang, 'player.removeImage')),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        TextFormField(
+          controller: urlController,
+          style: const TextStyle(color: AppColors.textPrimary),
+          keyboardType: TextInputType.url,
+          decoration: InputDecoration(
+            labelText: tr(lang, 'player.image'),
+            hintText: tr(lang, 'player.imageHint'),
+            helperText: tr(lang, 'player.imageHelp'),
+            labelStyle: const TextStyle(color: AppColors.textMuted),
+            hintStyle: const TextStyle(color: AppColors.textMuted),
+            helperStyle: const TextStyle(color: AppColors.textMuted),
+            filled: true,
+            fillColor: AppColors.background,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            prefixIcon: Icon(PhosphorIcons.link(PhosphorIconsStyle.regular),
+                size: 18, color: AppColors.textMuted),
+          ),
+          maxLength: 2000,
+          onChanged: onUrlChanged,
+        ),
+      ],
+    );
   }
 
   // -- Add Skill Dialog ------------------------------------------------------
@@ -1649,8 +1829,8 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildHeroSection(
-                          context, team, player, isOwner, lang, baseRoster),
+                      _buildHeroSection(context, team, player, isOwner, lang,
+                          baseRoster, userPlayer),
                       const SizedBox(height: 24),
                       if (isWide)
                         _buildWideLayout(
@@ -1779,8 +1959,10 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
   // -- Hero Section with Portrait --------------------------------------------
 
   Widget _buildHeroSection(BuildContext context, Team team, Character player,
-      bool isOwner, String lang, BaseTeam? baseRoster) {
+      bool isOwner, String lang, BaseTeam? baseRoster, UserPlayer? userPlayer) {
     final positionLabel = _localizedCharacterPosition(player, baseRoster, lang);
+    final playerImage = userPlayer?.image?.trim();
+    final hasPlayerImage = playerImage != null && playerImage.isNotEmpty;
     return Container(
       padding: const EdgeInsets.all(26),
       decoration: BoxDecoration(
@@ -1810,7 +1992,8 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
           // Big jersey number
           GestureDetector(
             onTap: isOwner
-                ? () => _showEditPlayerDialog(context, player, lang)
+                ? () => _showEditPlayerDialog(context, player, lang,
+                    image: playerImage)
                 : null,
             child: Container(
               width: 150,
@@ -1839,49 +2022,81 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  // Faded big number background
-                  Positioned(
-                    top: -10,
-                    child: Text(
-                      '${player.number}',
-                      style: TextStyle(
-                        fontFamily: AppTypography.displayFontFamily,
-                        fontSize: 152,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.white.withValues(alpha: 0.08),
-                        height: 1,
+                  if (hasPlayerImage)
+                    Positioned.fill(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: _playerPortraitImage(playerImage),
+                      ),
+                    )
+                  else ...[
+                    // Faded big number background
+                    Positioned(
+                      top: -10,
+                      child: Text(
+                        '${player.number}',
+                        style: TextStyle(
+                          fontFamily: AppTypography.displayFontFamily,
+                          fontSize: 152,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.white.withValues(alpha: 0.08),
+                          height: 1,
+                        ),
                       ),
                     ),
-                  ),
-                  // Main number
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text('#',
-                          style: TextStyle(
-                            fontFamily: AppTypography.displayFontFamily,
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.accent,
-                            height: 1,
-                          )),
-                      Text('${player.number}',
-                          style: TextStyle(
-                            fontFamily: AppTypography.displayFontFamily,
-                            fontSize: 90,
-                            fontWeight: FontWeight.w900,
-                            color: Colors.white,
-                            height: 0.85,
-                            letterSpacing: -2,
-                            shadows: [
-                              Shadow(
-                                color: AppColors.primary.withValues(alpha: 0.8),
-                                blurRadius: 20,
-                              ),
-                            ],
-                          )),
-                    ],
-                  ),
+                    // Main number
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text('#',
+                            style: TextStyle(
+                              fontFamily: AppTypography.displayFontFamily,
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.accent,
+                              height: 1,
+                            )),
+                        Text('${player.number}',
+                            style: TextStyle(
+                              fontFamily: AppTypography.displayFontFamily,
+                              fontSize: 90,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.white,
+                              height: 0.85,
+                              letterSpacing: -2,
+                              shadows: [
+                                Shadow(
+                                  color:
+                                      AppColors.primary.withValues(alpha: 0.8),
+                                  blurRadius: 20,
+                                ),
+                              ],
+                            )),
+                      ],
+                    ),
+                  ],
+                  if (hasPlayerImage)
+                    Positioned(
+                      left: 8,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.64),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                              color: AppColors.accent.withValues(alpha: 0.5)),
+                        ),
+                        child: Text('#${player.number}',
+                            style: TextStyle(
+                              fontFamily: AppTypography.displayFontFamily,
+                              color: AppColors.accent,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w900,
+                            )),
+                      ),
+                    ),
                   // Edit overlay
                   if (isOwner)
                     Positioned(
@@ -1951,9 +2166,13 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                 // Player name - BIG
                 Row(
                   children: [
-                    Flexible(
+                    _headerJerseyNumber(player.number),
+                    const SizedBox(width: 14),
+                    Expanded(
                       child: Text(
                         player.name.toUpperCase(),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontFamily: AppTypography.displayFontFamily,
                           fontSize: 62,
@@ -1967,8 +2186,9 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                     if (isOwner) ...[
                       const SizedBox(width: 12),
                       IconButton(
-                        onPressed: () =>
-                            _showEditPlayerDialog(context, player, lang),
+                        onPressed: () => _showEditPlayerDialog(
+                            context, player, lang,
+                            image: playerImage),
                         icon: Icon(
                             PhosphorIcons.pencilSimple(
                                 PhosphorIconsStyle.regular),
@@ -2008,6 +2228,68 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _headerJerseyNumber(int number) {
+    return Container(
+      constraints: const BoxConstraints(minWidth: 78),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.background.withValues(alpha: 0.52),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.accent.withValues(alpha: 0.58)),
+      ),
+      child: Text(
+        '#$number',
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontFamily: AppTypography.displayFontFamily,
+          fontSize: 42,
+          fontWeight: FontWeight.w900,
+          color: AppColors.accent,
+          height: 0.92,
+        ),
+      ),
+    );
+  }
+
+  Widget _playerPortraitImage(String source) {
+    if (_isEmbeddedPlayerImage(source)) {
+      final bytes = _bytesFromDataUri(source);
+      if (bytes == null) return _playerPortraitFallback();
+      return Image.memory(
+        bytes,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _playerPortraitFallback(),
+      );
+    }
+
+    if (source.startsWith('assets/')) {
+      return Image.asset(
+        source,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _playerPortraitFallback(),
+      );
+    }
+
+    return Image.network(
+      source,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => _playerPortraitFallback(),
+    );
+  }
+
+  Widget _playerPortraitFallback() {
+    return Container(
+      color: AppColors.surface.withValues(alpha: 0.72),
+      child: Center(
+        child: Icon(
+          PhosphorIcons.image(PhosphorIconsStyle.regular),
+          color: AppColors.textMuted,
+          size: 34,
+        ),
       ),
     );
   }

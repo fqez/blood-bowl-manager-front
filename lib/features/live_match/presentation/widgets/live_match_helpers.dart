@@ -38,6 +38,31 @@ class _PlayerStatusOption {
   });
 }
 
+class _RiotousRookiesRoll {
+  final int firstD3;
+  final int secondD3;
+
+  const _RiotousRookiesRoll(this.firstD3, this.secondD3);
+
+  int get count => firstD3 + secondD3 + 1;
+}
+
+enum _PrepRosterSortColumn {
+  selected,
+  number,
+  name,
+  position,
+  ma,
+  st,
+  ag,
+  pa,
+  av,
+  skills,
+  spp,
+  status,
+  cost,
+}
+
 // ══════════════════════════════════════════════
 //  CONSTANTS
 // ══════════════════════════════════════════════

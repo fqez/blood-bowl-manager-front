@@ -19,15 +19,15 @@ import '../widgets/league_stats_dashboard.dart';
 
 // Providers
 final leagueProvider =
-    FutureProvider.family<League, String>((ref, leagueId) async {
+    FutureProvider.autoDispose.family<League, String>((ref, leagueId) async {
   if (leagueId == debugLeagueId) return buildDebugLeague();
 
   final repository = ref.watch(leagueRepositoryProvider);
   return repository.getLeague(leagueId);
 });
 
-final matchesProvider =
-    FutureProvider.family<List<Match>, String>((ref, leagueId) async {
+final matchesProvider = FutureProvider.autoDispose
+    .family<List<Match>, String>((ref, leagueId) async {
   if (leagueId == debugLeagueId) return buildDebugLeagueMatches();
 
   final repository = ref.watch(leagueRepositoryProvider);
@@ -35,7 +35,7 @@ final matchesProvider =
 });
 
 final leagueFormatProvider =
-    FutureProvider.family<String, String>((ref, leagueId) async {
+    FutureProvider.autoDispose.family<String, String>((ref, leagueId) async {
   if (leagueId == debugLeagueId) return 'round_robin';
 
   final repository = ref.watch(leagueRepositoryProvider);

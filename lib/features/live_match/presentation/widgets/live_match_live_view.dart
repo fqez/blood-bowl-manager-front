@@ -956,6 +956,7 @@ extension _LiveMatchLiveView on _LiveMatchScreenState {
     final homeTeam = _homeTeam;
     final awayTeam = _awayTeam;
     final allPerks = ref.watch(allPerksProvider).valueOrNull ?? const [];
+    final currentUserId = ref.watch(authStateProvider).valueOrNull?.user?.id;
 
     return Container(
       width: double.infinity,
@@ -1039,6 +1040,7 @@ extension _LiveMatchLiveView on _LiveMatchScreenState {
                     lang: lang,
                     allPerks: allPerks,
                     accent: AppColors.info,
+                    canSeeTemporaryHires: match.home.userId == currentUserId,
                   ),
                   _buildLiveRosterTable(
                     match: match,
@@ -1050,6 +1052,7 @@ extension _LiveMatchLiveView on _LiveMatchScreenState {
                     lang: lang,
                     allPerks: allPerks,
                     accent: AppColors.error,
+                    canSeeTemporaryHires: match.away.userId == currentUserId,
                   ),
                 ];
                 if (stacked) {
@@ -1086,6 +1089,7 @@ extension _LiveMatchLiveView on _LiveMatchScreenState {
     required String lang,
     required List<Map<String, dynamic>> allPerks,
     required Color accent,
+    required bool canSeeTemporaryHires,
   }) {
     players = [...players]..sort((a, b) => a.number.compareTo(b.number));
 
@@ -1142,6 +1146,9 @@ extension _LiveMatchLiveView on _LiveMatchScreenState {
               rows: players.map((player) {
                 final liveStatus =
                     _liveMatchPlayerStatus(match, player, isHome);
+                final hireKind =
+                    canSeeTemporaryHires ? _temporaryHireKind(player) : null;
+                final hireColor = _temporaryHireColor(hireKind);
                 void openPlayer() => _showLivePlayerDialog(
                       team: team,
                       player: player,
@@ -1153,6 +1160,9 @@ extension _LiveMatchLiveView on _LiveMatchScreenState {
                     );
 
                 return DataRow(
+                  color: WidgetStateProperty.resolveWith((_) => hireKind == null
+                      ? null
+                      : hireColor.withValues(alpha: 0.09)),
                   cells: [
                     DataCell(
                       Text(
@@ -1167,16 +1177,26 @@ extension _LiveMatchLiveView on _LiveMatchScreenState {
                     ),
                     DataCell(
                       SizedBox(
-                        width: 130,
-                        child: Text(
-                          player.name,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: AppColors.textPrimary,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                          ),
+                        width: 170,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              player.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: AppColors.textPrimary,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            if (hireKind != null) ...[
+                              const SizedBox(height: 3),
+                              _temporaryHireBadge(hireKind, hireColor),
+                            ],
+                          ],
                         ),
                       ),
                       onTap: openPlayer,
@@ -1215,6 +1235,58 @@ extension _LiveMatchLiveView on _LiveMatchScreenState {
                   ],
                 );
               }).toList(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String? _temporaryHireKind(UserPlayer player) {
+    if (!player.temporaryForMatch) return null;
+    if (player.baseType.startsWith('star_')) return 'ESTRELLA';
+    if (player.journeyman) return 'SUSTITUTO';
+    return 'MERCENARIO';
+  }
+
+  Color _temporaryHireColor(String? kind) {
+    switch (kind) {
+      case 'ESTRELLA':
+        return AppColors.accent;
+      case 'MERCENARIO':
+        return AppColors.primaryLight;
+      case 'SUSTITUTO':
+        return AppColors.info;
+      default:
+        return AppColors.textMuted;
+    }
+  }
+
+  Widget _temporaryHireBadge(String kind, Color color) {
+    final icon = switch (kind) {
+      'ESTRELLA' => PhosphorIcons.star(PhosphorIconsStyle.fill),
+      'MERCENARIO' => PhosphorIcons.userPlus(PhosphorIconsStyle.fill),
+      _ => PhosphorIcons.userSwitch(PhosphorIconsStyle.fill),
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: color.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color, size: 10),
+          const SizedBox(width: 3),
+          Text(
+            kind,
+            style: TextStyle(
+              color: color,
+              fontSize: 8,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.3,
             ),
           ),
         ],

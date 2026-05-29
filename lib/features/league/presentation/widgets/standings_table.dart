@@ -5,7 +5,19 @@ import '../../../../core/l10n/translations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/models/league.dart';
 
-class StandingsTable extends ConsumerWidget {
+enum _StandingsSortColumn {
+  position,
+  team,
+  points,
+  played,
+  wins,
+  draws,
+  losses,
+  touchdownDiff,
+  casualties,
+}
+
+class StandingsTable extends ConsumerStatefulWidget {
   final List<LeagueStanding> standings;
   final String leagueId;
   final ValueChanged<LeagueStanding>? onTeamTap;
@@ -18,15 +30,25 @@ class StandingsTable extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<StandingsTable> createState() => _StandingsTableState();
+}
+
+class _StandingsTableState extends ConsumerState<StandingsTable> {
+  _StandingsSortColumn _sortColumn = _StandingsSortColumn.position;
+  bool _sortAscending = true;
+
+  @override
+  Widget build(BuildContext context) {
     final lang = ref.watch(localeProvider);
-    // Sort standings by points, then touchdown diff
-    final sortedStandings = List<LeagueStanding>.from(standings)
-      ..sort((a, b) {
-        final pointsDiff = b.points.compareTo(a.points);
-        if (pointsDiff != 0) return pointsDiff;
-        return b.touchdownDiff.compareTo(a.touchdownDiff);
-      });
+    final defaultRankedStandings = _defaultRankedStandings(widget.standings);
+    final rankByTeamId = <String, int>{};
+    for (var index = 0; index < defaultRankedStandings.length; index++) {
+      rankByTeamId[defaultRankedStandings[index].teamId] = index + 1;
+    }
+    final sortedStandings = _sortedStandings(
+      widget.standings,
+      rankByTeamId,
+    );
 
     return Container(
       decoration: BoxDecoration(
@@ -38,11 +60,75 @@ class StandingsTable extends ConsumerWidget {
         children: [
           _buildHeader(lang),
           ...sortedStandings.asMap().entries.map(
-                (entry) => _buildTeamRow(entry.key + 1, entry.value),
+                (entry) => _buildTeamRow(
+                  rankByTeamId[entry.value.teamId] ?? entry.key + 1,
+                  entry.value,
+                ),
               ),
         ],
       ),
     );
+  }
+
+  List<LeagueStanding> _defaultRankedStandings(List<LeagueStanding> source) {
+    return List<LeagueStanding>.from(source)
+      ..sort((a, b) {
+        final pointsDiff = b.points.compareTo(a.points);
+        if (pointsDiff != 0) return pointsDiff;
+        final tdDiff = b.touchdownDiff.compareTo(a.touchdownDiff);
+        if (tdDiff != 0) return tdDiff;
+        final casualtiesDiff = b.casualtiesFor.compareTo(a.casualtiesFor);
+        if (casualtiesDiff != 0) return casualtiesDiff;
+        return a.teamName.toLowerCase().compareTo(b.teamName.toLowerCase());
+      });
+  }
+
+  List<LeagueStanding> _sortedStandings(
+    List<LeagueStanding> source,
+    Map<String, int> rankByTeamId,
+  ) {
+    final sorted = List<LeagueStanding>.from(source);
+    sorted.sort((a, b) {
+      int result;
+      switch (_sortColumn) {
+        case _StandingsSortColumn.position:
+          result = (rankByTeamId[a.teamId] ?? 9999)
+              .compareTo(rankByTeamId[b.teamId] ?? 9999);
+        case _StandingsSortColumn.team:
+          result = a.teamName.toLowerCase().compareTo(b.teamName.toLowerCase());
+        case _StandingsSortColumn.points:
+          result = a.points.compareTo(b.points);
+        case _StandingsSortColumn.played:
+          result = a.gamesPlayed.compareTo(b.gamesPlayed);
+        case _StandingsSortColumn.wins:
+          result = a.wins.compareTo(b.wins);
+        case _StandingsSortColumn.draws:
+          result = a.draws.compareTo(b.draws);
+        case _StandingsSortColumn.losses:
+          result = a.losses.compareTo(b.losses);
+        case _StandingsSortColumn.touchdownDiff:
+          result = a.touchdownDiff.compareTo(b.touchdownDiff);
+        case _StandingsSortColumn.casualties:
+          result = a.casualtiesFor.compareTo(b.casualtiesFor);
+      }
+      if (result == 0) {
+        result = a.teamName.toLowerCase().compareTo(b.teamName.toLowerCase());
+      }
+      return _sortAscending ? result : -result;
+    });
+    return sorted;
+  }
+
+  void _setSort(_StandingsSortColumn column) {
+    setState(() {
+      if (_sortColumn == column) {
+        _sortAscending = !_sortAscending;
+      } else {
+        _sortColumn = column;
+        _sortAscending = column == _StandingsSortColumn.position ||
+            column == _StandingsSortColumn.team;
+      }
+    });
   }
 
   Widget _buildHeader(String lang) {
@@ -56,52 +142,88 @@ class StandingsTable extends ConsumerWidget {
         children: [
           SizedBox(
             width: 40,
-            child: Text(
+            child: _buildHeaderButton(
               tr(lang, 'standings.pos'),
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textMuted,
-                letterSpacing: 0.5,
-              ),
+              _StandingsSortColumn.position,
             ),
           ),
           Expanded(
             flex: 3,
-            child: Text(
+            child: _buildHeaderButton(
               tr(lang, 'standings.team'),
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textMuted,
-                letterSpacing: 0.5,
-              ),
+              _StandingsSortColumn.team,
+              align: TextAlign.left,
             ),
           ),
-          _buildHeaderCell(tr(lang, 'standings.pts')),
-          _buildHeaderCell(tr(lang, 'standings.played')),
-          _buildHeaderCell(tr(lang, 'standings.wins')),
-          _buildHeaderCell(tr(lang, 'standings.draws')),
-          _buildHeaderCell(tr(lang, 'standings.losses')),
-          _buildHeaderCell(tr(lang, 'standings.tdDiff')),
-          _buildHeaderCell(tr(lang, 'standings.cas')),
+          _buildHeaderCell(
+              tr(lang, 'standings.pts'), _StandingsSortColumn.points),
+          _buildHeaderCell(
+              tr(lang, 'standings.played'), _StandingsSortColumn.played),
+          _buildHeaderCell(
+              tr(lang, 'standings.wins'), _StandingsSortColumn.wins),
+          _buildHeaderCell(
+              tr(lang, 'standings.draws'), _StandingsSortColumn.draws),
+          _buildHeaderCell(
+              tr(lang, 'standings.losses'), _StandingsSortColumn.losses),
+          _buildHeaderCell(
+              tr(lang, 'standings.tdDiff'), _StandingsSortColumn.touchdownDiff),
+          _buildHeaderCell(
+              tr(lang, 'standings.cas'), _StandingsSortColumn.casualties),
         ],
       ),
     );
   }
 
-  Widget _buildHeaderCell(String text) {
+  Widget _buildHeaderCell(String text, _StandingsSortColumn column) {
     return SizedBox(
       width: 40,
-      child: Text(
+      child: _buildHeaderButton(
         text,
-        style: TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.bold,
-          color: AppColors.textMuted,
-          letterSpacing: 0.5,
+        column,
+      ),
+    );
+  }
+
+  Widget _buildHeaderButton(
+    String text,
+    _StandingsSortColumn column, {
+    TextAlign align = TextAlign.center,
+  }) {
+    final active = _sortColumn == column;
+    return InkWell(
+      onTap: () => _setSort(column),
+      borderRadius: BorderRadius.circular(6),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          mainAxisAlignment: align == TextAlign.left
+              ? MainAxisAlignment.start
+              : MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Flexible(
+              child: Text(
+                text,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: active ? AppColors.accent : AppColors.textMuted,
+                  letterSpacing: 0.5,
+                ),
+                textAlign: align,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            if (active) ...[
+              const SizedBox(width: 3),
+              Icon(
+                _sortAscending ? Icons.arrow_upward : Icons.arrow_downward,
+                size: 10,
+                color: AppColors.accent,
+              ),
+            ],
+          ],
         ),
-        textAlign: TextAlign.center,
       ),
     );
   }
@@ -111,7 +233,8 @@ class StandingsTable extends ConsumerWidget {
         position == 1; // Simplified - should check actual user team
 
     return InkWell(
-      onTap: onTeamTap == null ? null : () => onTeamTap!(standing),
+      onTap:
+          widget.onTeamTap == null ? null : () => widget.onTeamTap!(standing),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(

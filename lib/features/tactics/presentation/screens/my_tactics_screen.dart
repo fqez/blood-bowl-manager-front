@@ -17,7 +17,7 @@ import '../../../team_creator/presentation/screens/team_creator_screen.dart';
 
 /// Provider that fetches the user's saved tactics.
 final myTacticsProvider =
-    FutureProvider<List<Map<String, dynamic>>>((ref) async {
+    FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
   final repo = ref.watch(teamRepositoryProvider);
   return repo.getMyTactics();
 });

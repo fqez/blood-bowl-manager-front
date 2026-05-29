@@ -72,13 +72,18 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
     final baseRerollCost = baseRoster?.rerollCost ?? team.rerollCost;
     final rerollCost =
         baseRerollCost * (team.leagueMemberships.isNotEmpty ? 2 : 1);
-    final activeCount = team.players.where((p) => p.status == 'healthy').length;
-    final woundedCount = team.players
+    final rosterPlayers = _preMatchRosterPlayers(team, isHome);
+    final rosterPlayerIds = rosterPlayers.map((player) => player.id).toSet();
+    final activeCount =
+        rosterPlayers.where((p) => p.status == 'healthy').length;
+    final woundedCount = rosterPlayers
         .where((p) => p.status != 'healthy' && p.status != 'dead')
         .length;
     final isReady = isHome ? match.homeReady : match.awayReady;
     final selectedIds = isHome ? _selectedHomePlayers : _selectedAwayPlayers;
-    final squadValid = selectedIds.isNotEmpty && selectedIds.length <= 11;
+    final selectedRosterIds =
+        selectedIds.where(rosterPlayerIds.contains).toList();
+    final squadValid = selectedRosterIds.length >= 11;
 
     return Container(
       width: double.infinity,
@@ -165,28 +170,47 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
                   ],
                 );
 
-                final metrics = isCompact
-                    ? Wrap(
-                        spacing: 16,
-                        runSpacing: 8,
-                        children: [
-                          _buildMetricBlock(
-                              'TEAM VALUE', _fmtGold(team.teamValue)),
-                          _buildMetricBlock('TREASURY', _fmtGold(team.treasury),
-                              valueColor: AppColors.accent),
-                        ],
-                      )
-                    : Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          _buildMetricBlock(
-                              'TEAM VALUE', _fmtGold(team.teamValue),
-                              alignEnd: true),
-                          const SizedBox(height: 6),
-                          _buildMetricBlock('TREASURY', _fmtGold(team.treasury),
-                              alignEnd: true, valueColor: AppColors.accent),
-                        ],
-                      );
+                final currentTeamValue = _teamCurrentValue(team);
+                final teamValueLabel =
+                    tr(lang, 'team.teamValueShort').toUpperCase();
+                final currentTeamValueLabel =
+                    tr(lang, 'team.currentTeamValueShort').toUpperCase();
+                final treasuryLabel =
+                    tr(lang, 'liveMatch.treasury').toUpperCase();
+                final metrics = Column(
+                  crossAxisAlignment: isCompact
+                      ? CrossAxisAlignment.start
+                      : CrossAxisAlignment.end,
+                  children: [
+                    isCompact
+                        ? Wrap(
+                            spacing: 16,
+                            runSpacing: 6,
+                            children: [
+                              _buildMetricBlock(
+                                  teamValueLabel, _fmtGold(team.teamValue)),
+                              _buildMetricBlock(currentTeamValueLabel,
+                                  _fmtGold(currentTeamValue)),
+                            ],
+                          )
+                        : Row(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildMetricBlock(
+                                  teamValueLabel, _fmtGold(team.teamValue),
+                                  alignEnd: true),
+                              const SizedBox(width: 24),
+                              _buildMetricBlock(currentTeamValueLabel,
+                                  _fmtGold(currentTeamValue),
+                                  alignEnd: true),
+                            ],
+                          ),
+                    const SizedBox(height: 6),
+                    _buildMetricBlock(treasuryLabel, _fmtGold(team.treasury),
+                        alignEnd: !isCompact, valueColor: AppColors.accent),
+                  ],
+                );
 
                 if (isCompact) {
                   return Column(
@@ -361,8 +385,11 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
           Builder(builder: (_) {
             final selectedIds =
                 isHome ? _selectedHomePlayers : _selectedAwayPlayers;
-            final selectedCount = selectedIds.length;
-            const maxSquad = 11;
+            final selectedCount =
+                selectedIds.where(rosterPlayerIds.contains).length;
+            final eligibleCount = rosterPlayers
+                .where((player) => player.status == 'healthy')
+                .length;
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -376,28 +403,22 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                        color: selectedCount == maxSquad
+                        color: selectedCount >= 11
                             ? AppColors.success.withValues(alpha: 0.15)
-                            : selectedCount > maxSquad
-                                ? AppColors.error.withValues(alpha: 0.15)
-                                : AppColors.warning.withValues(alpha: 0.15),
+                            : AppColors.warning.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(6),
                         border: Border.all(
-                          color: selectedCount == maxSquad
+                          color: selectedCount >= 11
                               ? AppColors.success.withValues(alpha: 0.3)
-                              : selectedCount > maxSquad
-                                  ? AppColors.error.withValues(alpha: 0.3)
-                                  : AppColors.warning.withValues(alpha: 0.3),
+                              : AppColors.warning.withValues(alpha: 0.3),
                         ),
                       ),
                       child: Text(
-                        'SQUAD: $selectedCount/$maxSquad',
+                        'SQUAD: $selectedCount/$eligibleCount',
                         style: TextStyle(
-                          color: selectedCount == maxSquad
+                          color: selectedCount >= 11
                               ? AppColors.success
-                              : selectedCount > maxSquad
-                                  ? AppColors.error
-                                  : AppColors.warning,
+                              : AppColors.warning,
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
                           letterSpacing: 0.5,
@@ -406,7 +427,7 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'ACTIVE: $activeCount/${team.players.length}',
+                      'ACTIVE: $activeCount/${rosterPlayers.length}',
                       style: const TextStyle(
                           color: AppColors.textMuted,
                           fontSize: 10,
@@ -426,12 +447,12 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
                     ),
                   ]),
                 ),
-                if (selectedCount > maxSquad)
+                if (selectedCount < 11)
                   const Padding(
                     padding: EdgeInsets.fromLTRB(20, 0, 20, 4),
                     child: Text(
-                      'Too many players selected! Max $maxSquad for a match.',
-                      style: TextStyle(color: AppColors.error, fontSize: 11),
+                      'Select at least 11 players before marking the team ready.',
+                      style: TextStyle(color: AppColors.warning, fontSize: 11),
                     ),
                   ),
                 Padding(
@@ -455,8 +476,8 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
                       ? () => _updateState(
                             homeReady: isHome ? !isReady : null,
                             awayReady: !isHome ? !isReady : null,
-                            homeSquad: isHome ? selectedIds.toList() : null,
-                            awaySquad: !isHome ? selectedIds.toList() : null,
+                            homeSquad: isHome ? selectedRosterIds : null,
+                            awaySquad: !isHome ? selectedRosterIds : null,
                           )
                       : null,
                   icon: Icon(
@@ -864,7 +885,10 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
                   final count = purchases[rule.id] ?? 0;
                   final key = '${team.id}:${rule.id}';
                   final isMutating = _inducementMutatingKeys.contains(key);
-                  final canDecrease = canEdit && count > 0 && !isMutating;
+                  final canDecrease = canEdit &&
+                      count > 0 &&
+                      rule.id != 'riotous_rookies' &&
+                      !isMutating;
                   final canIncrease = canEdit &&
                       offer.available &&
                       offer.cost != null &&
@@ -1387,53 +1411,56 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
     required UserTeamDetail team,
     required String lang,
   }) {
-    return Tooltip(
-      message: _inducementBudgetInfo(budget, team, lang),
-      waitDuration: const Duration(milliseconds: 250),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: AppColors.accent.withValues(alpha: 0.14),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: AppColors.accent.withValues(alpha: 0.35)),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  tr(lang, 'liveMatch.availableInducementCash').toUpperCase(),
-                  style: const TextStyle(
-                    color: AppColors.textMuted,
-                    fontSize: 9,
-                    fontWeight: FontWeight.bold,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: () => _showInducementBudgetDialog(budget, team, lang),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: AppColors.accent.withValues(alpha: 0.14),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: AppColors.accent.withValues(alpha: 0.35)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    tr(lang, 'liveMatch.availableInducementCash').toUpperCase(),
+                    style: const TextStyle(
+                      color: AppColors.textMuted,
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-                Text(
-                  '${_fmtGold(budget.remaining)} GP',
-                  style: _displaySmall.copyWith(
-                    color: AppColors.accent,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w900,
+                  Text(
+                    '${_fmtGold(budget.remaining)} GP',
+                    style: _displaySmall.copyWith(
+                      color: AppColors.accent,
+                      fontSize: 24,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(width: 8),
-            Icon(
-              PhosphorIcons.info(PhosphorIconsStyle.bold),
-              size: 18,
-              color: AppColors.accent,
-            ),
-          ],
+                ],
+              ),
+              const SizedBox(width: 8),
+              Icon(
+                PhosphorIcons.info(PhosphorIconsStyle.bold),
+                size: 18,
+                color: AppColors.accent,
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  String _inducementBudgetInfo(
+  void _showInducementBudgetDialog(
     _InducementBudget budget,
     UserTeamDetail team,
     String lang,
@@ -1442,41 +1469,344 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
     final gold = tr(lang, 'liveMatch.costGold').toUpperCase();
     String gp(int value) => '${_fmtGold(value)} $gold';
     final breakdown = team.teamValueBreakdown;
-    final lines = <String>[
-      isEs
-          ? 'Cálculo de incentivos (pág. 94)'
-          : 'Inducement calculation (p. 94)',
-      'TV = ${isEs ? 'jugadores' : 'players'} ${gp(breakdown.playerValue)} + ${isEs ? 'rerolls' : 're-rolls'} ${gp(breakdown.rerollValue)} + ${isEs ? 'staff' : 'staff'} ${gp(breakdown.sidelineStaffValue)} = ${gp(team.teamValue)}',
-      'CTV = TV ${gp(team.teamValue)} - ${isEs ? 'jugadores no disponibles' : 'unavailable players'} ${gp(breakdown.unavailablePlayerValue)} = ${gp(budget.teamCurrentValue)}',
-      '${isEs ? 'CTV rival' : 'Opponent CTV'}: ${gp(budget.opponentCurrentValue)}',
-    ];
 
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(24),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 640),
+          child: Container(
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(16),
+              border:
+                  Border.all(color: AppColors.accent.withValues(alpha: 0.35)),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(PhosphorIcons.coins(PhosphorIconsStyle.fill),
+                            color: AppColors.accent, size: 24),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            isEs
+                                ? 'Cálculo de dinero para incentivos'
+                                : 'Inducement cash calculation',
+                            style: _displaySmall.copyWith(
+                              color: AppColors.textPrimary,
+                              fontSize: 24,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          icon: Icon(PhosphorIcons.x(PhosphorIconsStyle.bold),
+                              color: AppColors.textMuted),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    _budgetSummaryBox(
+                      label: isEs
+                          ? 'Disponible para comprar'
+                          : 'Available to spend',
+                      value: gp(budget.remaining),
+                    ),
+                    const SizedBox(height: 14),
+                    _budgetDialogSection(
+                      isEs ? '1. Valor de Equipo (VE)' : '1. Team Value (TV)',
+                      [
+                        _budgetDialogLine(isEs ? 'Jugadores' : 'Players',
+                            gp(breakdown.playerValue)),
+                        _budgetDialogLine(isEs ? 'Re-rolls' : 'Re-rolls',
+                            gp(breakdown.rerollValue)),
+                        _budgetDialogLine(
+                            isEs ? 'Staff de banda' : 'Sideline staff',
+                            gp(breakdown.sidelineStaffValue)),
+                        _budgetDialogDivider(),
+                        _budgetDialogLine(
+                            isEs ? 'VE' : 'TV', gp(team.teamValue),
+                            strong: true),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    _budgetDialogSection(
+                      isEs
+                          ? '2. Valoración Actual de Equipo (VAE)'
+                          : '2. Current Team Value (CTV)',
+                      [
+                        _budgetDialogLine(
+                            isEs ? 'VE' : 'TV', gp(team.teamValue)),
+                        _budgetDialogLine(
+                          isEs
+                              ? 'Jugadores no disponibles'
+                              : 'Unavailable players',
+                          '-${gp(breakdown.unavailablePlayerValue)}',
+                          valueColor: AppColors.error,
+                        ),
+                        _budgetDialogDivider(),
+                        _budgetDialogLine(
+                          isEs ? 'VAE' : 'CTV',
+                          gp(budget.teamCurrentValue),
+                          strong: true,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    _budgetDialogSection(
+                      isEs
+                          ? '3. Comparación con el rival'
+                          : '3. Opponent comparison',
+                      [
+                        _budgetDialogLine(isEs ? 'Tu VAE' : 'Your CTV',
+                            gp(budget.teamCurrentValue)),
+                        _budgetDialogLine(isEs ? 'VAE rival' : 'Opponent CTV',
+                            gp(budget.opponentCurrentValue)),
+                        _budgetDialogLine(isEs ? 'Diferencia' : 'Difference',
+                            gp(budget.ctvDifference),
+                            strong: true),
+                        const SizedBox(height: 8),
+                        _budgetDialogNote(
+                            _inducementBudgetRoleText(budget, isEs)),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    _budgetDialogSection(
+                      isEs
+                          ? '4. Fondo y compras'
+                          : '4. Cash pool and purchases',
+                      _budgetCashPoolLines(budget, team, isEs, gp, gold),
+                    ),
+                    const SizedBox(height: 16),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        child: Text(isEs ? 'Cerrar' : 'Close'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _inducementBudgetRoleText(_InducementBudget budget, bool isEs) {
     if (budget.isTied) {
-      lines.add(isEs
-          ? 'CTV iguales: no hay Fondo para Gastos y nadie puede gastar Tesorería.'
-          : 'Equal CTV: no Petty Cash and neither team may spend Treasury.');
-    } else if (budget.isFavorite) {
-      lines.add(isEs
-          ? 'Equipo con mayor CTV: gasta solo de Tesorería.'
-          : 'Higher CTV team: spends from Treasury only.');
-      lines.add(
-          '${isEs ? 'Límite' : 'Limit'} = ${isEs ? 'Tesorería actual' : 'current Treasury'} ${gp(team.treasury)} + ${isEs ? 'ya gastado' : 'already spent'} ${gp(budget.spent)} = ${gp(budget.totalAvailable)}');
-    } else {
-      lines.add(
-          '${isEs ? 'Fondo para Gastos' : 'Petty Cash'} = ${isEs ? 'diferencia CTV' : 'CTV difference'} ${gp(budget.ctvDifference)} + ${isEs ? 'gasto rival' : 'opponent spend'} ${gp(budget.opponentTreasurySpend)} = ${gp(budget.pettyCash)}');
-      lines.add(
-          '${isEs ? 'Extra de Tesorería' : 'Treasury top-up'} = ${gp(budget.treasuryAllowance)} (${isEs ? 'máx' : 'max'} 50,000 $gold)');
+      return isEs
+          ? 'Las VAE son iguales: no hay Fondo para Gastos y ningún equipo puede añadir Tesorería.'
+          : 'Both CTVs are equal: there is no Petty Cash and neither team may add Treasury.';
+    }
+    if (budget.isFavorite) {
+      return isEs
+          ? 'Tu equipo tiene mayor VAE: solo puedes comprar incentivos con Tesorería.'
+          : 'Your team has the higher CTV: inducements can only be bought with Treasury.';
+    }
+    return isEs
+        ? 'Tu equipo tiene menor VAE: recibe Fondo para Gastos y puede añadir hasta 50,000 GP de Tesorería.'
+        : 'Your team has the lower CTV: it receives Petty Cash and may add up to 50,000 GP from Treasury.';
+  }
+
+  List<Widget> _budgetCashPoolLines(
+    _InducementBudget budget,
+    UserTeamDetail team,
+    bool isEs,
+    String Function(int value) gp,
+    String gold,
+  ) {
+    if (budget.isTied) {
+      return [
+        _budgetDialogNote(isEs
+            ? 'Con VAE iguales no hay dinero disponible para incentivos.'
+            : 'With equal CTVs there is no inducement cash available.'),
+        _budgetDialogLine(isEs ? 'Total disponible' : 'Total available',
+            gp(budget.totalAvailable),
+            strong: true),
+        _budgetDialogLine(isEs ? 'Comprado' : 'Purchased', gp(budget.spent)),
+        _budgetDialogDivider(),
+        _budgetDialogLine(
+            isEs ? 'Disponible final' : 'Final available', gp(budget.remaining),
+            strong: true, valueColor: AppColors.accent),
+      ];
     }
 
-    lines.add(
-        '${isEs ? 'Disponible' : 'Available'} = ${gp(budget.totalAvailable)} - ${isEs ? 'comprado' : 'purchased'} ${gp(budget.spent)} = ${gp(budget.remaining)}');
-    return lines.join('\n');
+    if (budget.isFavorite) {
+      return [
+        _budgetDialogLine(
+            isEs ? 'Tesorería actual' : 'Current Treasury', gp(team.treasury)),
+        _budgetDialogLine(
+            isEs ? 'Ya comprado' : 'Already purchased', gp(budget.spent)),
+        _budgetDialogDivider(),
+        _budgetDialogLine(
+          isEs ? 'Límite de compras' : 'Purchase limit',
+          gp(budget.totalAvailable),
+          strong: true,
+        ),
+        _budgetDialogLine(isEs ? 'Comprado' : 'Purchased', gp(budget.spent)),
+        _budgetDialogDivider(),
+        _budgetDialogLine(
+            isEs ? 'Disponible final' : 'Final available', gp(budget.remaining),
+            strong: true, valueColor: AppColors.accent),
+      ];
+    }
+
+    return [
+      _budgetDialogLine(isEs ? 'Diferencia de VAE' : 'CTV difference',
+          gp(budget.ctvDifference)),
+      _budgetDialogLine(isEs ? 'Gasto del favorito' : 'Favorite team spend',
+          gp(budget.opponentTreasurySpend)),
+      _budgetDialogDivider(),
+      _budgetDialogLine(
+          isEs ? 'Fondo para Gastos' : 'Petty Cash', gp(budget.pettyCash),
+          strong: true),
+      _budgetDialogLine(isEs ? 'Extra de Tesorería' : 'Treasury top-up',
+          '${gp(budget.treasuryAllowance)} (${isEs ? 'máx' : 'max'} 50,000 $gold)'),
+      _budgetDialogDivider(),
+      _budgetDialogLine(isEs ? 'Total disponible' : 'Total available',
+          gp(budget.totalAvailable),
+          strong: true),
+      _budgetDialogLine(isEs ? 'Comprado' : 'Purchased', gp(budget.spent)),
+      _budgetDialogDivider(),
+      _budgetDialogLine(
+          isEs ? 'Disponible final' : 'Final available', gp(budget.remaining),
+          strong: true, valueColor: AppColors.accent),
+    ];
+  }
+
+  Widget _budgetSummaryBox({required String label, required String value}) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.accent.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.accent.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label.toUpperCase(),
+              style: const TextStyle(
+                color: AppColors.textMuted,
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.8,
+              ),
+            ),
+          ),
+          Text(
+            value,
+            style: _displaySmall.copyWith(
+              color: AppColors.accent,
+              fontSize: 24,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _budgetDialogSection(String title, List<Widget> children) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.surfaceLight),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title.toUpperCase(),
+            style: const TextStyle(
+              color: AppColors.accent,
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.8,
+            ),
+          ),
+          const SizedBox(height: 10),
+          ...children,
+        ],
+      ),
+    );
+  }
+
+  Widget _budgetDialogLine(String label, String value,
+      {bool strong = false, Color? valueColor}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: strong ? AppColors.textPrimary : AppColors.textSecondary,
+                fontSize: 13,
+                fontWeight: strong ? FontWeight.bold : FontWeight.w500,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            value,
+            textAlign: TextAlign.right,
+            style: TextStyle(
+              color: valueColor ??
+                  (strong ? AppColors.textPrimary : AppColors.textSecondary),
+              fontSize: 13,
+              fontWeight: strong ? FontWeight.bold : FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _budgetDialogDivider() {
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: 6),
+      child: Divider(color: AppColors.surfaceLight, height: 1),
+    );
+  }
+
+  Widget _budgetDialogNote(String text) {
+    return Text(
+      text,
+      style: const TextStyle(
+        color: AppColors.textMuted,
+        fontSize: 12,
+        height: 1.35,
+      ),
+    );
   }
 
   IconData _inducementIcon(InducementRule rule) {
     switch (rule.id) {
       case 'prayers_to_nuffle':
         return PhosphorIcons.handsPraying(PhosphorIconsStyle.fill);
+      case 'riotous_rookies':
+        return PhosphorIcons.usersThree(PhosphorIconsStyle.fill);
       case 'part_time_assistant_coach':
         return PhosphorIcons.chalkboardTeacher(PhosphorIconsStyle.fill);
       case 'temp_agency_cheerleader':
@@ -1536,6 +1866,7 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
     if (nextCount < 0 || nextCount > offer.maxPerTeam) return;
 
     String? addedDetail;
+    _RiotousRookiesRoll? riotousRoll;
     if (delta > 0 && rule.id == 'prayers_to_nuffle') {
       final prayerResults =
           ref.read(inducementRulesProvider).valueOrNull?.prayersToNuffle ??
@@ -1546,6 +1877,13 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
       );
       if (result == null) return;
       addedDetail = _prayerResultSummary(result, lang);
+    }
+    if (delta > 0 && rule.id == 'riotous_rookies') {
+      riotousRoll = await _showRiotousRookiesDialog(lang: lang);
+      if (riotousRoll == null) return;
+      await WidgetsBinding.instance.endOfFrame;
+      if (!mounted) return;
+      addedDetail = _riotousRookiesSummary(riotousRoll, lang);
     }
 
     final budget = _matchInducementBudget(
@@ -1609,10 +1947,26 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
       }
 
       final teamRepo = ref.read(teamRepositoryProvider);
-      final updatedTeam = await teamRepo.patchTeamStaff(
-        team.id,
+      var updatedTeam = team;
+      if (delta < 0 && rule.id == 'riotous_rookies') {
+        updatedTeam = await _releaseRiotousRookies(
+          team: updatedTeam,
+          isHome: isHome,
+        );
+      }
+      updatedTeam = await teamRepo.patchTeamStaff(
+        updatedTeam.id,
         treasury: nextTreasury,
       );
+      if (riotousRoll != null) {
+        updatedTeam = await _hireRiotousRookies(
+          team: updatedTeam,
+          baseRoster: baseRoster,
+          roll: riotousRoll,
+          isHome: isHome,
+          lang: lang,
+        );
+      }
       if (!mounted) return;
       _updateLocalState(() {
         _homeInducementPurchases
@@ -1674,6 +2028,136 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
   String _prayerResultSummary(PrayerToNuffleResult result, String lang) {
     final gold = tr(lang, 'liveMatch.prayerRoll');
     return '$gold ${result.roll}: ${result.localizedName(lang)}';
+  }
+
+  String _riotousRookiesSummary(_RiotousRookiesRoll roll, String lang) {
+    final label = lang == 'es' ? 'Novatos' : 'Rookies';
+    return '$label 2D3 ${roll.firstD3}+${roll.secondD3}+1 = ${roll.count}';
+  }
+
+  Future<UserTeamDetail> _releaseRiotousRookies({
+    required UserTeamDetail team,
+    required bool isHome,
+  }) async {
+    final teamRepo = ref.read(teamRepositoryProvider);
+    final selectedIds = isHome ? _selectedHomePlayers : _selectedAwayPlayers;
+    final tempIds = isHome ? _tempHiredHomePlayers : _tempHiredAwayPlayers;
+    final tempData = ref.read(tempHiredPlayersProvider);
+    final playersToRelease = team.players.where((player) {
+      final lowerName = player.name.toLowerCase();
+      final belongsToMatch = player.temporaryMatchId == null ||
+          player.temporaryMatchId == widget.matchId;
+      return player.temporaryForMatch &&
+          belongsToMatch &&
+          player.journeyman &&
+          (lowerName.startsWith('novato embravecido') ||
+              lowerName.startsWith('riotous rookie'));
+    }).toList();
+
+    for (final player in playersToRelease) {
+      await teamRepo.fireUserPlayer(team.id, player.id);
+    }
+
+    _updateLocalState(() {
+      for (final player in playersToRelease) {
+        selectedIds.remove(player.id);
+        tempIds.remove(player.id);
+        tempData.getForTeam(team.id).remove(player.id);
+      }
+    });
+    return teamRepo.getUserTeamDetail(team.id);
+  }
+
+  BasePosition? _riotousRookiePosition(BaseTeam? baseRoster) {
+    if (baseRoster == null) return null;
+    for (final position in baseRoster.positions) {
+      final marker =
+          '${position.position ?? ''} ${position.name}'.toLowerCase();
+      if (marker.contains('lineman')) return position;
+    }
+    return null;
+  }
+
+  Future<UserTeamDetail> _hireRiotousRookies({
+    required UserTeamDetail team,
+    required BaseTeam? baseRoster,
+    required _RiotousRookiesRoll roll,
+    required bool isHome,
+    required String lang,
+  }) async {
+    final position = _riotousRookiePosition(baseRoster);
+    if (position == null) {
+      throw Exception(lang == 'es'
+          ? 'No se encontro un linea para Novatos Embravecidos'
+          : 'No lineman found for Riotous Rookies');
+    }
+
+    final teamRepo = ref.read(teamRepositoryProvider);
+    final cleanedTeam = await _releaseStaleRiotousRookies(
+      team: team,
+      isHome: isHome,
+    );
+    final existingIds = cleanedTeam.players.map((player) => player.id).toSet();
+    for (var index = 0; index < roll.count; index++) {
+      await teamRepo.hirePlayer(
+        cleanedTeam.id,
+        baseType: position.id,
+        name: lang == 'es'
+            ? 'Novato embravecido ${index + 1}'
+            : 'Riotous rookie ${index + 1}',
+        temporaryForMatch: true,
+        temporaryMatchId: widget.matchId,
+        riotousRookie: true,
+      );
+    }
+
+    final refreshedTeam = await teamRepo.getUserTeamDetail(cleanedTeam.id);
+    final newPlayers = refreshedTeam.players
+        .where((player) => !existingIds.contains(player.id))
+        .toList();
+    final selectedIds = isHome ? _selectedHomePlayers : _selectedAwayPlayers;
+    final tempIds = isHome ? _tempHiredHomePlayers : _tempHiredAwayPlayers;
+    _updateLocalState(() {
+      for (final player in newPlayers) {
+        tempIds.add(player.id);
+        selectedIds.add(player.id);
+        ref.read(tempHiredPlayersProvider).addPlayer(cleanedTeam.id, player.id);
+      }
+    });
+    return refreshedTeam;
+  }
+
+  Future<UserTeamDetail> _releaseStaleRiotousRookies({
+    required UserTeamDetail team,
+    required bool isHome,
+  }) async {
+    final teamRepo = ref.read(teamRepositoryProvider);
+    final selectedIds = isHome ? _selectedHomePlayers : _selectedAwayPlayers;
+    final tempIds = isHome ? _tempHiredHomePlayers : _tempHiredAwayPlayers;
+    final tempData = ref.read(tempHiredPlayersProvider);
+    final stalePlayers = team.players.where((player) {
+      final lowerName = player.name.toLowerCase();
+      final isRiotousRookie = lowerName.startsWith('novato embravecido') ||
+          lowerName.startsWith('riotous rookie');
+      final belongsToCurrentMatch = player.temporaryMatchId == widget.matchId;
+      return player.temporaryForMatch &&
+          player.journeyman &&
+          isRiotousRookie &&
+          !belongsToCurrentMatch;
+    }).toList();
+    if (stalePlayers.isEmpty) return team;
+
+    for (final player in stalePlayers) {
+      await teamRepo.fireUserPlayer(team.id, player.id);
+    }
+    _updateLocalState(() {
+      for (final player in stalePlayers) {
+        selectedIds.remove(player.id);
+        tempIds.remove(player.id);
+        tempData.getForTeam(team.id).remove(player.id);
+      }
+    });
+    return teamRepo.getUserTeamDetail(team.id);
   }
 
   Widget _inducementCard({
@@ -1757,6 +2241,18 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
     final allPerks = ref.watch(allPerksProvider).valueOrNull ?? [];
     final selectedIds = isHome ? _selectedHomePlayers : _selectedAwayPlayers;
     final tempIds = isHome ? _tempHiredHomePlayers : _tempHiredAwayPlayers;
+    final sortColumn =
+        isHome ? _homePrepRosterSortColumn : _awayPrepRosterSortColumn;
+    final sortAscending =
+        isHome ? _homePrepRosterSortAscending : _awayPrepRosterSortAscending;
+    final players = _sortedPrepRosterPlayers(
+      _preMatchRosterPlayers(team, isHome),
+      baseRoster,
+      lang,
+      selectedIds,
+      sortColumn,
+      sortAscending,
+    );
 
     return Container(
       decoration: BoxDecoration(
@@ -1767,6 +2263,8 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
       child: SizedBox(
         width: double.infinity,
         child: DataTable(
+          sortColumnIndex: _prepRosterSortColumnIndex(sortColumn),
+          sortAscending: sortAscending,
           headingRowColor: WidgetStateProperty.all(AppColors.surface),
           dataRowColor: WidgetStateProperty.all(Colors.transparent),
           columnSpacing: 12,
@@ -1779,32 +2277,93 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
               fontSize: 10,
               fontWeight: FontWeight.bold,
               letterSpacing: 0.5),
-          columns: const [
-            DataColumn(label: Text('✓')),
-            DataColumn(label: Text('#')),
-            DataColumn(label: Text('PLAYER NAME')),
-            DataColumn(label: Text('POSITION')),
-            DataColumn(label: Text('MA'), numeric: true),
-            DataColumn(label: Text('ST'), numeric: true),
-            DataColumn(label: Text('AG'), numeric: true),
-            DataColumn(label: Text('PA'), numeric: true),
-            DataColumn(label: Text('AV'), numeric: true),
-            DataColumn(label: Text('SKILLS / TRAITS')),
-            DataColumn(label: Text('SPP'), numeric: true),
-            DataColumn(label: Text('STATUS')),
-            DataColumn(label: Text('COST'), numeric: true),
+          columns: [
+            DataColumn(
+                label: const Text('✓'),
+                onSort: (_, __) =>
+                    _setPrepRosterSort(isHome, _PrepRosterSortColumn.selected)),
+            DataColumn(
+                label: const Text('#'),
+                onSort: (_, __) =>
+                    _setPrepRosterSort(isHome, _PrepRosterSortColumn.number)),
+            DataColumn(
+                label: const Text('PLAYER NAME'),
+                onSort: (_, __) =>
+                    _setPrepRosterSort(isHome, _PrepRosterSortColumn.name)),
+            DataColumn(
+                label: const Text('POSITION'),
+                onSort: (_, __) =>
+                    _setPrepRosterSort(isHome, _PrepRosterSortColumn.position)),
+            DataColumn(
+                label: const Text('MA'),
+                numeric: true,
+                onSort: (_, __) =>
+                    _setPrepRosterSort(isHome, _PrepRosterSortColumn.ma)),
+            DataColumn(
+                label: const Text('ST'),
+                numeric: true,
+                onSort: (_, __) =>
+                    _setPrepRosterSort(isHome, _PrepRosterSortColumn.st)),
+            DataColumn(
+                label: const Text('AG'),
+                numeric: true,
+                onSort: (_, __) =>
+                    _setPrepRosterSort(isHome, _PrepRosterSortColumn.ag)),
+            DataColumn(
+                label: const Text('PA'),
+                numeric: true,
+                onSort: (_, __) =>
+                    _setPrepRosterSort(isHome, _PrepRosterSortColumn.pa)),
+            DataColumn(
+                label: const Text('AV'),
+                numeric: true,
+                onSort: (_, __) =>
+                    _setPrepRosterSort(isHome, _PrepRosterSortColumn.av)),
+            DataColumn(
+                label: const Text('SKILLS / TRAITS'),
+                onSort: (_, __) =>
+                    _setPrepRosterSort(isHome, _PrepRosterSortColumn.skills)),
+            DataColumn(
+                label: const Text('SPP'),
+                numeric: true,
+                onSort: (_, __) =>
+                    _setPrepRosterSort(isHome, _PrepRosterSortColumn.spp)),
+            DataColumn(
+                label: const Text('STATUS'),
+                onSort: (_, __) =>
+                    _setPrepRosterSort(isHome, _PrepRosterSortColumn.status)),
+            DataColumn(
+                label: const Text('COST'),
+                numeric: true,
+                onSort: (_, __) =>
+                    _setPrepRosterSort(isHome, _PrepRosterSortColumn.cost)),
           ],
-          rows: team.players.map((p) {
+          rows: players.map((p) {
             final isHealthy = p.status == 'healthy';
             final isSelected = selectedIds.contains(p.id);
-            final isTemp = tempIds.contains(p.id);
-            final canSelect =
-                isHealthy && (isSelected || selectedIds.length < 11);
+            final isTemp =
+                canEdit && (tempIds.contains(p.id) || p.temporaryForMatch);
+            final isStarPlayer = isTemp && p.baseType.startsWith('star_');
+            final isJourneyman = isTemp && p.journeyman;
+            final isMercenary = isTemp && !isStarPlayer && !isJourneyman;
+            final tempColor = isStarPlayer
+                ? AppColors.accent
+                : isMercenary
+                    ? AppColors.primaryLight
+                    : AppColors.info;
+            final tempLabel = isStarPlayer
+                ? 'STAR'
+                : isMercenary
+                    ? 'MERC'
+                    : 'SUST';
+            final canSelect = isHealthy;
 
             return DataRow(
-                color: WidgetStateProperty.resolveWith((_) => isSelected
-                    ? AppColors.primary.withValues(alpha: 0.08)
-                    : null),
+                color: WidgetStateProperty.resolveWith((_) => isTemp
+                    ? tempColor.withValues(alpha: isSelected ? 0.16 : 0.08)
+                    : isSelected
+                        ? AppColors.primary.withValues(alpha: 0.08)
+                        : null),
                 cells: [
                   // Selection checkbox
                   DataCell(
@@ -1814,8 +2373,7 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
                             onChanged: isHealthy
                                 ? (val) {
                                     _updateLocalState(() {
-                                      if (val == true &&
-                                          selectedIds.length < 11) {
+                                      if (val == true) {
                                         selectedIds.add(p.id);
                                       } else {
                                         selectedIds.remove(p.id);
@@ -1859,23 +2417,45 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 3, vertical: 1),
                           decoration: BoxDecoration(
-                            color: AppColors.warning.withValues(alpha: 0.2),
+                            color: tempColor.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(3),
                           ),
-                          child: const Text('TEMP',
+                          child: Text(tempLabel,
                               style: TextStyle(
-                                  color: AppColors.warning,
+                                  color: tempColor,
                                   fontSize: 7,
                                   fontWeight: FontWeight.bold)),
                         ),
                       ],
                     ],
                   )),
-                  DataCell(Text(p.name,
-                      style: const TextStyle(
-                          color: AppColors.textPrimary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500))),
+                  DataCell(Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Flexible(
+                        child: Text(p.name,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                color: AppColors.textPrimary,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500)),
+                      ),
+                      if (isTemp) ...[
+                        const SizedBox(width: 6),
+                        Icon(
+                          isStarPlayer
+                              ? PhosphorIcons.star(PhosphorIconsStyle.fill)
+                              : isMercenary
+                                  ? PhosphorIcons.userPlus(
+                                      PhosphorIconsStyle.fill)
+                                  : PhosphorIcons.userSwitch(
+                                      PhosphorIconsStyle.fill),
+                          size: 12,
+                          color: tempColor,
+                        ),
+                      ],
+                    ],
+                  )),
                   DataCell(Text(
                       localizedPlayerPosition(p,
                           roster: baseRoster, lang: lang),
@@ -1950,6 +2530,39 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
     );
   }
 
+  List<UserPlayer> _preMatchRosterPlayers(UserTeamDetail team, bool isHome) {
+    final tempIds = isHome ? _tempHiredHomePlayers : _tempHiredAwayPlayers;
+    final purchases =
+        isHome ? _homeInducementPurchases : _awayInducementPurchases;
+    return team.players
+        .where((player) =>
+            _isVisiblePreMatchRosterPlayer(player, tempIds, purchases))
+        .toList();
+  }
+
+  bool _isVisiblePreMatchRosterPlayer(
+    UserPlayer player,
+    Set<String> tempIds,
+    Map<String, int> purchases,
+  ) {
+    if (!player.temporaryForMatch) return true;
+    if (player.temporaryMatchId != widget.matchId) return false;
+
+    if (_isRiotousRookie(player)) {
+      return tempIds.contains(player.id) ||
+          (purchases['riotous_rookies'] ?? 0) > 0;
+    }
+
+    return true;
+  }
+
+  bool _isRiotousRookie(UserPlayer player) {
+    final lowerName = player.name.toLowerCase();
+    return player.journeyman &&
+        (lowerName.startsWith('novato embravecido') ||
+            lowerName.startsWith('riotous rookie'));
+  }
+
   Widget _prepStatText(
       UserPlayer player, BaseTeam? baseRoster, String stat, String value) {
     return Text(
@@ -1960,6 +2573,86 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
         fontWeight: FontWeight.bold,
       ),
     );
+  }
+
+  List<UserPlayer> _sortedPrepRosterPlayers(
+    List<UserPlayer> players,
+    BaseTeam? baseRoster,
+    String lang,
+    Set<String> selectedIds,
+    _PrepRosterSortColumn sortColumn,
+    bool ascending,
+  ) {
+    final sorted = List<UserPlayer>.from(players);
+    sorted.sort((a, b) {
+      int result;
+      switch (sortColumn) {
+        case _PrepRosterSortColumn.selected:
+          result = (selectedIds.contains(a.id) ? 1 : 0)
+              .compareTo(selectedIds.contains(b.id) ? 1 : 0);
+        case _PrepRosterSortColumn.number:
+          result = a.number.compareTo(b.number);
+        case _PrepRosterSortColumn.name:
+          result = a.name.toLowerCase().compareTo(b.name.toLowerCase());
+        case _PrepRosterSortColumn.position:
+          result = localizedPlayerPosition(a, roster: baseRoster, lang: lang)
+              .toLowerCase()
+              .compareTo(
+                  localizedPlayerPosition(b, roster: baseRoster, lang: lang)
+                      .toLowerCase());
+        case _PrepRosterSortColumn.ma:
+          result = a.stats.ma.compareTo(b.stats.ma);
+        case _PrepRosterSortColumn.st:
+          result = a.stats.st.compareTo(b.stats.st);
+        case _PrepRosterSortColumn.ag:
+          result = _prepRollStatValue(a.stats.ag)
+              .compareTo(_prepRollStatValue(b.stats.ag));
+        case _PrepRosterSortColumn.pa:
+          result = _prepRollStatValue(a.stats.pa ?? '-')
+              .compareTo(_prepRollStatValue(b.stats.pa ?? '-'));
+        case _PrepRosterSortColumn.av:
+          result = _prepRollStatValue(a.stats.av)
+              .compareTo(_prepRollStatValue(b.stats.av));
+        case _PrepRosterSortColumn.skills:
+          result = a.perks.length.compareTo(b.perks.length);
+        case _PrepRosterSortColumn.spp:
+          result = a.spp.compareTo(b.spp);
+        case _PrepRosterSortColumn.status:
+          result = a.status.compareTo(b.status);
+        case _PrepRosterSortColumn.cost:
+          result = a.currentValue.compareTo(b.currentValue);
+      }
+      if (result == 0) result = a.number.compareTo(b.number);
+      return ascending ? result : -result;
+    });
+    return sorted;
+  }
+
+  int _prepRollStatValue(String value) {
+    final match = RegExp(r'\d+').firstMatch(value);
+    return match == null ? 99 : int.parse(match.group(0)!);
+  }
+
+  int _prepRosterSortColumnIndex(_PrepRosterSortColumn column) => column.index;
+
+  void _setPrepRosterSort(bool isHome, _PrepRosterSortColumn column) {
+    _updateLocalState(() {
+      if (isHome) {
+        if (_homePrepRosterSortColumn == column) {
+          _homePrepRosterSortAscending = !_homePrepRosterSortAscending;
+        } else {
+          _homePrepRosterSortColumn = column;
+          _homePrepRosterSortAscending = true;
+        }
+      } else {
+        if (_awayPrepRosterSortColumn == column) {
+          _awayPrepRosterSortAscending = !_awayPrepRosterSortAscending;
+        } else {
+          _awayPrepRosterSortColumn = column;
+          _awayPrepRosterSortAscending = true;
+        }
+      }
+    });
   }
 
   Future<void> _purchaseStaff(String teamId,

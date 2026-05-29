@@ -1404,6 +1404,31 @@ const _t = <String, Map<String, String>>{
   'player.confirm': {'es': 'Confirmar', 'en': 'Confirm'},
   'player.number': {'es': 'Dorsal', 'en': 'Number'},
   'player.name': {'es': 'Nombre', 'en': 'Name'},
+  'player.image': {'es': 'Imagen personalizada', 'en': 'Custom image'},
+  'player.imageHint': {
+    'es': 'URL de imagen o asset',
+    'en': 'Image URL or asset',
+  },
+  'player.imageHelp': {
+    'es': 'Tambien puedes subir una foto desde el dispositivo.',
+    'en': 'You can also upload a photo from this device.',
+  },
+  'player.pickImage': {
+    'es': 'Subir foto',
+    'en': 'Upload photo',
+  },
+  'player.removeImage': {
+    'es': 'Quitar imagen',
+    'en': 'Remove image',
+  },
+  'player.uploadedImage': {
+    'es': 'Foto subida desde dispositivo',
+    'en': 'Photo uploaded from device',
+  },
+  'player.imagePickError': {
+    'es': 'No se pudo cargar la imagen',
+    'en': 'Could not load image',
+  },
   'player.position': {'es': 'Posición', 'en': 'Position'},
   'player.spp': {'es': 'SPP', 'en': 'SPP'},
   'player.value': {'es': 'Valor', 'en': 'Value'},

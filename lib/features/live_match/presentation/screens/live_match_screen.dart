@@ -28,15 +28,14 @@ part '../widgets/live_match_live_view.dart';
 part '../widgets/live_match_team_prep.dart';
 part '../widgets/live_match_dialogs.dart';
 
-final _matchDetailProvider =
-    FutureProvider.family<Match, ({String leagueId, String matchId})>(
-        (ref, params) async {
+final _matchDetailProvider = FutureProvider.autoDispose
+    .family<Match, ({String leagueId, String matchId})>((ref, params) async {
   final repo = ref.read(leagueRepositoryProvider);
   return repo.getMatchDetail(params.leagueId, params.matchId);
 });
 
 final _quickMatchDetailProvider =
-    FutureProvider.family<Match, String>((ref, matchId) async {
+    FutureProvider.autoDispose.family<Match, String>((ref, matchId) async {
   final repo = ref.read(quickMatchRepositoryProvider);
   return repo.getMatchDetail(matchId);
 });
@@ -83,11 +82,17 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
   Match? _optimisticPreMatch;
   int _optimisticPreMatchRequest = 0;
 
-  // ── Match-day squad selection (max 11 per team) ──
+  // ── Match-day squad selection ──
   final Set<String> _selectedHomePlayers = {};
   final Set<String> _selectedAwayPlayers = {};
   bool _homeSquadSeeded = false;
   bool _awaySquadSeeded = false;
+  _PrepRosterSortColumn _homePrepRosterSortColumn =
+      _PrepRosterSortColumn.number;
+  _PrepRosterSortColumn _awayPrepRosterSortColumn =
+      _PrepRosterSortColumn.number;
+  bool _homePrepRosterSortAscending = true;
+  bool _awayPrepRosterSortAscending = true;
 
   // ── Temporarily hired players for this match only ──
   final Set<String> _tempHiredHomePlayers = {};
@@ -289,28 +294,40 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
     });
   }
 
+  void _setLocalInducementsFromMatch(Match match) {
+    if (_isQM || _inducementMutatingKeys.isNotEmpty) return;
+    _homeInducementPurchases
+      ..clear()
+      ..addAll(match.homeInducementPurchases);
+    _awayInducementPurchases
+      ..clear()
+      ..addAll(match.awayInducementPurchases);
+    _homeInducementUses
+      ..clear()
+      ..addAll(match.homeInducementUses);
+    _awayInducementUses
+      ..clear()
+      ..addAll(match.awayInducementUses);
+    _homeInducementDetails
+      ..clear()
+      ..addAll(_copyInducementDetails(match.homeInducementDetails));
+    _awayInducementDetails
+      ..clear()
+      ..addAll(_copyInducementDetails(match.awayInducementDetails));
+  }
+
   Match _preMatchViewMatch(Match match) {
     final optimistic = _optimisticPreMatch;
     if (match.isPending && optimistic?.id == match.id) {
       return optimistic!.copyWith(
-        homeInducementPurchases: match.homeInducementPurchases.isNotEmpty
-            ? match.homeInducementPurchases
-            : Map<String, int>.from(_homeInducementPurchases),
-        awayInducementPurchases: match.awayInducementPurchases.isNotEmpty
-            ? match.awayInducementPurchases
-            : Map<String, int>.from(_awayInducementPurchases),
-        homeInducementUses: match.homeInducementUses.isNotEmpty
-            ? match.homeInducementUses
-            : Map<String, int>.from(_homeInducementUses),
-        awayInducementUses: match.awayInducementUses.isNotEmpty
-            ? match.awayInducementUses
-            : Map<String, int>.from(_awayInducementUses),
-        homeInducementDetails: match.homeInducementDetails.isNotEmpty
-            ? match.homeInducementDetails
-            : _copyInducementDetails(_homeInducementDetails),
-        awayInducementDetails: match.awayInducementDetails.isNotEmpty
-            ? match.awayInducementDetails
-            : _copyInducementDetails(_awayInducementDetails),
+        homeInducementPurchases:
+            Map<String, int>.from(_homeInducementPurchases),
+        awayInducementPurchases:
+            Map<String, int>.from(_awayInducementPurchases),
+        homeInducementUses: Map<String, int>.from(_homeInducementUses),
+        awayInducementUses: Map<String, int>.from(_awayInducementUses),
+        homeInducementDetails: _copyInducementDetails(_homeInducementDetails),
+        awayInducementDetails: _copyInducementDetails(_awayInducementDetails),
       );
     }
     return match;
@@ -331,17 +348,26 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
 
     final selectedIds = isHome ? _selectedHomePlayers : _selectedAwayPlayers;
     selectedIds.clear();
-    final eligibleIds = team.players.map((player) => player.id).toSet();
+    final eligiblePlayers = team.players.where((player) =>
+        !player.temporaryForMatch || player.temporaryMatchId == widget.matchId);
+    final eligibleIds = eligiblePlayers.map((player) => player.id).toSet();
     if (persistedSquad.isNotEmpty) {
       selectedIds.addAll(persistedSquad.where(eligibleIds.contains));
     } else {
       selectedIds.addAll(
-        team.players
+        eligiblePlayers
             .where((player) => player.status == 'healthy')
-            .take(11)
             .map((player) => player.id),
       );
     }
+    selectedIds.addAll(
+      eligiblePlayers
+          .where((player) =>
+              player.temporaryForMatch &&
+              player.temporaryMatchId == widget.matchId &&
+              player.status == 'healthy')
+          .map((player) => player.id),
+    );
 
     if (isHome) {
       _homeSquadSeeded = true;
@@ -387,13 +413,19 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
           _homePlayers = homeSquad.isNotEmpty
               ? results[0]
                   .players
-                  .where((p) => homeSquad.contains(p.id))
+                  .where((p) =>
+                      homeSquad.contains(p.id) ||
+                      (p.temporaryForMatch &&
+                          p.temporaryMatchId == widget.matchId))
                   .toList()
               : results[0].players.where((p) => p.status == 'healthy').toList();
           _awayPlayers = awaySquad.isNotEmpty
               ? results[1]
                   .players
-                  .where((p) => awaySquad.contains(p.id))
+                  .where((p) =>
+                      awaySquad.contains(p.id) ||
+                      (p.temporaryForMatch &&
+                          p.temporaryMatchId == widget.matchId))
                   .toList()
               : results[1].players.where((p) => p.status == 'healthy').toList();
           // Keep team details for reroll budget in live view
@@ -416,8 +448,8 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
         teamRepo.getUserTeamDetail(match.home.teamId),
         teamRepo.getUserTeamDetail(match.away.teamId),
       ]);
-      final home = results[0];
-      final away = results[1];
+      var home = results[0];
+      var away = results[1];
       // Load base rosters for position catalog
       final baseResults = await Future.wait([
         teamRepo.getBaseTeamDetail(home.baseRosterId),
@@ -425,6 +457,7 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
       ]);
       await _restoreInducementBudgetState(home, away);
       await _maybeMigrateLegacyInducementsToServer(match);
+      _setLocalInducementsFromMatch(match);
       if (mounted) {
         setState(() {
           _seedSquadSelection(
@@ -673,6 +706,7 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
   Future<void> _startMatch() async {
     setState(() => _isSubmitting = true);
     try {
+      await _persistCurrentSquadsBeforeStart();
       if (_isQM) {
         final repo = ref.read(quickMatchRepositoryProvider);
         await repo.startMatch(widget.matchId);
@@ -685,6 +719,69 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
       if (mounted) _snack('$e');
     }
     if (mounted) setState(() => _isSubmitting = false);
+  }
+
+  Future<void> _persistCurrentSquadsBeforeStart() async {
+    var homeTeam = _homeTeam;
+    var awayTeam = _awayTeam;
+    if (homeTeam == null || awayTeam == null) {
+      await _doRefreshPreMatch();
+      homeTeam = _homeTeam;
+      awayTeam = _awayTeam;
+    }
+    if (homeTeam == null || awayTeam == null) return;
+
+    final homeSquad = _currentValidSquad(homeTeam, _selectedHomePlayers);
+    final awaySquad = _currentValidSquad(awayTeam, _selectedAwayPlayers);
+    if (homeSquad.length < 11 || awaySquad.length < 11) {
+      throw Exception('Cada equipo debe tener al menos 11 jugadores validos.');
+    }
+
+    if (mounted) {
+      setState(() {
+        _selectedHomePlayers
+          ..clear()
+          ..addAll(homeSquad);
+        _selectedAwayPlayers
+          ..clear()
+          ..addAll(awaySquad);
+      });
+    }
+
+    if (_isQM) {
+      await ref.read(quickMatchRepositoryProvider).updateMatchState(
+            widget.matchId,
+            homeSquad: homeSquad,
+            awaySquad: awaySquad,
+          );
+    } else {
+      await ref.read(leagueRepositoryProvider).updateMatchState(
+            widget.leagueId,
+            widget.matchId,
+            homeSquad: homeSquad,
+            awaySquad: awaySquad,
+          );
+    }
+  }
+
+  List<String> _currentValidSquad(
+    UserTeamDetail team,
+    Set<String> selectedIds,
+  ) {
+    final validPlayers = team.players.where((player) =>
+        player.status == 'healthy' &&
+        (!player.temporaryForMatch ||
+            player.temporaryMatchId == widget.matchId));
+    final validIds = validPlayers.map((player) => player.id).toSet();
+    final squad = selectedIds.where(validIds.contains).toList();
+    for (final player in validPlayers) {
+      if (player.temporaryForMatch &&
+          player.temporaryMatchId == widget.matchId &&
+          !squad.contains(player.id)) {
+        squad.add(player.id);
+      }
+    }
+    return squad;
   }
 
   Future<void> _completeMatch() async {

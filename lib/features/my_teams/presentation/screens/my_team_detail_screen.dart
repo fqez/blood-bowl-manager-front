@@ -20,7 +20,7 @@ import '../../../shared/utils/team_special_rules.dart';
 import '../../domain/models/user_team.dart';
 
 final userTeamDetailProvider =
-    FutureProvider.family<UserTeamDetail, String>((ref, key) async {
+    FutureProvider.autoDispose.family<UserTeamDetail, String>((ref, key) async {
   final repository = ref.watch(teamRepositoryProvider);
   if (key.startsWith('share:')) {
     return repository.getUserTeamByShareCode(key.substring(6));
@@ -32,6 +32,21 @@ final _baseRosterDetailProvider =
     FutureProvider.family<BaseTeam, String>((ref, rosterId) async {
   return ref.watch(teamRepositoryProvider).getBaseTeamDetail(rosterId);
 });
+
+enum _TeamRosterSortColumn {
+  number,
+  name,
+  position,
+  ma,
+  st,
+  ag,
+  pa,
+  av,
+  skills,
+  spp,
+  status,
+  cost,
+}
 
 class MyTeamDetailScreen extends ConsumerStatefulWidget {
   final String teamId;
@@ -58,6 +73,8 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
   bool _showDead = false;
   bool _notesDirty = false;
   bool _isMutating = false;
+  _TeamRosterSortColumn _rosterSortColumn = _TeamRosterSortColumn.number;
+  bool _rosterSortAscending = true;
 
   String get _detailKey => widget.shareCode == null
       ? widget.teamId
@@ -440,7 +457,10 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
   // ── Team header ──
 
   Widget _buildTeamHeader(UserTeamDetail team, bool isWide, String lang) {
-    final activeCount = team.players.where((p) => p.status == 'healthy').length;
+    final rosterPlayers =
+        team.players.where((player) => !player.temporaryForMatch).toList();
+    final activeCount =
+        rosterPlayers.where((p) => p.status == 'healthy').length;
     final isValid = activeCount >= 11;
     final baseRoster =
         ref.watch(_baseRosterDetailProvider(team.baseRosterId)).valueOrNull;
@@ -904,8 +924,14 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
   ) {
     final baseRoster =
         ref.watch(_baseRosterDetailProvider(team.baseRosterId)).valueOrNull;
-    final filtered = _filterPlayers(team.players, baseRoster, lang);
-    final totalActive = team.players.where((p) => !p.isDead).length;
+    final rosterPlayers =
+        team.players.where((player) => !player.temporaryForMatch).toList();
+    final filtered = _sortRosterPlayers(
+      _filterPlayers(rosterPlayers, baseRoster, lang),
+      baseRoster,
+      lang,
+    );
+    final totalActive = rosterPlayers.where((p) => !p.isDead).length;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -966,13 +992,13 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
               ),
             ),
           ),
-        if (team.players.isNotEmpty)
+        if (rosterPlayers.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 8),
             child: Align(
               alignment: Alignment.centerRight,
               child: Text(
-                  '1 - ${filtered.length} de ${team.players.length} jugadores',
+                  '1 - ${filtered.length} de ${rosterPlayers.length} jugadores',
                   style: const TextStyle(
                       fontSize: 11, color: AppColors.textMuted)),
             ),
@@ -1116,7 +1142,9 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
     String lang,
   ) {
     final rerollCost = _rerollPurchaseCost(team);
-    final activeCount = team.players.where((p) => p.status == 'healthy').length;
+    final activeCount = team.players
+        .where((p) => !p.temporaryForMatch && p.status == 'healthy')
+        .length;
     final isValidRoster = activeCount >= 11;
 
     final cards = <Widget>[
@@ -1422,49 +1450,157 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
     }).toList();
   }
 
+  List<UserPlayer> _sortRosterPlayers(
+    List<UserPlayer> players,
+    BaseTeam? baseRoster,
+    String lang,
+  ) {
+    final sorted = List<UserPlayer>.from(players);
+    sorted.sort((a, b) {
+      int result;
+      switch (_rosterSortColumn) {
+        case _TeamRosterSortColumn.number:
+          result = a.number.compareTo(b.number);
+        case _TeamRosterSortColumn.name:
+          result = a.name.toLowerCase().compareTo(b.name.toLowerCase());
+        case _TeamRosterSortColumn.position:
+          result = localizedPlayerPosition(a, roster: baseRoster, lang: lang)
+              .toLowerCase()
+              .compareTo(
+                  localizedPlayerPosition(b, roster: baseRoster, lang: lang)
+                      .toLowerCase());
+        case _TeamRosterSortColumn.ma:
+          result = a.stats.ma.compareTo(b.stats.ma);
+        case _TeamRosterSortColumn.st:
+          result = a.stats.st.compareTo(b.stats.st);
+        case _TeamRosterSortColumn.ag:
+          result =
+              _rollStatValue(a.stats.ag).compareTo(_rollStatValue(b.stats.ag));
+        case _TeamRosterSortColumn.pa:
+          result = _rollStatValue(a.stats.pa ?? '-')
+              .compareTo(_rollStatValue(b.stats.pa ?? '-'));
+        case _TeamRosterSortColumn.av:
+          result =
+              _rollStatValue(a.stats.av).compareTo(_rollStatValue(b.stats.av));
+        case _TeamRosterSortColumn.skills:
+          result = a.perks.length.compareTo(b.perks.length);
+        case _TeamRosterSortColumn.spp:
+          result = a.spp.compareTo(b.spp);
+        case _TeamRosterSortColumn.status:
+          result = a.status.compareTo(b.status);
+        case _TeamRosterSortColumn.cost:
+          result = a.currentValue.compareTo(b.currentValue);
+      }
+      if (result == 0) result = a.number.compareTo(b.number);
+      return _rosterSortAscending ? result : -result;
+    });
+    return sorted;
+  }
+
+  int _rollStatValue(String value) {
+    final match = RegExp(r'\d+').firstMatch(value);
+    return match == null ? 99 : int.parse(match.group(0)!);
+  }
+
+  void _setRosterSort(_TeamRosterSortColumn column) {
+    setState(() {
+      if (_rosterSortColumn == column) {
+        _rosterSortAscending = !_rosterSortAscending;
+      } else {
+        _rosterSortColumn = column;
+        _rosterSortAscending = true;
+      }
+    });
+  }
+
   Widget _buildTableHeader(bool isWide, String lang) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
-          SizedBox(width: 52, child: Center(child: _th('#'))),
-          SizedBox(width: 130, child: _th('NOMBRE')),
+          SizedBox(
+              width: 52,
+              child: Center(child: _th('#', _TeamRosterSortColumn.number))),
+          SizedBox(
+              width: 130, child: _th('NOMBRE', _TeamRosterSortColumn.name)),
           if (isWide)
             SizedBox(
               width: 116,
               child: Padding(
                 padding: const EdgeInsets.only(left: 12),
-                child: _th('POSICIÓN'),
+                child: _th('POSICIÓN', _TeamRosterSortColumn.position),
               ),
             ),
-          _attributeHeader('MA', _attributeTooltip('MA', lang)),
-          _attributeHeader('ST', _attributeTooltip('ST', lang)),
-          _attributeHeader('AG', _attributeTooltip('AG', lang)),
-          _attributeHeader('PA', _attributeTooltip('PA', lang)),
-          _attributeHeader('AV', _attributeTooltip('AV', lang)),
+          _attributeHeader(
+              'MA', _attributeTooltip('MA', lang), _TeamRosterSortColumn.ma),
+          _attributeHeader(
+              'ST', _attributeTooltip('ST', lang), _TeamRosterSortColumn.st),
+          _attributeHeader(
+              'AG', _attributeTooltip('AG', lang), _TeamRosterSortColumn.ag),
+          _attributeHeader(
+              'PA', _attributeTooltip('PA', lang), _TeamRosterSortColumn.pa),
+          _attributeHeader(
+              'AV', _attributeTooltip('AV', lang), _TeamRosterSortColumn.av),
           const SizedBox(width: 10),
-          Expanded(flex: 3, child: _th(tr(lang, 'player.skills'))),
-          SizedBox(width: 44, child: Center(child: _th('SPP'))),
-          SizedBox(width: 80, child: Center(child: _th('ESTADO'))),
-          if (isWide) SizedBox(width: 60, child: Center(child: _th('COSTE'))),
-          SizedBox(width: 40, child: _th('')),
+          Expanded(
+              flex: 3,
+              child:
+                  _th(tr(lang, 'player.skills'), _TeamRosterSortColumn.skills)),
+          SizedBox(
+              width: 44,
+              child: Center(child: _th('SPP', _TeamRosterSortColumn.spp))),
+          SizedBox(
+              width: 80,
+              child:
+                  Center(child: _th('ESTADO', _TeamRosterSortColumn.status))),
+          if (isWide)
+            SizedBox(
+                width: 60,
+                child: Center(child: _th('COSTE', _TeamRosterSortColumn.cost))),
+          const SizedBox(width: 40),
         ],
       ),
     );
   }
 
-  Widget _th(String t) => Text(t,
-      style: const TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.bold,
-          color: AppColors.textMuted,
-          letterSpacing: 0.8));
+  Widget _th(String t, _TeamRosterSortColumn column) {
+    final active = _rosterSortColumn == column;
+    return InkWell(
+      onTap: () => _setRosterSort(column),
+      borderRadius: BorderRadius.circular(4),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Flexible(
+            child: Text(t,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: active ? AppColors.accent : AppColors.textMuted,
+                    letterSpacing: 0)),
+          ),
+          if (active) ...[
+            const SizedBox(width: 3),
+            Icon(
+              _rosterSortAscending ? Icons.arrow_upward : Icons.arrow_downward,
+              size: 10,
+              color: AppColors.accent,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
 
-  Widget _attributeHeader(String label, String tooltip) => SizedBox(
+  Widget _attributeHeader(
+          String label, String tooltip, _TeamRosterSortColumn column) =>
+      SizedBox(
         width: 38,
         child: Tooltip(
           message: tooltip,
-          child: Center(child: _th(label)),
+          child: Center(child: _th(label, column)),
         ),
       );
 
@@ -1970,7 +2106,8 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
       builder: (ctx) => _HirePlayerDialog(
         teamId: team.id,
         baseRosterId: team.baseRosterId,
-        currentPlayers: team.players,
+        currentPlayers:
+            team.players.where((player) => !player.temporaryForMatch).toList(),
         treasury: team.treasury,
         onHired: () {
           _refresh();

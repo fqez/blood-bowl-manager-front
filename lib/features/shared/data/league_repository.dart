@@ -220,6 +220,21 @@ class LeagueRepository {
     }
   }
 
+  Future<void> finalizeAftermatchRosters({
+    required String leagueId,
+    required String matchId,
+    List<Map<String, dynamic>> temporaryPlayers = const [],
+  }) async {
+    try {
+      await _dio.post(
+        '/leagues/$leagueId/matches/$matchId/aftermatch/rosters',
+        data: {'temporary_players': temporaryPlayers},
+      );
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
   Future<LeagueSummaryModel> updateLeagueSettings(
     String leagueId, {
     String? name,

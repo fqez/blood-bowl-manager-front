@@ -46,6 +46,12 @@ final winningsRulesProvider = FutureProvider<WinningsRules>((ref) async {
   return repo.getWinningsRules();
 });
 
+final leaguePointsRulesProvider =
+    FutureProvider<LeaguePointsRules>((ref) async {
+  final repo = ref.watch(teamRepositoryProvider);
+  return repo.getLeaguePointsRules();
+});
+
 final dedicatedFansRulesProvider =
     FutureProvider<DedicatedFansRules>((ref) async {
   final repo = ref.watch(teamRepositoryProvider);
@@ -549,6 +555,52 @@ class WinningsRules {
   }
 }
 
+class LeaguePointsRules {
+  final int winPoints;
+  final int drawPoints;
+  final int lossPoints;
+  final int touchdownBonusThreshold;
+  final int touchdownBonusPoints;
+  final int shutoutBonusPoints;
+  final int casualtyBonusThreshold;
+  final int casualtyBonusPoints;
+  final bool casualtyBonusRequiresSpp;
+  final Map<String, String> description;
+
+  const LeaguePointsRules({
+    required this.winPoints,
+    required this.drawPoints,
+    required this.lossPoints,
+    required this.touchdownBonusThreshold,
+    required this.touchdownBonusPoints,
+    required this.shutoutBonusPoints,
+    required this.casualtyBonusThreshold,
+    required this.casualtyBonusPoints,
+    required this.casualtyBonusRequiresSpp,
+    required this.description,
+  });
+
+  factory LeaguePointsRules.fromJson(Map<String, dynamic> json) =>
+      LeaguePointsRules(
+        winPoints: (json['win_points'] as num?)?.toInt() ?? 3,
+        drawPoints: (json['draw_points'] as num?)?.toInt() ?? 1,
+        lossPoints: (json['loss_points'] as num?)?.toInt() ?? 0,
+        touchdownBonusThreshold:
+            (json['touchdown_bonus_threshold'] as num?)?.toInt() ?? 3,
+        touchdownBonusPoints:
+            (json['touchdown_bonus_points'] as num?)?.toInt() ?? 1,
+        shutoutBonusPoints:
+            (json['shutout_bonus_points'] as num?)?.toInt() ?? 1,
+        casualtyBonusThreshold:
+            (json['casualty_bonus_threshold'] as num?)?.toInt() ?? 3,
+        casualtyBonusPoints:
+            (json['casualty_bonus_points'] as num?)?.toInt() ?? 1,
+        casualtyBonusRequiresSpp:
+            json['casualty_bonus_requires_spp'] as bool? ?? true,
+        description: ExpensiveMistakeEffect._localized(json['description']),
+      );
+}
+
 class ExpensiveMistakesRules {
   final int minTreasury;
   final List<ExpensiveMistakeBand> bands;
@@ -838,6 +890,8 @@ class TeamRepository {
     int? number,
     bool temporaryForMatch = false,
     String? temporaryMatchId,
+    bool mercenary = false,
+    bool riotousRookie = false,
   }) async {
     try {
       await _dio.post('/user-teams/$teamId/players', data: {
@@ -846,6 +900,8 @@ class TeamRepository {
         if (number != null) 'number': number,
         if (temporaryForMatch) 'temporary_for_match': true,
         if (temporaryMatchId != null) 'temporary_match_id': temporaryMatchId,
+        if (mercenary) 'mercenary': true,
+        if (riotousRookie) 'riotous_rookie': true,
       });
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
@@ -923,6 +979,15 @@ class TeamRepository {
     }
   }
 
+  Future<LeaguePointsRules> getLeaguePointsRules() async {
+    try {
+      final response = await _dio.get('/rules/league-points');
+      return LeaguePointsRules.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
   Future<DedicatedFansRules> getDedicatedFansRules() async {
     try {
       final response = await _dio.get('/rules/dedicated-fans');
@@ -981,6 +1046,7 @@ class TeamRepository {
     String playerId, {
     String? name,
     int? number,
+    String? image,
     String? status,
     String? injuryCategory,
     String? injuryNote,
@@ -992,6 +1058,7 @@ class TeamRepository {
         data: {
           if (name != null) 'name': name,
           if (number != null) 'number': number,
+          if (image != null) 'image': image,
           if (status != null) 'status': status,
           if (injuryCategory != null) 'injury_category': injuryCategory,
           if (injuryNote != null) 'injury_note': injuryNote,

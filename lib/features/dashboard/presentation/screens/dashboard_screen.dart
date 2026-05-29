@@ -11,14 +11,15 @@ import '../widgets/league_card.dart';
 import '../widgets/notification_card.dart';
 
 // Providers
-final myLeaguesProvider = FutureProvider<List<League>>((ref) async {
+final myLeaguesProvider = FutureProvider.autoDispose<List<League>>((ref) async {
   if (!_canLoadProtectedData(ref)) return const <League>[];
 
   final repository = ref.watch(leagueRepositoryProvider);
   return repository.getMyLeagues();
 });
 
-final invitationsProvider = FutureProvider<List<LeagueInvitation>>((ref) async {
+final invitationsProvider =
+    FutureProvider.autoDispose<List<LeagueInvitation>>((ref) async {
   if (!_canLoadProtectedData(ref)) return const <LeagueInvitation>[];
 
   final repository = ref.watch(leagueRepositoryProvider);

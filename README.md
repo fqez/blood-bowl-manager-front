@@ -311,6 +311,22 @@ La estructura por features, el uso de Riverpod y la intencion de modelar dominio
 
 ## TODO
 
+IMPORTANTES!!!!!
+
+- [X] Se ha perdido la sección de contratar sustitutos post-partido. Cuando acaba el partido se añaden a la plantilla automaticamente MAL!! [DONE]
+- [X] Los lineas sustitutos son gratis, solo cuestan pasta si los compras post partido.... pero cuentan para la VAE [DONE]
+- [X] Los jugadores que se pierden el proximo partido mirar si se resetean en el 2do
+- [X] El tooltip de calculo de Incentivos que sea un popup en vez de un tooltip, para ver mejor los calculos. [DONE]
+- [X] Hay que recargar siempre!!!
+- [X] Cuando compras un incentivo y cambias de opinion y lo devuelves, se actualiza el dinero, pero el incentivo sigue estando, hasta que recargas la pagina. Si no recargas e inicias el partido, no has gastado dinero pero sigues teniendo el incentivo. [DONE]
+- [X] Ordenacion en las tablas! [DONE: cabeceras ordenables en clasificacion y rosters de equipo, pre-partido y post-partido]
+- [X] Meter en la vista de pre-partido la VAE también, no solo la VE [DONE]
+- [X] Revisar puntuaciones. Pag.103
+- [X] Permitir llevar mas de 11 jugadores en el partido (suplentes), toda la plantilla basicamente. [DONE: eliminada la limitacion de 11 en la seleccion pre-partido]
+- [X] Con lo anterior, el incentivo de novatos embravecidos, te permite llevar adicionalmente 2D3+1 lineas adicionales. [DONE]
+- [X] En la vista de fichar jugador, solo se pueden fichar jugadores mercenarios y estrellas. Los mercenarios cuestna 30k mas del base y no se pueden para aumentar el limite de tipo de jugador, si tienes 2 momias no puedes contratar otra. Si tienes 2 y una esta lesionada sí. Los mercenarios no se pueden fichar despues del partido como los sustitutos. [DONE]
+- [X] Post partido añadir en grande los puntos que gana cada equipo en base a las reglas, con explicación de los numeros. [DONE]
+
 **TECNICAS**
 
 - [X] Filtro por raza + busqueda en mis equipos [DONE]
@@ -328,6 +344,7 @@ La estructura por features, el uso de Riverpod y la intencion de modelar dominio
 - [ ] Implementar Mis ligas - liga - jornada actual
 - [X] Implementar Mis ligas - liga - estadisticas [DONE]
 - [ ] En partido rapido hacer busqueda por usuario e implemetar toda la logica de notificaciones, conexion a partido, etc
+- [ ] Si cierras sesion con un usuario e inicias sesion con otro en la url se queda la ultima url con la que el usuario anterior cerro y al abrir el nuevo usuario accede a los datos delusuario anterior.... De hecho se puede acceder a cualquier recurso de otro usuario y no deberia.
 
 **VISUALES**
 

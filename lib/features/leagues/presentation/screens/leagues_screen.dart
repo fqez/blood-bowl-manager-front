@@ -12,7 +12,7 @@ import '../../../shared/data/repositories.dart';
 import '../../domain/models/league_summary.dart';
 
 final myLeaguesSummaryProvider =
-    FutureProvider<List<LeagueSummaryModel>>((ref) async {
+    FutureProvider.autoDispose<List<LeagueSummaryModel>>((ref) async {
   final authState = ref.watch(authStateProvider);
   final currentAuth = authState.valueOrNull;
   if (authState.isLoading || currentAuth?.isLoading == true) {

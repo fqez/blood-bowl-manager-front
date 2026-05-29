@@ -10,7 +10,8 @@ import '../../../my_teams/domain/models/user_team.dart';
 import '../../../league/domain/models/league.dart';
 import '../../../shared/data/repositories.dart';
 
-final _userTeamsProvider = FutureProvider<List<UserTeamSummary>>((ref) async {
+final _userTeamsProvider =
+    FutureProvider.autoDispose<List<UserTeamSummary>>((ref) async {
   final repo = ref.read(teamRepositoryProvider);
   return repo.getUserTeams();
 });
@@ -545,7 +546,8 @@ class _QuickMatchSetupScreenState extends ConsumerState<QuickMatchSetupScreen> {
   }
 }
 
-final _quickMatchHistoryProvider = FutureProvider<List<Match>>((ref) async {
+final _quickMatchHistoryProvider =
+    FutureProvider.autoDispose<List<Match>>((ref) async {
   final repo = ref.read(quickMatchRepositoryProvider);
   return repo.listQuickMatches();
 });
