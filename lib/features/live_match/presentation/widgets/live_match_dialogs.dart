@@ -59,7 +59,9 @@ extension _LiveMatchDialogs on _LiveMatchScreenState {
   ) async {
     if (draft.type == 'casualty' && draft.injuryCategory != null) {
       if (draft.victimId == null) return true;
-      final victimIsHome = draft.team != 'home';
+      final victimIsHome = draft.accidentalCasualty
+          ? draft.team == 'home'
+          : draft.team != 'home';
       final team = victimIsHome ? _homeTeam : _awayTeam;
       final player = _findLivePlayer(
         draft.victimId!,

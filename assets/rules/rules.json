@@ -753,7 +753,69 @@
             {
                 "title": "PERFORMING A BLOCK ACTION / REALIZAR UNA ACCIÓN DE PLACAJE",
                 "en": "Once a player has declared the target of their Block Action, the next thing to do is to work out how many Block Dice they will roll for the Block Action. This is done by comparing the Strength Characteristic of the player performing the Block Action with the Strength Characteristic of the target player. If one player is stronger than the other, then they are more likely to knock them down!\n\nTo do this, both players take their Strength Characteristic and apply any modifiers that affect it, such as any Skills or Traits that modify a player’s ST or any Offensive or Defensive Assists.\n\n* If, after any modifiers have been applied, both players have the same Strength Characteristic, a single Block Dice is rolled.\n* If, after any modifiers have been applied, one player has a higher Strength Characteristic than the other, then two Block Dice are rolled and the Coach of the player with the higher Strength Characteristic chooses the result.\n* If, after any modifiers have been applied, one player has a Strength Characteristic that is over double than that of the other, then three Block Dice are rolled and the Coach of the player with the higher Strength Characteristic chooses the result.",
-                "es": "Una vez que un jugador ha declarado el objetivo de su Acción de Placaje, lo siguiente es calcular cuántos Dados de Placaje lanzará. Esto se hace comparando la característica de Fuerza del jugador que realiza el placaje con la del jugador objetivo. Si un jugador es más fuerte que el otro, ¡es más probable que lo derribe!\n\nPara ello, ambos jugadores toman su característica de Fuerza y aplican cualquier modificador que la afecte, como Habilidades o Rasgos que modifiquen la FUE o cualquier Asistencia Ofensiva o Defensiva.\n\n* Si, tras aplicar los modificadores, ambos jugadores tienen la misma Fuerza, se lanza un solo Dado de Placaje.\n* Si, tras aplicar los modificadores, un jugador tiene una Fuerza mayor que el otro, se lanzan dos Dados de Placaje y el Entrenador del jugador con la Fuerza más alta elige el resultado.\n* Si, tras aplicar los modificadores, un jugador tiene una Fuerza que es más del doble que la del otro, se lanzan tres Dados de Placaje y el Entrenador del jugador con la Fuerza más alta elige el resultado."
+                "es": "Una vez que un jugador ha declarado el objetivo de su Acción de Placaje, lo siguiente es calcular cuántos Dados de Placaje lanzará. Esto se hace comparando la característica de Fuerza del jugador que realiza el placaje con la del jugador objetivo. Si un jugador es más fuerte que el otro, ¡es más probable que lo derribe!\n\nPara ello, ambos jugadores toman su característica de Fuerza y aplican cualquier modificador que la afecte, como Habilidades o Rasgos que modifiquen la FUE o cualquier Asistencia Ofensiva o Defensiva.\n\n* Si, tras aplicar los modificadores, ambos jugadores tienen la misma Fuerza, se lanza un solo Dado de Placaje.\n* Si, tras aplicar los modificadores, un jugador tiene una Fuerza mayor que el otro, se lanzan dos Dados de Placaje y el Entrenador del jugador con la Fuerza más alta elige el resultado.\n* Si, tras aplicar los modificadores, un jugador tiene una Fuerza que es más del doble que la del otro, se lanzan tres Dados de Placaje y el Entrenador del jugador con la Fuerza más alta elige el resultado.",
+                "dice_count_catalog": [
+                    {
+                        "rollEs": "FA >> FD",
+                        "rollEn": "FA >> FD",
+                        "titleEs": "3 DADOS",
+                        "titleEn": "3 DICE",
+                        "subtitleEs": "ATACANTE ELIGE",
+                        "subtitleEn": "ATTACKER CHOOSES",
+                        "descriptionEs": "Se lanzan 3 dados de bloqueo y el atacante elige el resultado. Requisito: la Fuerza del Atacante debe ser más del doble que la del Defensor tras aplicar asistencias y modificadores.",
+                        "descriptionEn": "Roll 3 Block dice and the attacker chooses the result. Requirement: the Attacker Strength must be more than double the Defender Strength after assists and modifiers are applied.",
+                        "iconAssetPath": "assets/images/dice/+3POW.png",
+                        "color": "#2E7D32"
+                    },
+                    {
+                        "rollEs": "FA > FD",
+                        "rollEn": "FA > FD",
+                        "titleEs": "2 DADOS",
+                        "titleEn": "2 DICE",
+                        "subtitleEs": "ATACANTE ELIGE",
+                        "subtitleEn": "ATTACKER CHOOSES",
+                        "descriptionEs": "Se lanzan 2 dados de bloqueo y el atacante elige el resultado. Requisito: la Fuerza del Atacante debe ser mayor que la del Defensor, pero no más del doble, tras aplicar asistencias y modificadores.",
+                        "descriptionEn": "Roll 2 Block dice and the attacker chooses the result. Requirement: the Attacker Strength must be higher than the Defender Strength, but not more than double, after assists and modifiers are applied.",
+                        "iconAssetPath": "assets/images/dice/+2POW.png",
+                        "color": "#66BB6A"
+                    },
+                    {
+                        "rollEs": "FA = FD",
+                        "rollEn": "FA = FD",
+                        "titleEs": "1 DADO",
+                        "titleEn": "1 DIE",
+                        "subtitleEs": "SIN ELECCION",
+                        "subtitleEn": "NO CHOICE",
+                        "descriptionEs": "Se lanza 1 dado de bloqueo. Requisito: la Fuerza del Atacante y la del Defensor deben ser iguales tras aplicar asistencias y modificadores.",
+                        "descriptionEn": "Roll 1 Block die. Requirement: the Attacker Strength and Defender Strength must be equal after assists and modifiers are applied.",
+                        "iconAssetPath": "assets/images/dice/+1POW.png",
+                        "color": "#FFA726"
+                    },
+                    {
+                        "rollEs": "FA < FD",
+                        "rollEn": "FA < FD",
+                        "titleEs": "2 DADOS",
+                        "titleEn": "2 DICE",
+                        "subtitleEs": "DEFENSOR ELIGE",
+                        "subtitleEn": "DEFENDER CHOOSES",
+                        "descriptionEs": "Se lanzan 2 dados de bloqueo y el defensor elige el resultado. Requisito: la Fuerza del Defensor debe ser mayor que la del Atacante, pero no más del doble, tras aplicar asistencias y modificadores.",
+                        "descriptionEn": "Roll 2 Block dice and the defender chooses the result. Requirement: the Defender Strength must be higher than the Attacker Strength, but not more than double, after assists and modifiers are applied.",
+                        "iconAssetPath": "assets/images/dice/-2POW.png",
+                        "color": "#EF5350"
+                    },
+                    {
+                        "rollEs": "FA << FD",
+                        "rollEn": "FA << FD",
+                        "titleEs": "3 DADOS",
+                        "titleEn": "3 DICE",
+                        "subtitleEs": "DEFENSOR ELIGE",
+                        "subtitleEn": "DEFENDER CHOOSES",
+                        "descriptionEs": "Se lanzan 3 dados de bloqueo y el defensor elige el resultado. Requisito: la Fuerza del Defensor debe ser más del doble que la del Atacante tras aplicar asistencias y modificadores.",
+                        "descriptionEn": "Roll 3 Block dice and the defender chooses the result. Requirement: the Defender Strength must be more than double the Attacker Strength after assists and modifiers are applied.",
+                        "iconAssetPath": "assets/images/dice/-3POW.png",
+                        "color": "#B71C1C"
+                    }
+                ]
             }
         ]
     },
@@ -898,13 +960,13 @@
                         "2D6": "8-9",
                         "Result": "KNOCKED-OUT / INCONSCIENTE",
                         "Description_en": "The player is immediately Knocked-out. Remove them from the pitch and place them in the Knocked-out box of their dugout.",
-                        "Description_es": "El jugador queda Inconsciente inmediatamente. Retíralo del campo y colócalo en la casilla de Inconscientes de su banquillo."
+                        "Description_es": "El jugador queda Inconsciente inmediatamente. Retíralo del campo y colócalo en la zona de Inconscientes de su banquillo."
                     },
                     {
                         "2D6": "10-12",
-                        "Result": "CASUALTY / LESIÓN",
+                        "Result": "CASUALTY / LESIONADO",
                         "Description_en": "The player suffers a Casualty. Remove them from the pitch and place them in the Casualty box of their dugout. The Coach of the opposing team then makes a Casualty Roll against them.",
-                        "Description_es": "El jugador sufre una Lesión. Retíralo del campo y colócalo en la casilla de Lesionados de su banquillo. El Entrenador del equipo contrario realiza entonces una tirada de Lesión contra ellos."
+                        "Description_es": "El jugador sufre una lesión. Retíralo del campo y colócalo en la zona de Lesionados de su banquillo. A continuación el Entrenador del equipo rival hace una tirada de Lesiones contra él."
                     }
                 ]
             },
@@ -926,19 +988,19 @@
                         "2D6": "7-8",
                         "Result": "KNOCKED-OUT / INCONSCIENTE",
                         "Description_en": "The player is immediately Knocked-out. Remove them from the pitch and place them in the Knocked-out box of their dugout.",
-                        "Description_es": "El jugador queda Inconsciente inmediatamente. Retíralo del campo y colócalo en la casilla de Inconscientes de su banquillo."
+                        "Description_es": "El jugador queda Inconsciente inmediatamente. Retíralo del campo y colócalo en la zona de Inconscientes de su banquillo."
                     },
                     {
                         "2D6": "9",
-                        "Result": "BADLY HURT / CONTUSIÓN",
+                        "Result": "BADLY HURT / MAGULLADO",
                         "Description_en": "The player suffers a Casualty. Remove them from the pitch and place them in the Casualty box of their dugout. In League Play, no Casualty Roll is made for them, instead they automatically suffer the Badly Hurt result on the Casualty Table.",
-                        "Description_es": "El jugador sufre una Lesión. Retíralo del campo y colócalo en la casilla de Lesionados de su banquillo. En juego de liga, no se hace tirada de Lesión; en su lugar, sufren automáticamente el resultado de Contusión en la Tabla de Lesiones."
+                        "Description_es": "El jugador sufre una lesión. Retíralo del campo y colócalo en la zona de Lesionados de su banquillo. En una liga, no hagas una tirada de Lesiones por él; en su lugar, el jugador sufre automáticamente el resultado de Magullado de la tabla de Lesiones."
                     },
                     {
                         "2D6": "10-12",
-                        "Result": "CASUALTY / LESIÓN",
+                        "Result": "CASUALTY / LESIONADO",
                         "Description_en": "The player suffers a Casualty. Remove them from the pitch and place them in the Casualty box of their dugout. The Coach of the opposing team then makes a Casualty Roll against them.",
-                        "Description_es": "El jugador sufre una Lesión. Retíralo del campo y colócalo en la casilla de Lesionados de su banquillo. El Entrenador del equipo contrario realiza entonces una tirada de Lesión contra ellos."
+                        "Description_es": "El jugador sufre una lesión. Retíralo del campo y colócalo en la zona de Lesionados de su banquillo. A continuación el Entrenador del equipo rival hace una tirada de Lesiones contra él."
                     }
                 ]
             }
@@ -957,68 +1019,80 @@
                 "table": [
                     {
                         "D16": "1-8",
-                        "Result": "BADLY HURT / CONTUSIÓN",
+                        "Result": "BADLY HURT / MAGULLADO",
                         "Description_en": "The player suffers no long term effects.",
                         "Description_es": "El jugador no sufre efectos a largo plazo."
                     },
                     {
                         "D16": "9-10",
-                        "Result": "SERIOUSLY HURT / LESIÓN SERIA",
+                        "Result": "SERIOUSLY HURT / APALEADO",
                         "Description_en": "The player must miss their next game.",
-                        "Description_es": "El jugador debe perderse su próximo partido."
+                        "Description_es": "El jugador se pierde el próximo partido."
                     },
                     {
                         "D16": "11-12",
-                        "Result": "SERIOUS INJURY / LESIÓN GRAVE",
+                        "Result": "SERIOUS INJURY / HERIDA GRAVE",
                         "Description_en": "The player suffers a Niggling Injury and must miss their next game.",
-                        "Description_es": "El jugador sufre una Herida Persistente (Niggling Injury) y debe perderse su próximo partido."
+                        "Description_es": "El jugador sufre una Lesión mal curada y se pierde el próximo partido."
                     },
                     {
                         "D16": "13-14",
-                        "Result": "LASTING INJURY / LESIÓN PERMANENTE",
+                        "Result": "LASTING INJURY / HERIDA PERMANENTE",
                         "Description_en": "The player suffers a Characteristic reduction and must miss their next game.",
-                        "Description_es": "El jugador sufre una reducción de Característica y debe perderse su próximo partido."
+                        "Description_es": "El jugador sufre una reducción de atributo y se pierde el próximo partido."
                     },
                     {
                         "D16": "15-16",
                         "Result": "DEAD / MUERTO",
                         "Description_en": "The player is dead!",
-                        "Description_es": "¡El jugador está muerto!"
+                        "Description_es": "¡El jugador ha muerto!"
                     }
                 ]
             },
             {
                 "title": "CHARACTERISTIC REDUCTION / REDUCCIÓN DE CARACTERÍSTICA",
                 "en": "The player has one of their Characteristics reduced by 1 so that it is worse. To determine which Characteristic has been reduced, roll a D6 and consult the Lasting Injury Table below:",
-                "es": "El jugador ve reducida una de sus Características en 1, de modo que empeora. Para determinar qué Característica se ha reducido, lanza un D6 y consulta la Tabla de Lesiones Permanentes a continuación:"
+                "es": "Uno de los atributos del jugador empeora en 1. Para determinar qué atributo empeora, tira 1D6 y consulta la siguiente tabla de Heridas permanentes:",
+                "note_en": "In the case of Movement or Strength, the Characteristic is simply reduced by 1.",
+                "note_es": "En el caso de Movimiento o Fuerza, el atributo simplemente se reduce en 1."
             },
             {
                 "title": "LASTING INJURY TABLE / TABLA DE LESIONES PERMANENTES",
                 "table": [
                     {
                         "D6": "1-2",
-                        "Injury": "HEAD INJURY / LESIÓN EN LA CABEZA",
-                        "Reduction": "-1 AV"
+                        "Injury": "HEAD INJURY / CABEZA FRACTURADA",
+                        "Reduction": "-1 AV",
+                        "Reduction_en": "-1 AV",
+                        "Reduction_es": "-1 AR"
                     },
                     {
                         "D6": "3",
-                        "Injury": "SMASHED KNEE / RODILLA DESTROZADA",
-                        "Reduction": "-1 MV"
+                        "Injury": "SMASHED KNEE / RODILLA APLASTADA",
+                        "Reduction": "-1 MV",
+                        "Reduction_en": "-1 MV",
+                        "Reduction_es": "-1 MV"
                     },
                     {
                         "D6": "4",
                         "Injury": "BROKEN ARM / BRAZO ROTO",
-                        "Reduction": "-1 PA"
+                        "Reduction": "-1 PA",
+                        "Reduction_en": "-1 PA",
+                        "Reduction_es": "-1 PS"
                     },
                     {
                         "D6": "5",
                         "Injury": "DISLOCATED HIP / CADERA DISLOCADA",
-                        "Reduction": "-1 AG"
+                        "Reduction": "-1 AG",
+                        "Reduction_en": "-1 AG",
+                        "Reduction_es": "-1 AG"
                     },
                     {
                         "D6": "6",
-                        "Injury": "BROKEN SHOULDER / HOMBRO ROTO",
-                        "Reduction": "-1 ST"
+                        "Injury": "BROKEN SHOULDER / ROTURA DE HOMBRO",
+                        "Reduction": "-1 ST",
+                        "Reduction_en": "-1 ST",
+                        "Reduction_es": "-1 FU"
                     }
                 ]
             },

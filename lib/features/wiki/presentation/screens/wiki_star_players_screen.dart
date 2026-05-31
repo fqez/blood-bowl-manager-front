@@ -150,7 +150,7 @@ class _WikiStarPlayersScreenState extends ConsumerState<WikiStarPlayersScreen> {
                   children: [
                     _buildSearchField(lang, compact: true),
                     const SizedBox(height: 8),
-                    _buildTypeFilter(sortedTypes, compact: true),
+                    _buildTypeFilter(sortedTypes, lang, compact: true),
                   ],
                 )
               else
@@ -158,7 +158,7 @@ class _WikiStarPlayersScreenState extends ConsumerState<WikiStarPlayersScreen> {
                   children: [
                     Expanded(child: _buildSearchField(lang)),
                     const SizedBox(width: 12),
-                    _buildTypeFilter(sortedTypes),
+                    _buildTypeFilter(sortedTypes, lang),
                   ],
                 ),
               SizedBox(height: isCompact ? 8 : 10),
@@ -189,7 +189,9 @@ class _WikiStarPlayersScreenState extends ConsumerState<WikiStarPlayersScreen> {
           child: filtered.isEmpty
               ? Center(
                   child: Text(
-                    'No se encontraron jugadores estrella',
+                    lang == 'es'
+                        ? 'No se encontraron jugadores estrella'
+                        : 'No star players found',
                     style: TextStyle(color: AppColors.textMuted, fontSize: 18),
                   ),
                 )
@@ -284,7 +286,11 @@ class _WikiStarPlayersScreenState extends ConsumerState<WikiStarPlayersScreen> {
     );
   }
 
-  Widget _buildTypeFilter(List<String> sortedTypes, {bool compact = false}) {
+  Widget _buildTypeFilter(
+    List<String> sortedTypes,
+    String lang, {
+    bool compact = false,
+  }) {
     return Container(
       height: compact ? 48 : null,
       width: compact ? double.infinity : null,
@@ -299,7 +305,7 @@ class _WikiStarPlayersScreenState extends ConsumerState<WikiStarPlayersScreen> {
           isExpanded: compact,
           value: _typeFilter,
           hint: Text(
-            'Tipo',
+            lang == 'es' ? 'Tipo' : 'Type',
             style: TextStyle(
               color: AppColors.textMuted,
               fontSize: compact ? 16 : 19,
@@ -311,9 +317,9 @@ class _WikiStarPlayersScreenState extends ConsumerState<WikiStarPlayersScreen> {
             fontSize: compact ? 16 : 19,
           ),
           items: [
-            const DropdownMenuItem<String?>(
+            DropdownMenuItem<String?>(
               value: null,
-              child: Text('Todos'),
+              child: Text(lang == 'es' ? 'Todos' : 'All'),
             ),
             ...sortedTypes.map(
               (type) => DropdownMenuItem<String?>(

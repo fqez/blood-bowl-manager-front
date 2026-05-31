@@ -1,47 +1,70 @@
-import 'dart:math' as math;
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../../../../core/l10n/locale_provider.dart';
 import '../../../../core/l10n/translations.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../widgets/wiki_dice_board.dart';
 import '../widgets/wiki_page_layout.dart';
 
 // ignore_for_file: deprecated_member_use
 
 /// Glossary of Blood Bowl blocking terms.
-const _glossary = <String, String>{
-  'Blitz':
-      'Acción especial: un jugador puede moverse y realizar un bloqueo en la misma activación. Solo uno por turno.',
-  'Block':
-      'Habilidad: permite ignorar el resultado "Both Down" al bloquear sin caer.',
-  'Dodge':
-      'Habilidad: permite ignorar el resultado "Defender Stumbles" al ser bloqueado.',
-  'Guard':
-      'Habilidad: permite dar asistencias de bloqueo incluso estando en la zona de tackle de un oponente.',
-  'Tackle': 'Habilidad: anula la habilidad Dodge del rival al bloquearlo.',
-  'Frenzy':
-      'Habilidad: obliga a hacer un segundo bloqueo si el primero resulta en Push Back.',
-  'Horns': 'Habilidad: añade +1 ST al jugador al realizar un Blitz.',
-  'Wrestle':
-      'Habilidad: al obtener Both Down, puedes elegir que ambos jugadores caigan sin tirada de armadura.',
-  'Juggernaut':
-      'Habilidad: al hacer Blitz, Both Down cuenta como Push Back en lugar de derribar a ambos.',
-  'Stand Firm':
-      'Habilidad: el jugador puede elegir no ser empujado por un Push Back.',
-  'Strength':
-      'Fuerza (ST) del jugador. Determina cuántos dados de bloqueo se tiran.',
-  'Re-roll':
-      'Permite repetir una tirada de dados fallida. Cada equipo tiene un número limitado por drive.',
-  'Prone':
-      'Estado del jugador: tumbado en el suelo, debe gastar movimiento para levantarse.',
-  'Stunned':
-      'Estado del jugador: tumbado boca abajo, pierde su siguiente activación para levantarse.',
-  'Tackle Zone':
-      'Zona de control alrededor de un jugador de pie. Cada casilla adyacente es su Tackle Zone.',
-};
+Map<String, String> _glossary(String lang) {
+  final es = lang == 'es';
+
+  return <String, String>{
+  'Blitz': es
+    ? 'Accion especial: un jugador puede moverse y realizar un placaje en la misma activacion. Solo una por turno.'
+    : 'Special action: a player can move and perform a Block in the same activation. Only one per turn.',
+  'Block': es
+    ? 'Habilidad: permite ignorar el resultado "Both Down" al placar sin caer.'
+    : 'Skill: lets a player ignore the "Both Down" result when blocking without being knocked over.',
+  'Dodge': es
+    ? 'Habilidad: permite ignorar el resultado "Defender Stumbles" al ser placado.'
+    : 'Skill: lets a player ignore the "Defender Stumbles" result when they are blocked.',
+  'Guard': es
+    ? 'Habilidad: permite dar asistencias de placaje incluso estando en la zona de defensa de un oponente.'
+    : 'Skill: lets a player provide Block assists even while marked by an opponent.',
+  'Tackle': es
+    ? 'Habilidad: anula la habilidad Dodge del rival al bloquearlo.'
+    : 'Skill: cancels the opponent\'s Dodge skill when blocking them.',
+  'Frenzy': es
+    ? 'Habilidad: obliga a hacer un segundo placaje si el primero termina en Push Back.'
+    : 'Skill: forces a second Block if the first one results in a Push Back.',
+  'Horns': es
+    ? 'Habilidad: anade +1 ST al jugador al realizar un Blitz.'
+    : 'Skill: adds +1 ST when the player performs a Blitz.',
+  'Wrestle': es
+    ? 'Habilidad: al obtener Both Down, puedes elegir que ambos jugadores caigan sin tirada de armadura.'
+    : 'Skill: on Both Down, you may choose for both players to go down without making an Armour roll.',
+  'Juggernaut': es
+    ? 'Habilidad: al hacer Blitz, Both Down cuenta como Push Back en lugar de derribar a ambos.'
+    : 'Skill: when making a Blitz, Both Down becomes Push Back instead of knocking both players down.',
+  'Stand Firm': es
+    ? 'Habilidad: el jugador puede elegir no ser empujado por un Push Back.'
+    : 'Skill: the player may choose not to be moved by a Push Back.',
+  'Strength': es
+    ? 'Fuerza (ST) del jugador. Determina cuantos dados de placaje se tiran.'
+    : 'The player\'s Strength (ST). It determines how many Block dice are rolled.',
+  'Re-roll': es
+    ? 'Permite repetir una tirada fallida. Cada equipo tiene un numero limitado por drive.'
+    : 'Allows a failed roll to be repeated. Each team has a limited number per drive.',
+  'Prone': es
+    ? 'Estado del jugador: tumbado en el suelo; debe gastar movimiento para levantarse.'
+    : 'Player state: lying on the ground and must spend movement to stand up.',
+  'Stunned': es
+    ? 'Estado del jugador: tumbado boca abajo; pierde su siguiente activacion.'
+    : 'Player state: face down and loses their next activation.',
+  'Tackle Zone': es
+    ? 'Zona de control alrededor de un jugador en pie. Cada casilla adyacente forma su zona de defensa.'
+    : 'Area of control around a standing player. Each adjacent square is part of that player\'s Tackle Zone.',
+  };
+}
 
 class WikiBlockingScreen extends ConsumerWidget {
   const WikiBlockingScreen({super.key});
@@ -63,8 +86,6 @@ class WikiBlockingScreen extends ConsumerWidget {
           _buildBlockProcedure(lang),
           const SizedBox(height: 32),
           _buildDiceCountSection(lang),
-          const SizedBox(height: 32),
-          _buildSpecialRulesSection(lang),
           const SizedBox(height: 40),
         ],
       ),
@@ -74,226 +95,136 @@ class WikiBlockingScreen extends ConsumerWidget {
   // ── Block Dice ──────────────────────────────────────────────────────────────
 
   Widget _buildBlockDiceSection(String lang) {
+    final es = lang == 'es';
     final diceFaces = [
-      _DiceFace(
-        symbol: _DiceSymbol.attackerDown,
-        name: 'ATTACKER DOWN',
-        nameEs: 'ATACANTE DERRIBADO',
+      WikiDiceBoardEntry(
+        roll: '×1',
+        title: es ? 'ATACANTE DERRIBADO' : 'ATTACKER DOWN',
+        subtitle: es ? 'ATTACKER DOWN' : 'ATACANTE DERRIBADO',
+        iconAssetPath: 'assets/images/dice/skull.png',
         color: const Color(0xFFE53935),
-        quantity: '×1',
         description:
-            'El jugador que realiza el bloqueo es derribado. Se hace tirada de '
-            'Armadura contra él. Este es el peor resultado posible para el atacante.',
+            es
+                ? 'El jugador que realiza el placaje es derribado. Se hace tirada de Armadura contra el. Este es el peor resultado posible para el atacante.'
+                : 'The player making the Block is Knocked Down. Make an Armour roll against them. This is the worst possible result for the attacker.',
       ),
-      _DiceFace(
-        symbol: _DiceSymbol.bothDown,
-        name: 'BOTH DOWN',
-        nameEs: 'AMBOS CAÍDOS',
+      WikiDiceBoardEntry(
+        roll: '×1',
+        title: es ? 'AMBOS CAIDOS' : 'BOTH DOWN',
+        subtitle: es ? 'BOTH DOWN' : 'AMBOS CAIDOS',
+        iconAssetPath: 'assets/images/dice/both_down.png',
         color: const Color(0xFFFF7043),
-        quantity: '×1',
         description:
-            'Ambos jugadores caen al suelo. Se tira Armadura contra los dos. '
-            'La habilidad Block permite ignorar este resultado sin caer. '
-            'Wrestle permite que ambos caigan sin tirada de armadura.',
+            es
+                ? 'Ambos jugadores caen al suelo. Se tira Armadura contra los dos. La habilidad Block permite ignorar este resultado sin caer. Wrestle permite que ambos caigan sin tirada de armadura.'
+                : 'Both players go down. Make an Armour roll against both. Block lets a player ignore this result without falling, and Wrestle lets both players go down without an Armour roll.',
       ),
-      _DiceFace(
-        symbol: _DiceSymbol.push,
-        name: 'PUSH BACK',
-        nameEs: 'EMPUJÓN',
+      WikiDiceBoardEntry(
+        roll: '×2',
+        title: es ? 'EMPUJON' : 'PUSH BACK',
+        subtitle: es ? 'PUSH BACK' : 'EMPUJON',
+        iconAssetPath: 'assets/images/dice/push.png',
         color: const Color(0xFF42A5F5),
-        quantity: '×2',
         description:
-            'El defensor es empujado un casillero hacia atrás (dirección elegida '
-            'por el atacante). No se derriba. Si es empujado fuera del campo, '
-            'recibe un golpe de la multitud.',
+            es
+                ? 'El defensor es empujado una casilla hacia atras en una direccion elegida por el atacante. No es derribado. Si sale del campo, la multitud lo golpea.'
+                : 'The defender is pushed back one square in a direction chosen by the attacker. They are not knocked down. If pushed off the pitch, the crowd hits them.',
       ),
-      _DiceFace(
-        symbol: _DiceSymbol.stumble,
-        name: 'DEFENDER STUMBLES',
-        nameEs: 'DEFENSOR TROPIEZA',
+      WikiDiceBoardEntry(
+        roll: '×1',
+        title: es ? 'DEFENSOR TROPIEZA' : 'DEFENDER STUMBLES',
+        subtitle: es ? 'DEFENDER STUMBLES' : 'DEFENSOR TROPIEZA',
+        iconAssetPath: 'assets/images/dice/def_down.png',
         color: const Color(0xFFFFA726),
-        quantity: '×1',
         description:
-            'El defensor es empujado y derribado. Sin embargo, si tiene la '
-            'habilidad Dodge, puede usarla para convertirlo en un simple Push Back. '
-            'Tackle anula el Dodge.',
+            es
+                ? 'El defensor es empujado y derribado. Si tiene la habilidad Dodge, puede convertirlo en un simple Push Back. Tackle anula Dodge.'
+                : 'The defender is pushed back and Knocked Down. If they have Dodge, they may turn this into a simple Push Back instead. Tackle cancels Dodge.',
       ),
-      _DiceFace(
-        symbol: _DiceSymbol.pow,
-        name: 'POW!',
-        nameEs: 'DERRIBADO',
+      WikiDiceBoardEntry(
+        roll: '×1',
+        title: es ? 'DERRIBADO' : 'POW!',
+        subtitle: es ? 'POW!' : 'DERRIBADO',
+        iconAssetPath: 'assets/images/dice/pow.png',
         color: const Color(0xFF66BB6A),
-        quantity: '×1',
         description:
-            'El defensor es empujado y derribado. Este es el mejor resultado '
-            'para el atacante. No puede ser anulado por Dodge.',
+            es
+                ? 'El defensor es empujado y derribado. Este es el mejor resultado para el atacante. Dodge no puede anularlo.'
+                : 'The defender is pushed back and Knocked Down. This is the best result for the attacker. Dodge cannot cancel it.',
       ),
     ];
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.surfaceLight),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(PhosphorIcons.diceSix(PhosphorIconsStyle.fill),
-                  color: AppColors.accent, size: 20),
-              const SizedBox(width: 10),
-              Text(
-                tr(lang, 'wikiBlocking.blockDice'),
-                style: TextStyle(
-                  fontFamily: AppTypography.displayFontFamily,
-                  fontSize: AppTypography.wikiSectionTitleFontSize,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                  letterSpacing: 1,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            'El dado de Bloqueo tiene 6 caras con 5 resultados distintos (Push Back aparece 2 veces).',
-            style: TextStyle(fontSize: 12, color: AppColors.textMuted),
-          ),
-          const SizedBox(height: 20),
-          // Dice faces grid
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: diceFaces.map((d) => _buildDiceFaceCard(d)).toList(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDiceFaceCard(_DiceFace face) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [face.color.withOpacity(0.12), Colors.transparent],
-        ),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: face.color.withOpacity(0.25)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Custom dice face
-          _BlockDieWidget(symbol: face.symbol, color: face.color, size: 56),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      face.nameEs,
-                      style: TextStyle(
-                        fontFamily: AppTypography.displayFontFamily,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: face.color,
-                        letterSpacing: 1,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: face.color.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        face.quantity,
-                        style: TextStyle(
-                          fontFamily: AppTypography.displayFontFamily,
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: face.color,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                Text(
-                  face.name,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: AppColors.textMuted,
-                    fontStyle: FontStyle.italic,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                _buildRichDescription(face.description),
-              ],
-            ),
-          ),
-        ],
-      ),
+    return WikiDiceBoard(
+      headerIcon: PhosphorIcons.diceSix(PhosphorIconsStyle.fill),
+      title: tr(lang, 'wikiBlocking.blockDice'),
+        subtitle: es
+          ? 'El dado de Placaje tiene 6 caras con 5 resultados distintos (Push Back aparece 2 veces).'
+          : 'The Block die has 6 faces with 5 different results (Push Back appears twice).',
+      diceAssetPath: 'assets/images/dice/3POW.png',
+      entries: diceFaces,
+      compactRowHeight: 124,
+      desktopRowHeight: 116,
+      showRollCircle: false,
+      inlineRollBadgeWhenHidden: false,
+      compactRowIconScale: 0.82,
+      desktopRowIconScale: 0.86,
     );
   }
 
   // ── Block Procedure ─────────────────────────────────────────────────────────
 
   Widget _buildBlockProcedure(String lang) {
+    final es = lang == 'es';
     final steps = [
       _BlockStep(
         number: '1',
-        title: 'DECLARAR BLOQUEO',
+      title: es ? 'DECLARAR PLACAJE' : 'DECLARE BLOCK',
         icon: PhosphorIcons.target(PhosphorIconsStyle.fill),
         color: const Color(0xFF42A5F5),
         description:
-            'Elige un jugador adyacente al oponente como objetivo. El jugador '
-            'no puede moverse antes de bloquear (a menos que sea un Blitz).',
+        es
+          ? 'Elige a un jugador oponente adyacente como objetivo. El atacante no puede moverse antes de placar salvo que sea un Blitz.'
+          : 'Choose an adjacent opposing player as the target. The attacker cannot move before blocking unless this is part of a Blitz.',
       ),
       _BlockStep(
         number: '2',
-        title: 'CALCULAR DADOS',
+      title: es ? 'CALCULAR DADOS' : 'CALCULATE DICE',
         icon: PhosphorIcons.scales(PhosphorIconsStyle.fill),
         color: const Color(0xFFFFA726),
         description:
-            'Compara la Strength del atacante (+ asistencias) con la del defensor '
-            '(+ asistencias). Esto determina cuántos dados se tiran y quién elige.',
+        es
+          ? 'Compara la Strength del atacante con la del defensor, incluyendo asistencias. Eso determina cuantos dados se tiran y quien elige el resultado.'
+          : 'Compare the attacker\'s Strength to the defender\'s, including assists. That decides how many dice are rolled and who chooses the result.',
       ),
       _BlockStep(
         number: '3',
-        title: 'TIRAR DADOS DE BLOQUEO',
+      title: es ? 'TIRAR DADOS DE PLACAJE' : 'ROLL BLOCK DICE',
         icon: PhosphorIcons.diceSix(PhosphorIconsStyle.fill),
         color: const Color(0xFF66BB6A),
         description:
-            'Tira el número de dados correspondiente. El jugador que "elige" '
-            'escoge cuál de los resultados aplicar.',
+        es
+          ? 'Tira el numero de dados correspondiente. El jugador que elige decide cual de los resultados aplicar.'
+          : 'Roll the required number of Block dice. The player who has choice decides which result is applied.',
       ),
       _BlockStep(
         number: '4',
-        title: 'APLICAR RESULTADO',
+      title: es ? 'APLICAR RESULTADO' : 'APPLY RESULT',
         icon: PhosphorIcons.checkCircle(PhosphorIconsStyle.fill),
         color: const Color(0xFFEF5350),
         description:
-            'Resuelve el resultado elegido: Push Back, derribo, o ambos. '
-            'Si hay Push Back, elige la dirección. Si hay derribo, tira Armadura.',
+        es
+          ? 'Resuelve el resultado elegido: Push Back, derribo o ambos. Si hay empujon, elige la direccion. Si hay derribo, tira Armadura.'
+          : 'Resolve the chosen result: Push Back, a knockdown, or both. If there is a push, choose the direction. If someone goes down, make the Armour roll.',
       ),
       _BlockStep(
         number: '5',
-        title: 'FOLLOW UP',
+      title: es ? 'SEGUIR' : 'FOLLOW UP',
         icon: PhosphorIcons.arrowRight(PhosphorIconsStyle.fill),
         color: const Color(0xFF7E57C2),
         description:
-            'El atacante puede (opcionalmente) avanzar al casillero que dejó '
-            'libre el defensor empujado. Esto es obligatorio con Frenzy.',
+        es
+          ? 'El atacante puede avanzar de forma opcional a la casilla que dejo libre el defensor empujado. Con Frenzy esto es obligatorio.'
+          : 'The attacker may optionally move into the square vacated by the pushed defender. With Frenzy, this follow-up is mandatory.',
       ),
     ];
 
@@ -326,18 +257,20 @@ class WikiBlockingScreen extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 6),
-          const Text(
-            'Pasos para resolver un bloqueo en Blood Bowl.',
+          Text(
+            es
+                ? 'Pasos para resolver un placaje en Blood Bowl.'
+                : 'Steps to resolve a Block in Blood Bowl.',
             style: TextStyle(fontSize: 12, color: AppColors.textMuted),
           ),
           const SizedBox(height: 20),
-          ...steps.map((s) => _buildBlockStepCard(s, steps.length)),
+          ...steps.map((s) => _buildBlockStepCard(s, steps.length, lang)),
         ],
       ),
     );
   }
 
-  Widget _buildBlockStepCard(_BlockStep step, int totalSteps) {
+  Widget _buildBlockStepCard(_BlockStep step, int totalSteps, String lang) {
     final stepNum = int.parse(step.number);
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -417,7 +350,7 @@ class WikiBlockingScreen extends ConsumerWidget {
                     ],
                   ),
                   const SizedBox(height: 6),
-                  _buildRichDescription(step.description),
+                  _buildRichDescription(step.description, lang: lang),
                 ],
               ),
             ),
@@ -430,550 +363,186 @@ class WikiBlockingScreen extends ConsumerWidget {
   // ── Dice Count Table ────────────────────────────────────────────────────────
 
   Widget _buildDiceCountSection(String lang) {
-    final entries = [
-      _DiceCountEntry(
-        scenario: 'ST atacante > ST defensor',
-        scenarioEn: 'Attacker ST > Defender ST',
-        dice: '2 DADOS',
-        diceEn: '2 Block Dice',
-        color: const Color(0xFF66BB6A),
-        description:
-            'El atacante tira 2 dados de bloqueo y ELIGE el resultado.',
-        chooser: 'Atacante elige',
-      ),
-      _DiceCountEntry(
-        scenario: 'ST atacante = ST defensor',
-        scenarioEn: 'Attacker ST = Defender ST',
-        dice: '1 DADO',
-        diceEn: '1 Block Die',
-        color: const Color(0xFFFFA726),
-        description:
-            'Se tira 1 dado de bloqueo. El resultado se aplica obligatoriamente.',
-        chooser: 'Sin elección',
-      ),
-      _DiceCountEntry(
-        scenario: 'ST atacante < ST defensor',
-        scenarioEn: 'Attacker ST < Defender ST',
-        dice: '2 DADOS',
-        diceEn: '2 Block Dice',
-        color: const Color(0xFFEF5350),
-        description:
-            'Se tiran 2 dados de bloqueo, pero el DEFENSOR elige el resultado.',
-        chooser: 'Defensor elige',
-      ),
-      _DiceCountEntry(
-        scenario: 'ST atacante ≥ 2× ST defensor',
-        scenarioEn: 'Attacker ST ≥ 2× Defender ST',
-        dice: '3 DADOS',
-        diceEn: '3 Block Dice',
-        color: const Color(0xFF2E7D32),
-        description:
-            'El atacante tira 3 dados de bloqueo y ELIGE el resultado. Dominio total.',
-        chooser: 'Atacante elige',
-      ),
-      _DiceCountEntry(
-        scenario: 'ST defensor ≥ 2× ST atacante',
-        scenarioEn: 'Defender ST ≥ 2× Attacker ST',
-        dice: '3 DADOS',
-        diceEn: '3 Block Dice',
-        color: const Color(0xFFB71C1C),
-        description:
-            'Se tiran 3 dados de bloqueo, pero el DEFENSOR elige. Muy arriesgado.',
-        chooser: 'Defensor elige',
-      ),
-    ];
+    return FutureBuilder<List<WikiDiceBoardEntry>>(
+      future: _loadDiceCountEntries(lang),
+      builder: (context, snapshot) {
+        final entries = snapshot.data ?? _fallbackDiceCountEntries(lang);
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.surfaceLight),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(PhosphorIcons.scales(PhosphorIconsStyle.fill),
-                  color: AppColors.accent, size: 20),
-              const SizedBox(width: 10),
-              Text(
-                tr(lang, 'wikiBlocking.diceCount'),
-                style: TextStyle(
-                  fontFamily: AppTypography.displayFontFamily,
-                  fontSize: AppTypography.wikiSectionTitleFontSize,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                  letterSpacing: 1,
-                ),
+        return WikiDiceBoard(
+          headerIcon: PhosphorIcons.scales(PhosphorIconsStyle.fill),
+          title: '${tr(lang, 'wikiBlocking.diceCount')} '
+              '(${_diceCountLegend(lang)})',
+          subtitle: lang == 'es'
+            ? 'La cantidad de dados depende de la comparacion de Fuerza entre atacante y defensor, incluyendo asistencias.'
+            : 'The number of dice depends on the Strength comparison between attacker and defender, including assists.',
+          diceAssetPath: 'assets/images/dice/3POW.png',
+          entries: entries,
+          compactRowHeight: 124,
+          desktopRowHeight: 116,
+          compactRowIconScale: 0.82,
+          desktopRowIconScale: 0.86,
+          rollTextScale: 0.18,
+          descriptionBuilder: (context, entry, fontSize) =>
+              _buildRichDescription(
+                entry.description,
+                lang: lang,
+                fontSize: fontSize,
               ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            'La cantidad de dados depende de la comparación de Fuerza (ST) entre atacante y defensor, incluyendo asistencias.',
-            style: TextStyle(fontSize: 12, color: AppColors.textMuted),
-          ),
-          const SizedBox(height: 16),
-          ...entries.map((e) => _buildDiceCountRow(e)),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildDiceCountRow(_DiceCountEntry e) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [e.color.withOpacity(0.12), Colors.transparent],
-        ),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: e.color.withOpacity(0.25)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 56,
-            padding: const EdgeInsets.symmetric(vertical: 6),
-            decoration: BoxDecoration(
-              color: e.color.withOpacity(0.18),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: e.color.withOpacity(0.4)),
-            ),
-            child: Column(
-              children: [
-                Text(
-                  e.dice.split(' ').first,
-                  style: TextStyle(
-                    fontFamily: AppTypography.displayFontFamily,
-                    fontSize: AppTypography.wikiSectionTitleFontSize,
-                    fontWeight: FontWeight.w900,
-                    color: e.color,
-                  ),
-                ),
-                Text(
-                  'DADOS',
-                  style: TextStyle(
-                    fontFamily: AppTypography.displayFontFamily,
-                    fontSize: 9,
-                    fontWeight: FontWeight.bold,
-                    color: e.color.withOpacity(0.7),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      e.scenario,
-                      style: TextStyle(
-                        fontFamily: AppTypography.displayFontFamily,
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                        color: e.color,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 2),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: e.color.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    e.chooser,
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      color: e.color,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                _buildRichDescription(e.description),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
+  String _diceCountLegend(String lang) {
+    return lang == 'es'
+        ? 'FA = Fuerza Atacante, FD = Fuerza Defensora'
+        : 'FA = Attacker Strength, FD = Defender Strength';
   }
 
-  // ── Special Rules ───────────────────────────────────────────────────────────
+  Future<List<WikiDiceBoardEntry>> _loadDiceCountEntries(String lang) async {
+    final raw = await rootBundle.loadString('assets/rules/rules.json');
+    final decoded = jsonDecode(raw);
 
-  Widget _buildSpecialRulesSection(String lang) {
-    final rules = [
-      _SpecialRule(
-        name: 'ASISTENCIAS',
-        nameEn: 'Assists',
-        icon: PhosphorIcons.usersThree(PhosphorIconsStyle.fill),
-        color: const Color(0xFF42A5F5),
-        description:
-            'Cada jugador amigo adyacente al defensor que NO esté en la Tackle Zone '
-            'de otro oponente (salvo que tenga Guard) suma +1 ST al atacante. '
-            'Los asistentes del defensor funcionan igual.',
-      ),
-      _SpecialRule(
-        name: 'BLITZ',
-        nameEn: 'Blitz Action',
-        icon: PhosphorIcons.lightning(PhosphorIconsStyle.fill),
-        color: const Color(0xFFFFA726),
-        description:
-            'Una vez por turno, un jugador puede realizar un Blitz: moverse '
-            'Y hacer un bloqueo durante el movimiento (gasta +1 MA para el bloqueo). '
-            'Es la única forma de moverse y bloquear en la misma activación.',
-      ),
-      _SpecialRule(
-        name: 'EMPUJÓN FUERA DEL CAMPO',
-        nameEn: 'Crowd Push',
-        icon: PhosphorIcons.megaphone(PhosphorIconsStyle.fill),
-        color: const Color(0xFFE53935),
-        description:
-            'Si un jugador es empujado fuera del campo, recibe automáticamente '
-            'una tirada de Lesión (sin tirada de Armadura). La multitud no perdona.',
-      ),
-      _SpecialRule(
-        name: 'FOLLOW UP',
-        nameEn: 'Follow Up',
-        icon: PhosphorIcons.arrowRight(PhosphorIconsStyle.fill),
-        color: const Color(0xFF7E57C2),
-        description:
-            'Tras empujar al defensor, el atacante puede ocupar su casilla original. '
-            'Es opcional excepto con la habilidad Frenzy (obligatorio).',
-      ),
-      _SpecialRule(
-        name: 'CADENA DE EMPUJONES',
-        nameEn: 'Chain Push',
-        icon: PhosphorIcons.arrowsOutLineVertical(PhosphorIconsStyle.fill),
-        color: const Color(0xFF26A69A),
-        description:
-            'Si el defensor es empujado hacia un casillero ocupado por otro jugador, '
-            'ese jugador también es empujado. Las cadenas pueden afectar a varios jugadores.',
-      ),
-    ];
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.surfaceLight),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(PhosphorIcons.info(PhosphorIconsStyle.fill),
-                  color: AppColors.accent, size: 20),
-              const SizedBox(width: 10),
-              Text(
-                tr(lang, 'wikiBlocking.specialRules'),
-                style: TextStyle(
-                  fontFamily: AppTypography.displayFontFamily,
-                  fontSize: AppTypography.wikiSectionTitleFontSize,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                  letterSpacing: 1,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            'Reglas adicionales que afectan a los bloqueos.',
-            style: TextStyle(fontSize: 12, color: AppColors.textMuted),
-          ),
-          const SizedBox(height: 16),
-          ...rules.map((r) => _buildSpecialRuleRow(r)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSpecialRuleRow(_SpecialRule r) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: r.color.withOpacity(0.06),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: r.color.withOpacity(0.15)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: r.color.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: r.color.withOpacity(0.35)),
-            ),
-            child: Center(
-              child: Icon(r.icon, color: r.color, size: 18),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      r.name,
-                      style: TextStyle(
-                        fontFamily: AppTypography.displayFontFamily,
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: r.color,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      r.nameEn,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: AppColors.textMuted,
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 3),
-                _buildRichDescription(r.description, fontSize: 11),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Block Die Widget ────────────────────────────────────────────────────────
-
-/// Custom widget that renders a Blood Bowl block die face.
-class _BlockDieWidget extends StatelessWidget {
-  final _DiceSymbol symbol;
-  final Color color;
-  final double size;
-
-  const _BlockDieWidget({
-    required this.symbol,
-    required this.color,
-    required this.size,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(size * 0.18),
-        border: Border.all(color: color.withOpacity(0.5), width: 2),
-        boxShadow: [
-          BoxShadow(
-            color: color.withOpacity(0.2),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: CustomPaint(
-        painter: _BlockDiePainter(symbol: symbol, color: color),
-      ),
-    );
-  }
-}
-
-class _BlockDiePainter extends CustomPainter {
-  final _DiceSymbol symbol;
-  final Color color;
-
-  _BlockDiePainter({required this.symbol, required this.color});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.fill;
-
-    final strokePaint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.5
-      ..strokeCap = StrokeCap.round;
-
-    final cx = size.width / 2;
-    final cy = size.height / 2;
-    final unit = size.width / 6;
-
-    switch (symbol) {
-      case _DiceSymbol.attackerDown:
-        // Skull icon
-        _drawSkull(canvas, cx, cy, unit, paint, strokePaint);
-        break;
-      case _DiceSymbol.bothDown:
-        // Two arrows pointing at each other
-        _drawBothDown(canvas, cx, cy, unit, paint, strokePaint);
-        break;
-      case _DiceSymbol.push:
-        // Arrow pointing right (push back)
-        _drawPush(canvas, cx, cy, unit, paint);
-        break;
-      case _DiceSymbol.stumble:
-        // Lightning bolt / trip symbol
-        _drawStumble(canvas, cx, cy, unit, paint);
-        break;
-      case _DiceSymbol.pow:
-        // Star burst / POW
-        _drawPow(canvas, cx, cy, unit, paint);
-        break;
+    if (decoded is! List) {
+      return _fallbackDiceCountEntries(lang);
     }
-  }
 
-  void _drawSkull(
-      Canvas canvas, double cx, double cy, double u, Paint fill, Paint stroke) {
-    // Skull head (circle)
-    canvas.drawCircle(Offset(cx, cy - u * 0.3), u * 1.3, fill);
-    // Eye holes (dark)
-    final eyePaint = Paint()..color = const Color(0xFF1A1A2E);
-    canvas.drawCircle(Offset(cx - u * 0.5, cy - u * 0.5), u * 0.35, eyePaint);
-    canvas.drawCircle(Offset(cx + u * 0.5, cy - u * 0.5), u * 0.35, eyePaint);
-    // Nose
-    final nosePath = Path()
-      ..moveTo(cx, cy)
-      ..lineTo(cx - u * 0.15, cy + u * 0.3)
-      ..lineTo(cx + u * 0.15, cy + u * 0.3)
-      ..close();
-    canvas.drawPath(nosePath, eyePaint);
-    // Jaw line
-    canvas.drawLine(
-        Offset(cx - u * 0.6, cy + u * 0.6),
-        Offset(cx + u * 0.6, cy + u * 0.6),
-        stroke..color = const Color(0xFF1A1A2E));
-    // Teeth
-    for (int i = -2; i <= 2; i++) {
-      canvas.drawLine(
-          Offset(cx + i * u * 0.25, cy + u * 0.6),
-          Offset(cx + i * u * 0.25, cy + u * 0.9),
-          Paint()
-            ..color = const Color(0xFF1A1A2E)
-            ..strokeWidth = 1.5);
-    }
-  }
+    for (final page in decoded) {
+      if (page is! Map<String, dynamic>) {
+        continue;
+      }
 
-  void _drawBothDown(
-      Canvas canvas, double cx, double cy, double u, Paint fill, Paint stroke) {
-    // Two arrows pointing inward (both players fall)
-    final leftArrow = Path()
-      ..moveTo(cx - u * 1.8, cy)
-      ..lineTo(cx - u * 0.3, cy - u * 0.8)
-      ..lineTo(cx - u * 0.3, cy - u * 0.3)
-      ..lineTo(cx + u * 0.3, cy - u * 0.3)
-      ..lineTo(cx + u * 0.3, cy - u * 0.8)
-      ..lineTo(cx + u * 1.8, cy)
-      ..lineTo(cx + u * 0.3, cy + u * 0.8)
-      ..lineTo(cx + u * 0.3, cy + u * 0.3)
-      ..lineTo(cx - u * 0.3, cy + u * 0.3)
-      ..lineTo(cx - u * 0.3, cy + u * 0.8)
-      ..close();
-    canvas.drawPath(leftArrow, fill);
-  }
+      final sections = page['sections'];
+      if (sections is! List) {
+        continue;
+      }
 
-  void _drawPush(Canvas canvas, double cx, double cy, double u, Paint fill) {
-    // Arrow pointing right
-    final arrow = Path()
-      ..moveTo(cx - u * 1.2, cy - u * 0.5)
-      ..lineTo(cx + u * 0.2, cy - u * 0.5)
-      ..lineTo(cx + u * 0.2, cy - u * 1.2)
-      ..lineTo(cx + u * 1.8, cy)
-      ..lineTo(cx + u * 0.2, cy + u * 1.2)
-      ..lineTo(cx + u * 0.2, cy + u * 0.5)
-      ..lineTo(cx - u * 1.2, cy + u * 0.5)
-      ..close();
-    canvas.drawPath(arrow, fill);
-  }
+      for (final section in sections) {
+        if (section is! Map<String, dynamic>) {
+          continue;
+        }
 
-  void _drawStumble(Canvas canvas, double cx, double cy, double u, Paint fill) {
-    // Lightning bolt shape (trip/stumble)
-    final bolt = Path()
-      ..moveTo(cx + u * 0.2, cy - u * 1.8)
-      ..lineTo(cx - u * 0.6, cy - u * 0.2)
-      ..lineTo(cx + u * 0.2, cy - u * 0.2)
-      ..lineTo(cx - u * 0.4, cy + u * 1.8)
-      ..lineTo(cx + u * 0.6, cy + u * 0.2)
-      ..lineTo(cx - u * 0.2, cy + u * 0.2)
-      ..close();
-    canvas.drawPath(bolt, fill);
-  }
+        final title = (section['title'] ?? '').toString();
+        if (!title.startsWith('PERFORMING A BLOCK ACTION')) {
+          continue;
+        }
 
-  void _drawPow(Canvas canvas, double cx, double cy, double u, Paint fill) {
-    // Star burst (POW!)
-    final path = Path();
-    const points = 8;
-    for (int i = 0; i < points * 2; i++) {
-      final angle = (i * math.pi / points) - math.pi / 2;
-      final r = i.isEven ? u * 1.8 : u * 0.8;
-      final x = cx + r * math.cos(angle);
-      final y = cy + r * math.sin(angle);
-      if (i == 0) {
-        path.moveTo(x, y);
-      } else {
-        path.lineTo(x, y);
+        final catalog = section['dice_count_catalog'];
+        if (catalog is! List) {
+          return _fallbackDiceCountEntries(lang);
+        }
+
+        return catalog
+            .whereType<Map<String, dynamic>>()
+            .map((item) => WikiDiceBoardEntry(
+                  roll: _localizedCatalogValue(item, lang, 'roll'),
+                  title: _localizedCatalogValue(item, lang, 'title'),
+                  subtitle: _localizedCatalogValue(item, lang, 'subtitle'),
+                  iconAssetPath: item['iconAssetPath'] as String?,
+                  color: _catalogColor(item['color'] as String?),
+                  description:
+                      _localizedCatalogValue(item, lang, 'description'),
+                ))
+            .toList(growable: false);
       }
     }
-    path.close();
-    canvas.drawPath(path, fill);
 
-    // "POW" text
-    final textPainter = TextPainter(
-      text: TextSpan(
-        text: '!',
-        style: TextStyle(
-          color: const Color(0xFF1A1A2E),
-          fontSize: u * 2,
-          fontWeight: FontWeight.w900,
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    textPainter.paint(
-      canvas,
-      Offset(cx - textPainter.width / 2, cy - textPainter.height / 2),
-    );
+    return _fallbackDiceCountEntries(lang);
   }
 
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  List<WikiDiceBoardEntry> _fallbackDiceCountEntries(String lang) {
+    final es = lang == 'es';
+
+    return [
+      WikiDiceBoardEntry(
+        roll: 'FA >> FD',
+        title: es ? '3 DADOS' : '3 DICE',
+        subtitle: es ? 'ATACANTE ELIGE' : 'ATTACKER CHOOSES',
+        iconAssetPath: 'assets/images/dice/+3POW.png',
+        color: const Color(0xFF2E7D32),
+        description: es
+          ? 'Se lanzan 3 dados de placaje y el atacante elige el resultado. Requisito: la Fuerza del Atacante debe ser más del doble que la del Defensor tras aplicar asistencias y modificadores.'
+            : 'Roll 3 Block dice and the attacker chooses the result. Requirement: the Attacker Strength must be more than double the Defender Strength after assists and modifiers are applied.',
+      ),
+      WikiDiceBoardEntry(
+        roll: 'FA > FD',
+        title: es ? '2 DADOS' : '2 DICE',
+        subtitle: es ? 'ATACANTE ELIGE' : 'ATTACKER CHOOSES',
+        iconAssetPath: 'assets/images/dice/+2POW.png',
+        color: const Color(0xFF66BB6A),
+        description: es
+          ? 'Se lanzan 2 dados de placaje y el atacante elige el resultado. Requisito: la Fuerza del Atacante debe ser mayor que la del Defensor, pero no más del doble, tras aplicar asistencias y modificadores.'
+            : 'Roll 2 Block dice and the attacker chooses the result. Requirement: the Attacker Strength must be higher than the Defender Strength, but not more than double, after assists and modifiers are applied.',
+      ),
+      WikiDiceBoardEntry(
+        roll: 'FA = FD',
+        title: es ? '1 DADO' : '1 DIE',
+        subtitle: es ? 'SIN ELECCION' : 'NO CHOICE',
+        iconAssetPath: 'assets/images/dice/+1POW.png',
+        color: const Color(0xFFFFA726),
+        description: es
+          ? 'Se lanza 1 dado de placaje. Requisito: la Fuerza del Atacante y la del Defensor deben ser iguales tras aplicar asistencias y modificadores.'
+            : 'Roll 1 Block die. Requirement: the Attacker Strength and Defender Strength must be equal after assists and modifiers are applied.',
+      ),
+      WikiDiceBoardEntry(
+        roll: 'FA < FD',
+        title: es ? '2 DADOS' : '2 DICE',
+        subtitle: es ? 'DEFENSOR ELIGE' : 'DEFENDER CHOOSES',
+        iconAssetPath: 'assets/images/dice/-2POW.png',
+        color: const Color(0xFFEF5350),
+        description: es
+          ? 'Se lanzan 2 dados de placaje y el defensor elige el resultado. Requisito: la Fuerza del Defensor debe ser mayor que la del Atacante, pero no más del doble, tras aplicar asistencias y modificadores.'
+            : 'Roll 2 Block dice and the defender chooses the result. Requirement: the Defender Strength must be higher than the Attacker Strength, but not more than double, after assists and modifiers are applied.',
+      ),
+      WikiDiceBoardEntry(
+        roll: 'FA << FD',
+        title: es ? '3 DADOS' : '3 DICE',
+        subtitle: es ? 'DEFENSOR ELIGE' : 'DEFENDER CHOOSES',
+        iconAssetPath: 'assets/images/dice/-3POW.png',
+        color: const Color(0xFFB71C1C),
+        description: es
+          ? 'Se lanzan 3 dados de placaje y el defensor elige el resultado. Requisito: la Fuerza del Defensor debe ser más del doble que la del Atacante tras aplicar asistencias y modificadores.'
+            : 'Roll 3 Block dice and the defender chooses the result. Requirement: the Defender Strength must be more than double the Attacker Strength after assists and modifiers are applied.',
+      ),
+    ];
+  }
+
+  String _localizedCatalogValue(
+    Map<String, dynamic> item,
+    String lang,
+    String baseKey,
+  ) {
+    final preferredKey = lang == 'es' ? '${baseKey}Es' : '${baseKey}En';
+    final fallbackKey = lang == 'es' ? '${baseKey}En' : '${baseKey}Es';
+
+    return (item[preferredKey] ?? item[fallbackKey] ?? '').toString();
+  }
+
+  Color _catalogColor(String? hexColor) {
+    if (hexColor == null || hexColor.isEmpty) {
+      return AppColors.accent;
+    }
+
+    final normalized = hexColor.replaceFirst('#', '');
+    final value = int.tryParse('FF$normalized', radix: 16);
+
+    if (value == null) {
+      return AppColors.accent;
+    }
+
+    return Color(value);
+  }
+
 }
 
 // ── Rich description with glossary ──────────────────────────────────────────
 
-Widget _buildRichDescription(String text,
-    {double fontSize = 12, Color color = AppColors.textSecondary}) {
+Widget _buildRichDescription(
+  String text, {
+  required String lang,
+  double fontSize = 12,
+  Color color = AppColors.textSecondary,
+}) {
   final style = TextStyle(fontSize: fontSize, color: color, height: 1.5);
   final boldStyle = TextStyle(
     fontSize: fontSize,
@@ -985,7 +554,8 @@ Widget _buildRichDescription(String text,
     decorationStyle: TextDecorationStyle.dotted,
   );
 
-  final sortedKeys = _glossary.keys.toList()
+  final glossary = _glossary(lang);
+  final sortedKeys = glossary.keys.toList()
     ..sort((a, b) => b.length.compareTo(a.length));
   final pattern = sortedKeys.map((k) => RegExp.escape(k)).join('|');
   final regex = RegExp('($pattern)', caseSensitive: false);
@@ -999,8 +569,8 @@ Widget _buildRichDescription(String text,
           TextSpan(text: text.substring(lastEnd, match.start), style: style));
     }
     final matched = match.group(0)!;
-    final tooltip = _glossary[matched] ??
-        _glossary.entries
+    final tooltip = glossary[matched] ??
+      glossary.entries
             .firstWhere((e) => e.key.toLowerCase() == matched.toLowerCase())
             .value;
     spans.add(WidgetSpan(
@@ -1020,26 +590,6 @@ Widget _buildRichDescription(String text,
 
 // ── Data classes ────────────────────────────────────────────────────────────
 
-enum _DiceSymbol { attackerDown, bothDown, push, stumble, pow }
-
-class _DiceFace {
-  final _DiceSymbol symbol;
-  final String name;
-  final String nameEs;
-  final Color color;
-  final String quantity;
-  final String description;
-
-  const _DiceFace({
-    required this.symbol,
-    required this.name,
-    required this.nameEs,
-    required this.color,
-    required this.quantity,
-    required this.description,
-  });
-}
-
 class _BlockStep {
   final String number;
   final String title;
@@ -1056,38 +606,3 @@ class _BlockStep {
   });
 }
 
-class _DiceCountEntry {
-  final String scenario;
-  final String scenarioEn;
-  final String dice;
-  final String diceEn;
-  final Color color;
-  final String description;
-  final String chooser;
-
-  const _DiceCountEntry({
-    required this.scenario,
-    required this.scenarioEn,
-    required this.dice,
-    required this.diceEn,
-    required this.color,
-    required this.description,
-    required this.chooser,
-  });
-}
-
-class _SpecialRule {
-  final String name;
-  final String nameEn;
-  final IconData icon;
-  final Color color;
-  final String description;
-
-  const _SpecialRule({
-    required this.name,
-    required this.nameEn,
-    required this.icon,
-    required this.color,
-    required this.description,
-  });
-}

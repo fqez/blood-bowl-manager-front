@@ -2065,7 +2065,7 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
         tempData.getForTeam(team.id).remove(player.id);
       }
     });
-    return teamRepo.getUserTeamDetail(team.id);
+    return _loadVisibleTeamDetail(isHome: isHome);
   }
 
   BasePosition? _riotousRookiePosition(BaseTeam? baseRoster) {
@@ -2111,7 +2111,7 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
       );
     }
 
-    final refreshedTeam = await teamRepo.getUserTeamDetail(cleanedTeam.id);
+    final refreshedTeam = await _loadVisibleTeamDetail(isHome: isHome);
     final newPlayers = refreshedTeam.players
         .where((player) => !existingIds.contains(player.id))
         .toList();
@@ -2157,7 +2157,7 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
         tempData.getForTeam(team.id).remove(player.id);
       }
     });
-    return teamRepo.getUserTeamDetail(team.id);
+    return _loadVisibleTeamDetail(isHome: isHome);
   }
 
   Widget _inducementCard({

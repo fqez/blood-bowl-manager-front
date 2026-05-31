@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_client.dart';
 import '../../league/domain/models/league.dart';
+import '../../my_teams/domain/models/user_team.dart';
 import '../../leagues/domain/models/league_summary.dart';
 
 final leagueRepositoryProvider = Provider<LeagueRepository>((ref) {
@@ -351,6 +352,23 @@ class LeagueRepository {
     try {
       final response = await _dio.get('/leagues/$leagueId/matches/$matchId');
       return Match.fromJson(response.data);
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  Future<({UserTeamDetail home, UserTeamDetail away})> getMatchTeamDetails(
+    String leagueId,
+    String matchId,
+  ) async {
+    try {
+      final response =
+          await _dio.get('/leagues/$leagueId/matches/$matchId/teams');
+      final data = response.data as Map<String, dynamic>;
+      return (
+        home: UserTeamDetail.fromJson(data['home'] as Map<String, dynamic>),
+        away: UserTeamDetail.fromJson(data['away'] as Map<String, dynamic>),
+      );
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }

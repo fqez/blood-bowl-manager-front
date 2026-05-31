@@ -57,6 +57,7 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
   Widget _buildAdvancementTable(
       String lang, AsyncValue<List<Map<String, dynamic>>> perksAsync) {
     final perks = perksAsync.valueOrNull ?? const <Map<String, dynamic>>[];
+    final traitPerks = _traitPerksFrom(perks);
 
     return Container(
       width: double.infinity,
@@ -87,22 +88,52 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
             ],
           ),
           const SizedBox(height: 6),
-          const Text(
-            'Cuando un jugador sube de nivel, tira 2D6 para determinar qué categoría de habilidad puede elegir.',
+          Text(
+            lang == 'es'
+                ? 'Cuando un jugador sube de nivel, tira 2D6 para determinar que categoria de habilidad puede elegir.'
+                : 'When a player levels up, roll 2D6 to determine which skill category they may choose from.',
             style: TextStyle(fontSize: 12, color: AppColors.textMuted),
           ),
           const SizedBox(height: 16),
           LayoutBuilder(
             builder: (context, constraints) {
               if (constraints.maxWidth < 420) {
-                return _buildCompactAdvancementList(lang, perks);
+                return Column(
+                  children: [
+                    _buildCompactAdvancementList(lang, perks),
+                    if (traitPerks.isNotEmpty) ...[
+                      const SizedBox(height: 20),
+                      _buildTraitsTable(
+                        lang,
+                        traitPerks,
+                        availableWidth: constraints.maxWidth,
+                      ),
+                    ],
+                  ],
+                );
               }
 
-              return Center(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: _buildTable(lang, perks),
-                ),
+              return Column(
+                children: [
+                  Center(
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: ConstrainedBox(
+                        constraints:
+                            BoxConstraints(minWidth: constraints.maxWidth),
+                        child: _buildTable(lang, perks),
+                      ),
+                    ),
+                  ),
+                  if (traitPerks.isNotEmpty) ...[
+                    const SizedBox(height: 20),
+                    _buildTraitsTable(
+                      lang,
+                      traitPerks,
+                      availableWidth: constraints.maxWidth,
+                    ),
+                  ],
+                ],
               );
             },
           ),
@@ -496,7 +527,7 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
               textColor = AppColors.accent;
               weight = FontWeight.bold;
             } else {
-              textColor = headerColors[colIdx].withOpacity(0.85);
+              textColor = headerColors[colIdx];
             }
             final isSkillCell = colIdx >= 2;
             final families = [
@@ -555,6 +586,122 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
           }),
         );
       }),
+    );
+  }
+
+  List<Map<String, dynamic>> _traitPerksFrom(List<Map<String, dynamic>> perks) {
+    final traitPerks = perks.where(_isTraitPerk).toList();
+    traitPerks.sort((a, b) {
+      final nameA = _localizedPerkName(a, 'en').toLowerCase();
+      final nameB = _localizedPerkName(b, 'en').toLowerCase();
+      return nameA.compareTo(nameB);
+    });
+    return traitPerks;
+  }
+
+  String _localizedPerkName(Map<String, dynamic> perk, String lang) {
+    final nameMap = perk['name'] as Map? ?? {};
+    final localized = nameMap[lang] as String? ?? '';
+    if (localized.isNotEmpty) return localized;
+    return (nameMap['en'] as String?) ?? (nameMap['es'] as String?) ?? '';
+  }
+
+  Widget _buildTraitsTable(
+    String lang,
+    List<Map<String, dynamic>> traitPerks, {
+    required double availableWidth,
+  }) {
+    final color = AppColors.skillExtraordinary;
+
+    final columnCount = availableWidth >= 980
+        ? 4
+        : availableWidth >= 700
+            ? 3
+            : 2;
+
+    final rows = <TableRow>[];
+    for (var index = 0; index < traitPerks.length; index += columnCount) {
+      final slice = traitPerks.skip(index).take(columnCount).toList();
+      rows.add(
+        TableRow(
+          children: List.generate(columnCount, (cellIndex) {
+            if (cellIndex >= slice.length) {
+              return const SizedBox(height: 44);
+            }
+
+            final perk = slice[cellIndex];
+            final englishName = _localizedPerkName(perk, 'en');
+            final localizedName = _localizedPerkName(perk, lang);
+
+            return Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () => showSkillPopup(
+                  context,
+                  ref,
+                  skillName:
+                      englishName.isNotEmpty ? englishName : localizedName,
+                  family: 'trait',
+                ),
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  child: Text(
+                    localizedName,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: color,
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }),
+        ),
+      );
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withOpacity(0.28)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(PhosphorIcons.star(PhosphorIconsStyle.fill),
+                  color: color, size: 18),
+              const SizedBox(width: 8),
+              Text(
+                tr(lang, 'player.traits'),
+                style: TextStyle(
+                  fontFamily: AppTypography.displayFontFamily,
+                  fontSize: AppTypography.wikiSectionTitleFontSize,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                  letterSpacing: 1,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Table(
+            border: TableBorder.all(
+              color: AppColors.surfaceLight,
+              width: 1,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+            children: rows,
+          ),
+        ],
+      ),
     );
   }
 
@@ -623,7 +770,16 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
                 final familyPerks = skillFamilies[family]!;
                 return _buildFamilySection(family, familyPerks, lang);
               }),
-              if (traitPerks.isNotEmpty) _buildCatalogHeading('TRAITS'),
+              if (traitPerks.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Container(
+                  width: double.infinity,
+                  height: 1,
+                  color: AppColors.surfaceLight,
+                ),
+                const SizedBox(height: 24),
+                _buildCatalogHeading(tr(lang, 'player.traits')),
+              ],
               if (traitPerks.isNotEmpty)
                 _buildFamilySection('trait', traitPerks, lang),
             ],
@@ -944,7 +1100,7 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
                               fontFamily: AppTypography.displayFontFamily,
                               fontSize: AppTypography.wikiSectionTitleFontSize,
                               fontWeight: FontWeight.bold,
-                              color: AppColors.textPrimary,
+                              color: color,
                             ),
                           ),
                         ),

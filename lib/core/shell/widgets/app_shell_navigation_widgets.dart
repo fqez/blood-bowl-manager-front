@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../../theme/app_colors.dart';
@@ -503,6 +504,7 @@ class AppShellUserSection extends ConsumerWidget {
             onSelected: (action) async {
               if (action == _AppShellUserMenuAction.logout) {
                 await ref.read(authStateProvider.notifier).logout();
+                if (context.mounted) context.go('/login');
               }
             },
             itemBuilder: (context) => [

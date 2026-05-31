@@ -100,21 +100,25 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
 
     showDialog(
       context: context,
-      builder: (context) => Dialog(
+      builder: (dialogContext) => Dialog(
         backgroundColor: AppColors.card,
         insetPadding: const EdgeInsets.all(18),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: ConstrainedBox(
           constraints: BoxConstraints(
             maxWidth: 920,
-            maxHeight: MediaQuery.of(context).size.height * 0.88,
+            maxHeight: MediaQuery.of(dialogContext).size.height * 0.88,
           ),
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(22),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _buildMatchSummaryHeader(summaryMatch, lang),
+                _buildMatchSummaryHeader(
+                  summaryMatch,
+                  lang,
+                  onClose: () => Navigator.of(dialogContext).pop(),
+                ),
                 const SizedBox(height: 18),
                 _buildReadOnlyMatchStats(summaryMatch, lang),
                 const SizedBox(height: 18),
@@ -1712,7 +1716,11 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
     }
   }
 
-  Widget _buildMatchSummaryHeader(Match match, String lang) {
+  Widget _buildMatchSummaryHeader(
+    Match match,
+    String lang, {
+    required VoidCallback onClose,
+  }) {
     final statusLabel = match.isPlayed
         ? tr(lang, 'status.completed')
         : match.isInProgress
@@ -1761,7 +1769,7 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
         ),
         IconButton(
           tooltip: 'Cerrar',
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: onClose,
           icon: Icon(
             PhosphorIcons.x(PhosphorIconsStyle.bold),
             color: AppColors.textSecondary,

@@ -335,7 +335,7 @@ IMPORTANTES!!!!!
 - [X] Histórico de compras o modificación de jugadores con SPP [DONE: aparece en historial del jugador]
 - [X] Buscador en la sección de habilidades [DONE]
 - [X] Jugadores estrella disponibles en la creación de equipo QUITAR
-- [ ] Tabla de perks y fichas de perks multiidioma
+- [X] Tabla de perks y fichas de perks multiidioma
 - [ ] Tooltips en perks que hablen de otros perks
 - [X] En la ventana de clima, refactorizar para DRY, se definen widgets iguales por duplicado. Centralizar widget y solo cambiar contenido.
 - [X] Lo mismo con lesiones.
@@ -344,7 +344,7 @@ IMPORTANTES!!!!!
 - [ ] Implementar Mis ligas - liga - jornada actual
 - [X] Implementar Mis ligas - liga - estadisticas [DONE]
 - [ ] En partido rapido hacer busqueda por usuario e implemetar toda la logica de notificaciones, conexion a partido, etc
-- [ ] Si cierras sesion con un usuario e inicias sesion con otro en la url se queda la ultima url con la que el usuario anterior cerro y al abrir el nuevo usuario accede a los datos delusuario anterior.... De hecho se puede acceder a cualquier recurso de otro usuario y no deberia.
+- [X] Si cierras sesion con un usuario e inicias sesion con otro en la url se queda la ultima url con la que el usuario anterior cerro y al abrir el nuevo usuario accede a los datos delusuario anterior.... De hecho se puede acceder a cualquier recurso de otro usuario y no deberia.
 
 **VISUALES**
 
@@ -352,14 +352,14 @@ IMPORTANTES!!!!!
 - [X] Pills de habilidades adquiridas con otro color o icono para diferenciarlos de las habilidades base [DONE]
 - [X] Reorganizar la sección de mis tácticas - el mapa debería aparecer lo primero [DONE]
 - [X] En la parte de mis tacticas en lugar de lista que sea un grid. Ademas que sea multiidioma las labels de ataque y defensa [DONE]
-- [ ] En la pantalla de tacticas, dividir las tacticas por equipo, con un filtro de equipo también
+- [X] En la pantalla de tacticas, dividir las tacticas por equipo, con un filtro de equipo también
 - [X] Quitar de la pantalla de tacticas las posiciones entre parentesis de los jugadores.
 - [X] Añadir en la vista de partido, para cada accion rapida, cuantos SPP proporciona. [DONE]
 
 ![1778185342347](image/README/1778185342347.png)
 
 - [X] Calculos post-partido en backend
-- [ ] Los equipos que tengan reglas especiales tienen que tener un popup cuando se clique sobre ella para explicarla
+- [X] Los equipos que tengan reglas especiales tienen que tener un popup cuando se clique sobre ella para explicarla
 - [X] En la vista prepartido, en las cajas de clima y patada inicial deberia aparecer el resultado de dados que la genera. [DONE] Valores recuperados desde reglas del backend.
 - [X] La vista de mis equipos rediseñarla. [DONE]
 - [ ] En partido rapido rediseñar las tarjetas de selector de equipo: logo, valor equipo, nombre, raza

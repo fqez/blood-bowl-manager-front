@@ -645,7 +645,15 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
                 ...(team.specialRules.isNotEmpty
                         ? team.specialRules
                         : baseRoster!.specialRules)
-                    .map((rule) => _softChip(rule, AppColors.accent)),
+                    .map((rule) => _softChip(
+                          rule,
+                          AppColors.accent,
+                          onTap: () => showTeamSpecialRuleDialog(
+                            context,
+                            rule: rule,
+                            lang: lang,
+                          ),
+                        )),
             ],
           ),
         ],
@@ -890,8 +898,8 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
     ]);
   }
 
-  Widget _softChip(String label, Color color) {
-    return Container(
+  Widget _softChip(String label, Color color, {VoidCallback? onTap}) {
+    final chip = Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.12),
@@ -905,6 +913,17 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
               color: color == AppColors.textMuted
                   ? AppColors.textSecondary
                   : color)),
+    );
+
+    if (onTap == null) return chip;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: onTap,
+        child: chip,
+      ),
     );
   }
 

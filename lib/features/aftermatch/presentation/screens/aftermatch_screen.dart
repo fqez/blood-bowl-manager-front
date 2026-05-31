@@ -8,7 +8,6 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../core/l10n/locale_provider.dart';
 import '../../../../core/l10n/translations.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../auth/data/providers/auth_provider.dart';
 import '../../../league/domain/models/league.dart';
 import '../../../live_match/data/active_match_provider.dart';
 import '../../../my_teams/domain/models/user_team.dart';
@@ -558,21 +557,29 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
     _awayStalling = random.nextBool();
   }
 
+  Future<({UserTeamDetail home, UserTeamDetail away})>
+      _loadVisibleMatchTeams() {
+    if (_isQM) {
+      return ref
+          .read(quickMatchRepositoryProvider)
+          .getMatchTeamDetails(matchId);
+    }
+    return ref
+        .read(leagueRepositoryProvider)
+        .getMatchTeamDetails(leagueId, matchId);
+  }
+
   Future<void> _loadTeams(Match match) async {
     if (_homeTeam != null) return;
-    final repo = ref.read(teamRepositoryProvider);
-    final results = await Future.wait([
-      repo.getUserTeamDetail(match.home.teamId),
-      repo.getUserTeamDetail(match.away.teamId),
-    ]);
+    final results = await _loadVisibleMatchTeams();
     if (!mounted) return;
     setState(() {
-      _homeTeam = results[0];
-      _awayTeam = results[1];
-      _homeFanFactor = results[0].dedicatedFans;
-      _awayFanFactor = results[1].dedicatedFans;
-      _homeDedicatedFans = results[0].dedicatedFans;
-      _awayDedicatedFans = results[1].dedicatedFans;
+      _homeTeam = results.home;
+      _awayTeam = results.away;
+      _homeFanFactor = results.home.dedicatedFans;
+      _awayFanFactor = results.away.dedicatedFans;
+      _homeDedicatedFans = results.home.dedicatedFans;
+      _awayDedicatedFans = results.away.dedicatedFans;
     });
   }
 
@@ -757,7 +764,9 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
       awayPlayers: _playedPlayers(_awayTeam?.players ?? [], match.awaySquad),
       onAdd: (draft) {
         _addPostMatchEvent(draft);
-        _setPostMatchStat(type, team, nextValue);
+        if (!(type == 'casualty' && draft.accidentalCasualty)) {
+          _setPostMatchStat(type, team, nextValue);
+        }
         return true;
       },
     );
@@ -892,7 +901,33 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
     final awayMvp = _mvpAwayId ?? match.mvpAway;
     if (homeMvp == null) return 'Falta seleccionar el MVP local';
     if (awayMvp == null) return 'Falta seleccionar el MVP visitante';
+    final overflow = _rosterOverflowReason(match);
+    if (overflow != null) return overflow;
     return null;
+  }
+
+  /// Blocks submission if keeping the selected temporary players would push a
+  /// roster above the 16-player maximum. The user must release (deselect)
+  /// enough temporaries before continuing.
+  String? _rosterOverflowReason(Match match) {
+    final decisions = _storedTemporaryPlayerDecisions(match);
+
+    String? check(UserTeamDetail? team) {
+      if (team == null) return null;
+      final permanent = team.players.where((p) => !p.temporaryForMatch).length;
+      final kept = team.players
+          .where((p) =>
+              p.temporaryForMatch && (decisions[p.id] ?? 'release') == 'keep')
+          .length;
+      if (permanent + kept > 16) {
+        final excess = permanent + kept - 16;
+        return '${team.name}: superas el máximo de 16 jugadores. '
+            'Libera $excess temporal${excess == 1 ? '' : 'es'} antes de enviar.';
+      }
+      return null;
+    }
+
+    return check(_homeTeam) ?? check(_awayTeam);
   }
 
   Future<bool> _confirmSubmitAftermatch(Match match) async {
@@ -3004,11 +3039,13 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
                     color: color,
                     onPressed: () => onChanged(p.id),
                   ),
-                  const SizedBox(width: 8),
-                  _sppBadge(
-                    tally.total,
-                    onTap: () => _showPlayerSppDialog(p, teamKey, tally),
-                  ),
+                  if (tally.total > 0) ...[
+                    const SizedBox(width: 8),
+                    _sppBadge(
+                      tally.total,
+                      onTap: () => _showPlayerSppDialog(p, teamKey, tally),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -3327,21 +3364,27 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(999),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-        decoration: BoxDecoration(
-          color: AppColors.accent.withValues(alpha: 0.16),
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: AppColors.accent.withValues(alpha: 0.44)),
-        ),
-        child: Text(
-          '$points SPP',
-          style: TextStyle(
-            color: AppColors.accent,
-            fontSize: 14,
-            fontWeight: FontWeight.w900,
-            fontFamily: AppTypography.displayFontFamily,
-          ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              PhosphorIcons.star(PhosphorIconsStyle.fill),
+              color: AppColors.accent,
+              size: 16,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              '+$points SPP',
+              style: TextStyle(
+                color: AppColors.accent,
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+                fontFamily: AppTypography.displayFontFamily,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -3793,18 +3836,15 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
     final awayId = match.away.teamId;
     final homeTempIds = tempData.getForTeam(homeId);
     final awayTempIds = tempData.getForTeam(awayId);
-    final currentUserId = ref.watch(authStateProvider).valueOrNull?.user?.id;
-    final showHomeTempPlayers = match.home.userId == currentUserId;
-    final showAwayTempPlayers = match.away.userId == currentUserId;
 
     List<UserPlayer> homeTempPlayers = [];
     List<UserPlayer> awayTempPlayers = [];
-    if (_homeTeam != null && showHomeTempPlayers) {
+    if (_homeTeam != null) {
       homeTempPlayers = _homeTeam!.players
           .where((p) => _isVisibleTemporaryPlayer(p, homeTempIds))
           .toList();
     }
-    if (_awayTeam != null && showAwayTempPlayers) {
+    if (_awayTeam != null) {
       awayTempPlayers = _awayTeam!.players
           .where((p) => _isVisibleTemporaryPlayer(p, awayTempIds))
           .toList();

@@ -1685,6 +1685,9 @@ extension _LiveMatchLiveView on _LiveMatchScreenState {
             injuryCategory: injuryCategory,
             injuryNote: injuryNote,
             lastingInjuryRoll: lastingInjuryRoll,
+        leagueId: _isQM ? null : widget.leagueId,
+        matchId: widget.matchId,
+        quickMatchId: _isQM ? widget.matchId : null,
           );
       if (!mounted) return false;
       WidgetsBinding.instance.addPostFrameCallback((_) {

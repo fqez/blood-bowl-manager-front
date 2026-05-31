@@ -26,7 +26,7 @@ const _t = <String, Map<String, String>>{
   'nav.wikiWeather': {'es': 'Wiki - Pre-partido', 'en': 'Wiki - Pre-match'},
   'nav.wikiStars': {'es': 'Wiki - Estrellas', 'en': 'Wiki - Star Players'},
   'nav.wikiInjuries': {'es': 'Wiki - Lesiones', 'en': 'Wiki - Injuries'},
-  'nav.wikiBlocking': {'es': 'Wiki - Bloqueos', 'en': 'Wiki - Blocking'},
+  'nav.wikiBlocking': {'es': 'Wiki - Placajes', 'en': 'Wiki - Blocking'},
   'nav.wikiPassing': {'es': 'Wiki - Pases', 'en': 'Wiki - Passing'},
   'nav.wikiAchievements': {'es': 'Wiki - Logros', 'en': 'Wiki - Achievements'},
   'nav.tactics': {'es': 'Tácticas', 'en': 'Tactics'},
@@ -1240,17 +1240,17 @@ const _t = <String, Map<String, String>>{
   'wikiInjuries.modifiers': {'es': 'MODIFICADORES', 'en': 'MODIFIERS'},
 
   // ── Wiki Blocking ──────────────────────────────────────────────────────
-  'wikiBlocking.title': {'es': 'GUÍA DE BLOQUEOS', 'en': 'BLOCKING GUIDE'},
+  'wikiBlocking.title': {'es': 'GUÍA DE PLACAJES', 'en': 'BLOCKING GUIDE'},
   'wikiBlocking.subtitle': {
-    'es': 'Dados de bloqueo, procedimiento y reglas especiales',
+    'es': 'Dados de placaje y procedimiento',
     'en': 'Block dice, procedure and special rules',
   },
   'wikiBlocking.blockDice': {
-    'es': 'DADOS DE BLOQUEO',
+    'es': 'DADOS DE PLACAJE',
     'en': 'BLOCK DICE',
   },
   'wikiBlocking.procedure': {
-    'es': 'PROCEDIMIENTO DE BLOQUEO',
+    'es': 'PROCEDIMIENTO DE PLACAJE',
     'en': 'BLOCK PROCEDURE',
   },
   'wikiBlocking.diceCount': {
@@ -1368,6 +1368,22 @@ const _t = <String, Map<String, String>>{
   'myTactics.createFirst': {
     'es': 'Crea tu primera táctica en el editor',
     'en': 'Create your first tactic in the editor',
+  },
+  'myTactics.searchHint': {
+    'es': 'Buscar táctica, equipo, notas o rival...',
+    'en': 'Search tactic, team, notes, or matchup...',
+  },
+  'myTactics.clearSearch': {
+    'es': 'Limpiar búsqueda',
+    'en': 'Clear search',
+  },
+  'myTactics.noFilteredTactics': {
+    'es': 'No hay tácticas que coincidan con esos filtros',
+    'en': 'No tactics match those filters',
+  },
+  'myTactics.adjustFilters': {
+    'es': 'Cambia el equipo seleccionado o el texto de búsqueda.',
+    'en': 'Change the selected team or the search text.',
   },
   'myTactics.delete': {'es': 'Eliminar', 'en': 'Delete'},
   'myTactics.edit': {'es': 'Editar', 'en': 'Edit'},

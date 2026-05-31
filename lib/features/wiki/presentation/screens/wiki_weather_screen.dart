@@ -5,37 +5,55 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../core/l10n/locale_provider.dart';
 import '../../../../core/l10n/translations.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../widgets/wiki_dice_board.dart';
 import '../widgets/wiki_page_layout.dart';
+import '../widgets/wiki_timeline_section.dart';
 
 // ignore_for_file: deprecated_member_use
 
 /// Glossary of Blood Bowl terms with short explanations.
-const _glossary = <String, String>{
-  'Petty Cash':
-      'Dinero temporal que recibe el equipo con menor Valor de Equipo (TV) para equilibrar el partido.',
-  'Inducements':
-      'Contrataciones especiales de un solo partido: Jugadores Estrella, Sobornos, pociones, etc.',
-  'Bribe':
-      'Soborno al árbitro. Permite ignorar una expulsión por Foul una vez por partido.',
-  'Re-roll':
-      'Permite repetir una tirada de dados fallida. Cada equipo tiene un número limitado por drive.',
-  'FAME':
-      'Factor de Audiencia del Equipo. Bonus basado en la diferencia de Fan Factor entre equipos.',
-  'Blitz':
-      'Acción especial: un jugador puede moverse y realizar un bloqueo en la misma activación.',
-  'Cheerleaders':
-      'Animadoras del equipo. Suman bonus en eventos de Kickoff como Cheering Fans.',
-  'Assistant Coaches':
-      'Entrenadores asistentes. Suman bonus en eventos de Kickoff como Brilliant Coaching.',
-  'Línea de Scrimmage':
-      'La línea central del campo. Debe haber al menos 3 jugadores propios ahí al inicio.',
-  'Stunned':
-      'Estado del jugador: tumbado boca abajo, pierde su siguiente activación para levantarse.',
-  'Prone':
-      'Estado del jugador: tumbado en el suelo, debe gastar movimiento para levantarse.',
-  'Jugadores Estrella':
-      'Mercenarios legendarios que se contratan por un solo partido como Inducement.',
-};
+Map<String, String> _glossary(String lang) {
+  final es = lang == 'es';
+
+  return <String, String>{
+  'Petty Cash': es
+    ? 'Dinero temporal que recibe el equipo con menor Valor de Equipo para equilibrar el partido.'
+    : 'Temporary money the lower Team Value side receives to balance the match.',
+  'Inducements': es
+    ? 'Contrataciones especiales de un solo partido: Jugadores Estrella, Sobornos, pociones y similares.'
+    : 'Special one-match hires such as Star Players, Bribes, potions, and similar options.',
+  'Bribe': es
+    ? 'Soborno al arbitro. Permite ignorar una expulsion por Foul una vez por partido.'
+    : 'A bribe for the referee. It can ignore a sending-off from a Foul once per game.',
+  'Re-roll': es
+    ? 'Permite repetir una tirada fallida. Cada equipo tiene un numero limitado por drive.'
+    : 'Allows a failed roll to be repeated. Each team has a limited number per drive.',
+  'FAME': es
+    ? 'Factor de audiencia del equipo. Bono basado en la diferencia de aficion entre ambos equipos.'
+    : 'Fan advantage based on the difference in support between both teams.',
+  'Blitz': es
+    ? 'Accion especial: un jugador puede moverse y realizar un placaje en la misma activacion.'
+    : 'Special action: a player can move and perform a Block in the same activation.',
+  'Cheerleaders': es
+    ? 'Animadoras del equipo. Dan bonificacion en eventos como Cheering Fans.'
+    : 'Team cheerleaders. They add bonuses to events such as Cheering Fans.',
+  'Assistant Coaches': es
+    ? 'Entrenadores asistentes. Dan bonificacion en eventos como Brilliant Coaching.'
+    : 'Assistant coaches. They add bonuses to events such as Brilliant Coaching.',
+  'Línea de Scrimmage': es
+    ? 'La linea central del campo. Debe haber al menos 3 jugadores propios ahi al inicio.'
+    : 'The centre line of the pitch. You must place at least 3 players there during setup.',
+  'Stunned': es
+    ? 'Estado del jugador: boca abajo y sin siguiente activacion.'
+    : 'Player state: face down and losing their next activation.',
+  'Prone': es
+    ? 'Estado del jugador: en el suelo y debe gastar movimiento para levantarse.'
+    : 'Player state: on the ground and must spend movement to stand up.',
+  'Jugadores Estrella': es
+    ? 'Mercenarios legendarios que se contratan como Inducement por un solo partido.'
+    : 'Legendary mercenaries hired as a one-match Inducement.',
+  };
+}
 
 class WikiWeatherScreen extends ConsumerWidget {
   const WikiWeatherScreen({super.key});
@@ -66,549 +84,262 @@ class WikiWeatherScreen extends ConsumerWidget {
   // ── Pre-game sequence ─────────────────────────────────────────────────────
 
   Widget _buildPreGameSection(String lang) {
+    final es = lang == 'es';
     final steps = [
-      _PreGameStep(
-        number: '1',
-        title: 'PETTY CASH',
+      WikiTimelineEntry(
+        marker: '1',
+      title: es ? 'PETTY CASH' : 'PETTY CASH',
         icon: PhosphorIcons.coins(PhosphorIconsStyle.fill),
         color: const Color(0xFFD4AF37),
-        description: 'Ambos entrenadores revelan su Valor de Equipo (TV). '
-            'El equipo con menor TV recibe la diferencia entre ambos TVs como '
-            'Petty Cash, que puede gastar en Inducements para ese partido.',
+      description: es
+        ? 'Ambos entrenadores revelan su Valor de Equipo. El equipo con menor TV recibe la diferencia como Petty Cash para gastarla en Inducements.'
+        : 'Both coaches reveal their Team Value. The team with the lower TV receives the difference as Petty Cash to spend on Inducements.',
       ),
-      _PreGameStep(
-        number: '2',
-        title: 'COMPRAR INDUCEMENTS',
+      WikiTimelineEntry(
+        marker: '2',
+      title: es ? 'COMPRAR INDUCEMENTS' : 'BUY INDUCEMENTS',
         icon: PhosphorIcons.shoppingCart(PhosphorIconsStyle.fill),
         color: const Color(0xFF7E57C2),
-        description: 'El entrenador que recibió Petty Cash gasta su dinero en '
-            'Inducements (Jugadores Estrella, Sobornos, pociones, etc.). '
-            'El otro entrenador también puede comprar Inducements con su propio tesoro.',
+      description: es
+        ? 'El entrenador que recibio Petty Cash gasta ese dinero en Inducements. El otro entrenador tambien puede comprar con su propio tesoro.'
+        : 'The coach who received Petty Cash spends it on Inducements. The other coach may also buy Inducements with their own treasury.',
       ),
-      _PreGameStep(
-        number: '3',
-        title: 'TIRADA DE CLIMA',
+      WikiTimelineEntry(
+        marker: '3',
+      title: es ? 'TIRADA DE CLIMA' : 'WEATHER ROLL',
         icon: PhosphorIcons.cloudSun(PhosphorIconsStyle.fill),
         color: const Color(0xFF42A5F5),
-        description: 'Tira 2D6 y consulta la tabla de clima para determinar '
-            'las condiciones meteorológicas del partido. El resultado se aplica '
-            'durante todo el encuentro.',
+      description: es
+        ? 'Tira 2D6 y consulta la tabla de clima para determinar las condiciones meteorologicas del partido.'
+        : 'Roll 2D6 and consult the Weather table to determine the match conditions.',
       ),
-      _PreGameStep(
-        number: '4',
-        title: 'SORTEO DE CAMPO',
+      WikiTimelineEntry(
+        marker: '4',
+      title: es ? 'SORTEO DE CAMPO' : 'KICK OR RECEIVE',
         icon: PhosphorIcons.coinVertical(PhosphorIconsStyle.fill),
         color: const Color(0xFFEF5350),
-        description: 'Ambos entrenadores tiran 1D6 (repitiendo empates). '
-            'El ganador elige si hace el kickoff o si recibe. '
-            'En la segunda mitad se invierten los roles.',
+      description: es
+        ? 'Ambos entrenadores tiran 1D6. El ganador decide si patea o recibe. En la segunda parte se invierten los roles.'
+        : 'Both coaches roll 1D6. The winner decides whether to kick or receive. Roles swap in the second half.',
       ),
-      _PreGameStep(
-        number: '5',
-        title: 'COLOCACIÓN DE JUGADORES',
+      WikiTimelineEntry(
+        marker: '5',
+      title: es ? 'COLOCACION DE JUGADORES' : 'SET UP PLAYERS',
         icon: PhosphorIcons.usersThree(PhosphorIconsStyle.fill),
         color: const Color(0xFF66BB6A),
-        description: 'El entrenador que hace el kickoff coloca primero a '
-            'sus jugadores en su mitad del campo (mín. 3 en la Línea de Scrimmage, '
-            'máx. 11 en total). Después, el equipo receptor se coloca igual.',
+      description: es
+        ? 'El equipo que patea se coloca primero en su mitad del campo. Debe cumplir las reglas de colocacion antes de que el rival se despliegue.'
+        : 'The kicking team sets up first in its own half. It must follow the usual setup rules before the receiving team deploys.',
       ),
-      _PreGameStep(
-        number: '6',
-        title: 'KICKOFF',
+      WikiTimelineEntry(
+        marker: '6',
+      title: es ? 'KICKOFF' : 'KICK-OFF',
         icon: PhosphorIcons.football(PhosphorIconsStyle.fill),
         color: const Color(0xFFFFA726),
-        description:
-            'El equipo que patea realiza el kickoff, lanzando el balón al '
-            'campo rival. Se tira en la Tabla de Kickoff (2D6) para un evento '
-            'especial (Riot, Perfect Defence, Blitz!, etc.).',
+      description: es
+        ? 'El equipo que patea hace el kickoff y luego se tira en la tabla de Kickoff para resolver un evento especial.'
+        : 'The kicking team performs the kick-off, then the Kick-off table is rolled to resolve a special event.',
       ),
     ];
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.surfaceLight),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(PhosphorIcons.listNumbers(PhosphorIconsStyle.fill),
-                  color: AppColors.accent, size: 20),
-              const SizedBox(width: 10),
-              Text(
-                tr(lang, 'wikiWeather.preGame'),
-                style: TextStyle(
-                  fontFamily: AppTypography.displayFontFamily,
-                  fontSize: AppTypography.wikiSectionTitleFontSize,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                  letterSpacing: 1,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            'Pasos a seguir antes de que comience la acción en el campo.',
-            style: TextStyle(fontSize: 15, color: AppColors.textMuted),
-          ),
-          const SizedBox(height: 20),
-          ...steps.map((s) => _buildPreGameStepCard(s)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPreGameStepCard(_PreGameStep step) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Step number circle
-          Column(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [step.color, step.color.withOpacity(0.6)],
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: step.color.withOpacity(0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Center(
-                  child: Text(
-                    step.number,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w900,
-                      fontSize: 18,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-              if (int.parse(step.number) < 6)
-                Container(
-                  width: 2,
-                  height: 24,
-                  color: step.color.withOpacity(0.3),
-                ),
-            ],
-          ),
-          const SizedBox(width: 14),
-          // Content
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    step.color.withOpacity(0.08),
-                    Colors.transparent,
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: step.color.withOpacity(0.2)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(step.icon, color: step.color, size: 18),
-                      const SizedBox(width: 8),
-                      Text(
-                        step.title,
-                        style: TextStyle(
-                          fontFamily: AppTypography.displayFontFamily,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: step.color,
-                          letterSpacing: 1,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  _buildRichDescription(step.description),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
+    return WikiTimelineSection(
+      headerIcon: PhosphorIcons.listNumbers(PhosphorIconsStyle.fill),
+      title: tr(lang, 'wikiWeather.preGame'),
+        subtitle: es
+          ? 'Pasos a seguir antes de que comience la accion en el campo.'
+          : 'Steps to follow before the action begins on the pitch.',
+      entries: steps,
+      descriptionBuilder: (context, entry, fontSize) =>
+          _buildRichDescription(entry.description, lang: lang, fontSize: fontSize),
     );
   }
 
   // ── Weather Table ───────────────────────────────────────────────────────────
 
   Widget _buildWeatherTable(String lang) {
+    final es = lang == 'es';
     final weatherData = [
-      _WeatherEntry(
+      WikiDiceBoardEntry(
         roll: '2',
-        name: 'CALOR ABRASADOR',
-        nameEn: 'Sweltering Heat',
+        title: es ? 'CALOR ABRASADOR' : 'SWELTERING HEAT',
+        subtitle: es ? 'Sweltering Heat' : 'CALOR ABRASADOR',
         icon: PhosphorIcons.thermometerHot(PhosphorIconsStyle.fill),
         color: const Color(0xFFE53935),
-        description: 'Hace un calor insoportable. Al comienzo de cada drive, '
-            'tira 1D6 por cada jugador en el campo. Con un resultado de 1, '
-            'el jugador queda KO por el calor.',
+        description: es
+            ? 'Hace un calor insoportable. Al final de cada drive, algunos jugadores pueden retirarse a Reservas por el calor.'
+            : 'The heat is intense. At the end of each drive, some players may be sent to Reserves because of it.',
       ),
-      _WeatherEntry(
+      WikiDiceBoardEntry(
         roll: '3',
-        name: 'SOL CEGADOR',
-        nameEn: 'Very Sunny',
+        title: es ? 'SOL CEGADOR' : 'VERY SUNNY',
+        subtitle: es ? 'Very Sunny' : 'SOL CEGADOR',
         icon: PhosphorIcons.sun(PhosphorIconsStyle.fill),
         color: const Color(0xFFFFA726),
-        description: 'Un sol brillante deslumbra a los jugadores. Se aplica un '
-            'modificador de -1 a todos los intentos de pase.',
+        description: es
+            ? 'La luz deslumbra a los jugadores. Se aplica un modificador de -1 a las pruebas de pase.'
+            : 'The sunlight dazzles players. Apply a -1 modifier to Passing Ability tests.',
       ),
-      _WeatherEntry(
+      WikiDiceBoardEntry(
         roll: '4 – 10',
-        name: 'CONDICIONES PERFECTAS',
-        nameEn: 'Perfect Conditions',
+        title: es ? 'CONDICIONES PERFECTAS' : 'PERFECT CONDITIONS',
+        subtitle: es ? 'Perfect Conditions' : 'CONDICIONES PERFECTAS',
         icon: PhosphorIcons.sun(PhosphorIconsStyle.fill),
         color: const Color(0xFF4CAF50),
-        description: 'Tiempo ideal para jugar al Blood Bowl. No se aplica '
-            'ningún modificador por clima.',
+        description: es
+            ? 'Tiempo ideal para jugar. No se aplica ningun efecto adicional.'
+            : 'Ideal weather for Blood Bowl. No additional effect applies.',
       ),
-      _WeatherEntry(
+      WikiDiceBoardEntry(
         roll: '11',
-        name: 'LLUVIA TORRENCIAL',
-        nameEn: 'Pouring Rain',
+        title: es ? 'LLUVIA TORRENCIAL' : 'POURING RAIN',
+        subtitle: es ? 'Pouring Rain' : 'LLUVIA TORRENCIAL',
         icon: PhosphorIcons.cloudRain(PhosphorIconsStyle.fill),
         color: const Color(0xFF42A5F5),
-        description:
-            'La lluvia empapa el campo. Se aplica un modificador de -1 '
-            'a todos los intentos de atrapar el balón, recoger el balón y '
-            'los intentos de pase.',
+        description: es
+            ? 'La lluvia deja el balon resbaladizo. Se aplica un -1 a recoger, atrapar e interceptar pases.'
+            : 'The rain makes the ball slippery. Apply -1 to pick-up, catch, and intercept attempts.',
       ),
-      _WeatherEntry(
+      WikiDiceBoardEntry(
         roll: '12',
-        name: 'VENTISCA',
-        nameEn: 'Blizzard',
+        title: es ? 'VENTISCA' : 'BLIZZARD',
+        subtitle: es ? 'Blizzard' : 'VENTISCA',
         icon: PhosphorIcons.snowflake(PhosphorIconsStyle.fill),
         color: const Color(0xFF90CAF9),
-        description: 'Una ventisca azota el campo. Solo se puede hacer pases '
-            'cortos o rápidos (Quick Pass y Short Pass). '
-            'Además, se aplica un modificador de -1 al intento de atrapar el balón.',
+        description: es
+            ? 'La ventisca vuelve el campo traicionero. Solo se permiten pases rapidos o cortos y Rush es mas peligroso.'
+            : 'The blizzard makes footing dangerous. Only Quick or Short Passes are allowed and Rush attempts become harder.',
       ),
     ];
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.surfaceLight),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(PhosphorIcons.hash(PhosphorIconsStyle.fill),
-                  color: AppColors.accent, size: 20),
-              const SizedBox(width: 10),
-              Text(
-                tr(lang, 'wikiWeather.weatherTable'),
-                style: TextStyle(
-                  fontFamily: AppTypography.displayFontFamily,
-                  fontSize: AppTypography.wikiSectionTitleFontSize,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                  letterSpacing: 1,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            'Antes de cada partido, ambos entrenadores tiran 2D6 para determinar las condiciones meteorológicas.',
-            style: TextStyle(fontSize: 12, color: AppColors.textMuted),
-          ),
-          const SizedBox(height: 16),
-          ...weatherData.map((w) => _buildWeatherRow(w)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildWeatherRow(_WeatherEntry w) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [w.color.withOpacity(0.12), Colors.transparent],
-        ),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: w.color.withOpacity(0.25)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Dice roll badge
-          Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              color: w.color.withOpacity(0.18),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: w.color.withOpacity(0.4)),
-            ),
-            child: Center(
-              child: Text(
-                w.roll,
-                style: TextStyle(
-                  fontFamily: AppTypography.displayFontFamily,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
-                  color: w.color,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 14),
-          // Info
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(w.icon, color: w.color, size: 18),
-                    const SizedBox(width: 8),
-                    Text(
-                      w.name,
-                      style: TextStyle(
-                        fontFamily: AppTypography.displayFontFamily,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: w.color,
-                        letterSpacing: 1,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      w.nameEn,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: AppColors.textMuted,
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                _buildRichDescription(w.description),
-              ],
-            ),
-          ),
-        ],
-      ),
+    return WikiDiceBoard(
+      headerIcon: PhosphorIcons.hash(PhosphorIconsStyle.fill),
+      title: tr(lang, 'wikiWeather.weatherTable'),
+      subtitle: es
+          ? 'Antes de cada partido, ambos entrenadores tiran 2D6 para determinar las condiciones meteorologicas.'
+          : 'Before each match, both coaches roll 2D6 to determine the weather conditions.',
+      diceAssetPath: 'assets/images/dice/2D6.png',
+      entries: weatherData,
     );
   }
 
   // ── Kickoff table ─────────────────────────────────────────────────────────
 
   Widget _buildKickoffSequence(String lang) {
+    final es = lang == 'es';
     final events = [
-      _KickoffEvent(
+      WikiDiceBoardEntry(
         roll: '2',
-        name: 'GET THE REF!',
+      title: es ? 'A POR EL ARBITRO' : 'GET THE REF!',
+        icon: PhosphorIcons.warningCircle(PhosphorIconsStyle.fill),
         color: const Color(0xFFE53935),
-        description:
-            'Ambos equipos reciben un Bribe gratuito para este partido.',
+      description: es
+        ? 'Ambos equipos reciben un Bribe gratuito para este partido.'
+        : 'Each team immediately gains one free Bribe for this game.',
       ),
-      _KickoffEvent(
+      WikiDiceBoardEntry(
         roll: '3',
-        name: 'RIOT!',
+      title: es ? 'TIEMPO MUERTO' : 'TIME-OUT',
+        icon: PhosphorIcons.usersThree(PhosphorIconsStyle.fill),
         color: const Color(0xFFFF7043),
-        description:
-            'El reloj del partido se descontrola. Tira 1D6: 1-3 el turno avanza 1, '
-            '4-6 retrocede 1 (no puede bajar de 0).',
+      description: es
+        ? 'El marcador de turno puede avanzar o retroceder un espacio, segun indique el evento.'
+        : 'Turn markers may move forward or backward one space, depending on the event result.',
       ),
-      _KickoffEvent(
+      WikiDiceBoardEntry(
         roll: '4',
-        name: 'PERFECT DEFENCE',
+      title: es ? 'DEFENSA SOLIDA' : 'SOLID DEFENCE',
+        icon: PhosphorIcons.shieldCheck(PhosphorIconsStyle.fill),
         color: const Color(0xFF66BB6A),
-        description:
-            'El equipo que hace el kickoff puede reorganizar a todos sus '
-            'jugadores respetando las reglas de colocación.',
+      description: es
+        ? 'El equipo que patea puede recolocar a varios jugadores respetando las reglas de colocacion.'
+        : 'The kicking team may reset a number of players while still following setup restrictions.',
       ),
-      _KickoffEvent(
+      WikiDiceBoardEntry(
         roll: '5',
-        name: 'HIGH KICK',
+      title: es ? 'PATADA ALTA' : 'HIGH KICK',
+        icon: PhosphorIcons.football(PhosphorIconsStyle.fill),
         color: const Color(0xFF42A5F5),
-        description:
-            'El equipo receptor puede mover un jugador (que no esté en la LOS) '
-            'directamente bajo el balón para intentar atraparlo.',
+      description: es
+        ? 'Un jugador libre del equipo receptor puede colocarse bajo el balon para intentar atraparlo.'
+        : 'One open player on the receiving team may move under the ball to try to catch it.',
       ),
-      _KickoffEvent(
+      WikiDiceBoardEntry(
         roll: '6',
-        name: 'CHEERING FANS',
+      title: es ? 'AFICIONADOS ANIMANDO' : 'CHEERING FANS',
+        icon: PhosphorIcons.megaphone(PhosphorIconsStyle.fill),
         color: const Color(0xFFAB47BC),
-        description:
-            'Cada entrenador tira 1D6 + nº de Cheerleaders de Dedicación. '
-            'El ganador recibe un uso extra de Re-roll para este drive.',
+      description: es
+        ? 'Ambos entrenadores comparan su tirada y las animadoras. El ganador obtiene una ayuda en su siguiente accion de Placaje.'
+        : 'Both coaches compare their roll plus cheerleaders. The winner gains a bonus for the next Block action.',
       ),
-      _KickoffEvent(
+      WikiDiceBoardEntry(
         roll: '7',
-        name: 'CHANGING WEATHER',
+      title: es ? 'ENTRENAMIENTO BRILLANTE' : 'BRILLIANT COACHING',
+        icon: PhosphorIcons.cloudSun(PhosphorIconsStyle.fill),
         color: const Color(0xFF78909C),
-        description:
-            'Tira de nuevo en la tabla de clima. Las nuevas condiciones '
-            'se aplican inmediatamente.',
+      description: es
+        ? 'Ambos entrenadores comparan su tirada y asistentes. El ganador obtiene un Re-roll de equipo para esta entrada.'
+        : 'Both coaches compare their roll plus assistant coaches. The winner gains a Team Re-roll for this drive.',
       ),
-      _KickoffEvent(
+      WikiDiceBoardEntry(
         roll: '8',
-        name: 'BRILLIANT COACHING',
+      title: es ? 'TIEMPO CAMBIANTE' : 'CHANGING WEATHER',
+        icon: PhosphorIcons.megaphone(PhosphorIconsStyle.fill),
         color: const Color(0xFFD4AF37),
-        description: 'Cada entrenador tira 1D6 + nº de Assistant Coaches. '
-            'El ganador recibe un uso extra de Re-roll para este drive.',
+      description: es
+        ? 'Vuelve a tirarse en la tabla de clima. Si sale Condiciones Perfectas, el balon se dispersa antes de aterrizar.'
+        : 'Roll on the Weather table again. If Perfect Conditions is rolled, the ball scatters before landing.',
       ),
-      _KickoffEvent(
+      WikiDiceBoardEntry(
         roll: '9',
-        name: 'QUICK SNAP!',
+      title: es ? 'CIERRE RAPIDO' : 'QUICK SNAP',
+        icon: PhosphorIcons.lightning(PhosphorIconsStyle.fill),
         color: const Color(0xFF26A69A),
-        description: 'El equipo receptor puede mover a todos sus jugadores un '
-            'casillero en cualquier dirección antes de que caiga el balón.',
+      description: es
+        ? 'El equipo receptor puede mover varios jugadores una casilla antes de que caiga el balon.'
+        : 'The receiving team may move several players one square before the ball lands.',
       ),
-      _KickoffEvent(
+      WikiDiceBoardEntry(
         roll: '10',
-        name: 'BLITZ!',
+      title: es ? 'CARGA' : 'CHARGE!',
+        icon: PhosphorIcons.sword(PhosphorIconsStyle.fill),
         color: const Color(0xFFEF5350),
-        description: 'El equipo que hace el kickoff puede mover a todos sus '
-            'jugadores un casillero en cualquier dirección. Uno de ellos puede '
-            'realizar una acción de Blitz.',
+      description: es
+        ? 'El equipo que patea puede activar varios jugadores de inmediato para moverse, e incluso hacer un Blitz.'
+        : 'The kicking team may immediately activate several players to move, and one of them may Blitz.',
       ),
-      _KickoffEvent(
+      WikiDiceBoardEntry(
         roll: '11',
-        name: 'OFFICIOUS REF',
+      title: es ? 'APERITIVO SOSPECHOSO' : 'DODGY SNACK',
+        icon: PhosphorIcons.flag(PhosphorIconsStyle.fill),
         color: const Color(0xFFFF8A65),
-        description: 'Cada entrenador tira 1D6. El que saque menor resultado '
-            'pierde un jugador aleatorio al Prone por tarjeta (si empatan, no pasa nada).',
+      description: es
+        ? 'Un jugador aleatorio puede empezar la entrada debilitado o terminar en Reservas por el mal tentempie.'
+        : 'A random player may begin the drive weakened or even end up in Reserves after a bad snack.',
       ),
-      _KickoffEvent(
+      WikiDiceBoardEntry(
         roll: '12',
-        name: 'PITCH INVASION!',
+      title: es ? 'INVASION DE CAMPO' : 'PITCH INVASION',
+        icon: PhosphorIcons.usersThree(PhosphorIconsStyle.fill),
         color: const Color(0xFFE53935),
-        description: 'Tira 1D6 por cada jugador en el campo de ambos equipos. '
-            'Si saca 6 (ó 6+ con modificador por FAME) el jugador queda Stunned.',
+      description: es
+        ? 'La aficion entra en el campo y varios jugadores pueden quedar Cuerpo a Tierra y Aturdidos.'
+        : 'The crowd spills onto the pitch and several players may be Placed Prone and Stunned.',
       ),
     ];
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.surfaceLight),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(PhosphorIcons.megaphone(PhosphorIconsStyle.fill),
-                  color: AppColors.accent, size: 20),
-              const SizedBox(width: 10),
-              Text(
-                tr(lang, 'wikiWeather.kickoff'),
-                style: TextStyle(
-                  fontFamily: AppTypography.displayFontFamily,
-                  fontSize: AppTypography.wikiSectionTitleFontSize,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                  letterSpacing: 1,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            'Después del kickoff, se tiran 2D6 para determinar un evento especial.',
-            style: TextStyle(fontSize: 12, color: AppColors.textMuted),
-          ),
-          const SizedBox(height: 16),
-          ...events.map((e) => _buildKickoffRow(e)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildKickoffRow(_KickoffEvent e) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: e.color.withOpacity(0.06),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: e.color.withOpacity(0.15)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Roll badge
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: e.color.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: e.color.withOpacity(0.35)),
-            ),
-            child: Center(
-              child: Text(
-                e.roll,
-                style: TextStyle(
-                  fontFamily: AppTypography.displayFontFamily,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w900,
-                  color: e.color,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  e.name,
-                  style: TextStyle(
-                    fontFamily: AppTypography.displayFontFamily,
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: e.color,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                _buildRichDescription(e.description, fontSize: 11),
-              ],
-            ),
-          ),
-        ],
+    return WikiDiceBoard(
+      headerIcon: PhosphorIcons.megaphone(PhosphorIconsStyle.fill),
+      title: tr(lang, 'wikiWeather.kickoff'),
+      subtitle: es
+          ? 'Despues del kickoff, se tiran 2D6 para determinar un evento especial.'
+          : 'After the kick-off, roll 2D6 to determine a special event.',
+      diceAssetPath: 'assets/images/dice/2D6.png',
+      entries: events,
+      descriptionBuilder: (context, entry, fontSize) => _buildRichDescription(
+        entry.description,
+        lang: lang,
+        fontSize: fontSize,
       ),
     );
   }
@@ -616,8 +347,12 @@ class WikiWeatherScreen extends ConsumerWidget {
 
 /// Builds a [RichText] where glossary terms are highlighted and wrapped in
 /// [Tooltip] widgets so users can tap/hover to see explanations.
-Widget _buildRichDescription(String text,
-    {double fontSize = 13, Color color = AppColors.textSecondary}) {
+Widget _buildRichDescription(
+  String text, {
+  required String lang,
+  double fontSize = 13,
+  Color color = AppColors.textSecondary,
+}) {
   final style = TextStyle(fontSize: fontSize, color: color, height: 1.5);
   final boldStyle = TextStyle(
     fontSize: fontSize,
@@ -630,7 +365,8 @@ Widget _buildRichDescription(String text,
   );
 
   // Build a regex that matches any glossary key (longest first).
-  final sortedKeys = _glossary.keys.toList()
+  final glossary = _glossary(lang);
+  final sortedKeys = glossary.keys.toList()
     ..sort((a, b) => b.length.compareTo(a.length));
   final pattern = sortedKeys.map((k) => RegExp.escape(k)).join('|');
   final regex = RegExp('($pattern)', caseSensitive: false);
@@ -644,8 +380,8 @@ Widget _buildRichDescription(String text,
           TextSpan(text: text.substring(lastEnd, match.start), style: style));
     }
     final matched = match.group(0)!;
-    final tooltip = _glossary[matched] ??
-        _glossary.entries
+    final tooltip = glossary[matched] ??
+      glossary.entries
             .firstWhere((e) => e.key.toLowerCase() == matched.toLowerCase())
             .value;
     spans.add(WidgetSpan(
@@ -675,50 +411,3 @@ Widget _buildRichDescription(String text,
 
 // ── Data classes ─────────────────────────────────────────────────────────────
 
-class _WeatherEntry {
-  final String roll;
-  final String name;
-  final String nameEn;
-  final IconData icon;
-  final Color color;
-  final String description;
-
-  const _WeatherEntry({
-    required this.roll,
-    required this.name,
-    required this.nameEn,
-    required this.icon,
-    required this.color,
-    required this.description,
-  });
-}
-
-class _PreGameStep {
-  final String number;
-  final String title;
-  final IconData icon;
-  final Color color;
-  final String description;
-
-  const _PreGameStep({
-    required this.number,
-    required this.title,
-    required this.icon,
-    required this.color,
-    required this.description,
-  });
-}
-
-class _KickoffEvent {
-  final String roll;
-  final String name;
-  final Color color;
-  final String description;
-
-  const _KickoffEvent({
-    required this.roll,
-    required this.name,
-    required this.color,
-    required this.description,
-  });
-}

@@ -675,21 +675,32 @@ class _TeamCreatorScreenState extends ConsumerState<TeamCreatorScreen> {
                 spacing: 6,
                 runSpacing: 6,
                 children: race.specialRules
-                    .map((rule) => Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withOpacity(0.15),
+                    .map((rule) => Material(
+                          color: Colors.transparent,
+                          child: InkWell(
                             borderRadius: BorderRadius.circular(6),
-                            border: Border.all(
-                                color: AppColors.primary.withOpacity(0.4)),
-                          ),
-                          child: Text(
-                            rule,
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w600,
+                            onTap: () => showTeamSpecialRuleDialog(
+                              context,
+                              rule: rule,
+                              lang: lang,
+                            ),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(
+                                    color: AppColors.primary.withOpacity(0.4)),
+                              ),
+                              child: Text(
+                                rule,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                             ),
                           ),
                         ))

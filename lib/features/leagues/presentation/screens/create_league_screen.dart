@@ -84,10 +84,11 @@ class _CreateLeagueScreenState extends ConsumerState<CreateLeagueScreen> {
   void _showInviteCodeDialog(LeagueSummaryModel league) {
     final code = league.inviteCode ?? '—';
     final lang = ref.read(localeProvider);
+    final router = GoRouter.of(context);
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Wrap(spacing: 10, runSpacing: 8, children: [
@@ -150,16 +151,18 @@ class _CreateLeagueScreenState extends ConsumerState<CreateLeagueScreen> {
         actions: [
           TextButton(
             onPressed: () {
-              Navigator.of(context).pop();
-              context.go('/leagues');
+              Navigator.of(dialogContext).pop();
+              if (!mounted) return;
+              router.go('/leagues');
             },
             child: Text(tr(lang, 'createLeague.goToLeagues'),
                 style: TextStyle(color: AppColors.textSecondary)),
           ),
           FilledButton(
             onPressed: () {
-              Navigator.of(context).pop();
-              context.go('/league/${league.id}');
+              Navigator.of(dialogContext).pop();
+              if (!mounted) return;
+              router.go('/league/${league.id}');
             },
             style: FilledButton.styleFrom(
               backgroundColor: AppColors.primary,

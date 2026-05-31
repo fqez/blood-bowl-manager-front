@@ -10,40 +10,63 @@ import '../widgets/wiki_page_layout.dart';
 // ignore_for_file: deprecated_member_use
 
 /// Glossary of Blood Bowl passing terms.
-const _glossary = <String, String>{
-  'AG':
-      'Agilidad (Agility) del jugador. Determina la dificultad base de pases, recepciones e intercepciones.',
-  'PA':
-      'Precisión de Pase (Passing Ability). Determina el modificador base para lanzar pases.',
-  'Tackle Zone':
-      'Zona de control alrededor de un jugador de pie. Cada casilla adyacente es su Tackle Zone.',
-  'Re-roll':
-      'Permite repetir una tirada de dados fallida. Cada equipo tiene un número limitado por drive.',
-  'Fumble':
-      'El pase falla catastróficamente. El balón se dispersa desde la casilla del lanzador.',
-  'Accurate Pass':
-      'Pase preciso: el balón aterriza exactamente en la casilla objetivo.',
-  'Inaccurate Pass':
-      'Pase impreciso: el balón se desvía D8 desde la casilla objetivo antes de poder ser atrapado.',
-  'Interception':
-      'Un jugador rival en la trayectoria del pase puede intentar interceptar el balón.',
-  'Completion':
-      'Pase completado: el receptor atrapa el balón con éxito. El lanzador recibe 1 SPP.',
-  'Hand-off':
-      'Entrega en mano: pasar el balón a un jugador adyacente sin tirada de pase. Solo requiere atrapar.',
-  'Catch': 'Habilidad: permite repetir una tirada fallida de atrapar el balón.',
-  'Pass': 'Habilidad: permite repetir una tirada fallida de pase.',
-  'Nerves of Steel':
-      'Habilidad: ignora los modificadores por Tackle Zones enemigas al pasar o atrapar.',
-  'Safe Pass':
-      'Habilidad: si el pase falla, el lanzador no suelta el balón (Fumble se convierte en balón suelto).',
-  'Diving Catch':
-      'Habilidad: +1 al atrapar un pase preciso. Permite intentar atrapar en casillas adyacentes.',
-  'Dump-Off':
-      'Habilidad: permite hacer un pase rápido (Quick Pass) cuando un oponente declara un bloqueo.',
-  'SPP':
-      'Star Player Points – puntos de experiencia que ganan los jugadores por acciones destacadas.',
-};
+Map<String, String> _glossary(String lang) {
+  final es = lang == 'es';
+
+  return <String, String>{
+  'AG': es
+    ? 'Agilidad del jugador. Marca la dificultad base de esquivas, recepciones e intercepciones.'
+    : 'The player\'s Agility. It sets the base difficulty for catches and interceptions.',
+  'PA': es
+    ? 'Capacidad de Pase del jugador. Marca lo facil o dificil que es lanzar pases.'
+    : 'The player\'s Passing Ability. It determines how easy or hard it is to throw a pass.',
+  'Tackle Zone': es
+    ? 'Zona de control alrededor de un jugador en pie. Cada casilla adyacente forma su zona de defensa.'
+    : 'Area of control around a standing player. Each adjacent square is part of that player\'s Tackle Zone.',
+  'Re-roll': es
+    ? 'Permite repetir una tirada fallida. Cada equipo tiene un numero limitado por drive.'
+    : 'Allows a failed roll to be repeated. Each team has a limited number per drive.',
+  'Fumble': es
+    ? 'Fallo catastrofico del pase. El balon cae junto al lanzador.'
+    : 'A catastrophic passing failure. The ball is dropped near the thrower.',
+  'Accurate Pass': es
+    ? 'Pase preciso: el balon llega exactamente a la casilla objetivo.'
+    : 'An accurate pass: the ball lands exactly in the target square.',
+  'Inaccurate Pass': es
+    ? 'Pase impreciso: el balon se desvia antes de poder ser atrapado.'
+    : 'An inaccurate pass: the ball deviates before anyone can catch it.',
+  'Interception': es
+    ? 'Un jugador rival en la trayectoria puede intentar cortar el pase.'
+    : 'An opposing player in the flight path may try to cut off the pass.',
+  'Completion': es
+    ? 'Pase completado: un companero atrapa el balon y el lanzador gana 1 SPP.'
+    : 'Completed pass: a team-mate catches the ball and the thrower gains 1 SPP.',
+  'Hand-off': es
+    ? 'Entrega en mano a un companero adyacente sin tirada de pase.'
+    : 'A hand-off to an adjacent team-mate without a passing roll.',
+  'Catch': es
+    ? 'Habilidad: permite repetir una tirada fallida para atrapar el balon.'
+    : 'Skill: allows a failed catch roll to be rerolled.',
+  'Pass': es
+    ? 'Habilidad: permite repetir una tirada fallida de pase.'
+    : 'Skill: allows a failed passing roll to be rerolled.',
+  'Nerves of Steel': es
+    ? 'Habilidad: ignora modificadores por zonas enemigas al pasar o atrapar.'
+    : 'Skill: ignores enemy marking modifiers when passing or catching.',
+  'Safe Pass': es
+    ? 'Habilidad: ayuda a evitar perder el balon tras un pase fallido.'
+    : 'Skill: helps prevent the thrower from losing the ball after a failed pass.',
+  'Diving Catch': es
+    ? 'Habilidad: mejora la recepcion de pases precisos y amplia el alcance para atraparlos.'
+    : 'Skill: improves catching accurate passes and extends catching reach.',
+  'Dump-Off': es
+    ? 'Habilidad: permite un pase rapido cuando un rival declara un bloqueo.'
+    : 'Skill: allows a Quick Pass when an opponent declares a block.',
+  'SPP': es
+    ? 'Puntos de experiencia que los jugadores ganan por acciones destacadas.'
+    : 'Experience points players earn for standout actions.',
+  };
+}
 
 class WikiPassingScreen extends ConsumerWidget {
   const WikiPassingScreen({super.key});
@@ -78,46 +101,51 @@ class WikiPassingScreen extends ConsumerWidget {
   // ── Pass Ranges ─────────────────────────────────────────────────────────────
 
   Widget _buildPassRangesSection(String lang) {
+    final es = lang == 'es';
     final ranges = [
       _PassRange(
-        name: 'PASE RÁPIDO',
+        name: es ? 'PASE RAPIDO' : 'QUICK PASS',
         nameEn: 'Quick Pass',
         range: '1–3',
         modifier: '+1',
         color: const Color(0xFF66BB6A),
         icon: PhosphorIcons.arrowBendRightUp(PhosphorIconsStyle.fill),
-        description: 'El rango más corto. Cubre hasta 3 casillas de distancia. '
-            'Se obtiene un bonificador de +1 a la tirada de pase.',
+        description: es
+            ? 'El rango mas corto. Cubre hasta 3 casillas y da un +1 a la tirada de pase.'
+            : 'The shortest range. It covers up to 3 squares and gives a +1 modifier to the pass roll.',
       ),
       _PassRange(
-        name: 'PASE CORTO',
+        name: es ? 'PASE CORTO' : 'SHORT PASS',
         nameEn: 'Short Pass',
         range: '4–6',
         modifier: '0',
         color: const Color(0xFF42A5F5),
         icon: PhosphorIcons.arrowBendUpRight(PhosphorIconsStyle.fill),
-        description: 'Rango medio-corto. Cubre de 4 a 6 casillas. '
-            'Sin modificador adicional por distancia.',
+        description: es
+            ? 'Rango medio-corto. Cubre de 4 a 6 casillas y no tiene modificador extra.'
+            : 'Medium-short range. It covers 4 to 6 squares with no extra modifier.',
       ),
       _PassRange(
-        name: 'PASE LARGO',
+        name: es ? 'PASE LARGO' : 'LONG PASS',
         nameEn: 'Long Pass',
         range: '7–10',
         modifier: '−1',
         color: const Color(0xFFFFA726),
         icon: PhosphorIcons.arrowBendDoubleUpRight(PhosphorIconsStyle.fill),
-        description: 'Rango largo. Cubre de 7 a 10 casillas. '
-            'Se aplica un penalizador de -1 a la tirada de pase.',
+        description: es
+            ? 'Rango largo. Cubre de 7 a 10 casillas y aplica un -1 a la tirada de pase.'
+            : 'Long range. It covers 7 to 10 squares and applies a -1 modifier to the pass roll.',
       ),
       _PassRange(
-        name: 'BOMBA LARGA',
+        name: es ? 'BOMBA LARGA' : 'LONG BOMB',
         nameEn: 'Long Bomb',
         range: '11–13',
         modifier: '−2',
         color: const Color(0xFFEF5350),
         icon: PhosphorIcons.rocketLaunch(PhosphorIconsStyle.fill),
-        description: 'El rango máximo. Cubre de 11 a 13 casillas. '
-            'Se aplica un penalizador de -2. Solo los mejores lanzadores lo intentan.',
+        description: es
+            ? 'El rango maximo. Cubre de 11 a 13 casillas y aplica un -2. Solo los mejores lanzadores lo intentan.'
+            : 'The maximum range. It covers 11 to 13 squares and applies a -2 modifier. Only the best throwers attempt it.',
       ),
     ];
 
@@ -150,18 +178,20 @@ class WikiPassingScreen extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 6),
-          const Text(
-            'La distancia entre lanzador y receptor determina el rango y el modificador.',
+          Text(
+            es
+                ? 'La distancia entre lanzador y receptor determina el rango y el modificador.'
+                : 'The distance between thrower and target determines the range and modifier.',
             style: TextStyle(fontSize: 12, color: AppColors.textMuted),
           ),
           const SizedBox(height: 16),
-          ...ranges.map((r) => _buildPassRangeRow(r)),
+          ...ranges.map((r) => _buildPassRangeRow(r, lang)),
         ],
       ),
     );
   }
 
-  Widget _buildPassRangeRow(_PassRange r) {
+  Widget _buildPassRangeRow(_PassRange r, String lang) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
@@ -246,7 +276,7 @@ class WikiPassingScreen extends ConsumerWidget {
                   ],
                 ),
                 const SizedBox(height: 6),
-                _buildRichDescription(r.description),
+                _buildRichDescription(r.description, lang: lang),
               ],
             ),
           ),
@@ -258,55 +288,52 @@ class WikiPassingScreen extends ConsumerWidget {
   // ── Pass Procedure ──────────────────────────────────────────────────────────
 
   Widget _buildPassProcedure(String lang) {
+    final es = lang == 'es';
     final steps = [
       _PassStep(
         number: '1',
-        title: 'DECLARAR PASE',
+        title: es ? 'DECLARAR PASE' : 'DECLARE PASS',
         icon: PhosphorIcons.megaphone(PhosphorIconsStyle.fill),
         color: const Color(0xFF42A5F5),
-        description:
-            'Elige el jugador con balón como lanzador y una casilla objetivo. '
-            'Se puede pasar tras moverse (gasta toda la acción). No se puede pasar '
-            'si está en una Tackle Zone sin la mejora adecuada.',
+        description: es
+          ? 'Elige al lanzador y declara una casilla objetivo. Puede moverse antes, pero no lanzar bien si esta demasiado presionado.'
+          : 'Choose the thrower and declare a target square. The player may move first, but pressure still makes the pass harder.',
       ),
       _PassStep(
         number: '2',
-        title: 'MEDIR DISTANCIA',
+        title: es ? 'MEDIR DISTANCIA' : 'MEASURE RANGE',
         icon: PhosphorIcons.ruler(PhosphorIconsStyle.fill),
         color: const Color(0xFFFFA726),
-        description:
-            'Cuenta las casillas entre lanzador y objetivo para determinar '
-            'el rango del pase: Quick Pass, Short Pass, Long Pass o Long Bomb.',
+        description: es
+          ? 'Cuenta la distancia entre lanzador y objetivo para saber si es Quick Pass, Short Pass, Long Pass o Long Bomb.'
+          : 'Measure the distance between thrower and target to determine the pass category.',
       ),
       _PassStep(
         number: '3',
-        title: 'TIRADA DE PASE',
+        title: es ? 'TIRADA DE PASE' : 'PASS ROLL',
         icon: PhosphorIcons.diceSix(PhosphorIconsStyle.fill),
         color: const Color(0xFF66BB6A),
-        description:
-            'Tira 1D6 y suma/resta los modificadores (PA del lanzador, rango, '
-            'Tackle Zones enemigas, clima). Con 2+ es preciso, con resultado '
-            'natural de 1 siempre es Fumble.',
+        description: es
+          ? 'Tira 1D6 aplicando PA y modificadores. Un 1 natural siempre es Fumble.'
+          : 'Roll 1D6 and apply PA plus modifiers. A natural 1 is always a Fumble.',
       ),
       _PassStep(
         number: '4',
-        title: 'INTERCEPCIONES',
+        title: es ? 'INTERCEPCIONES' : 'INTERCEPTIONS',
         icon: PhosphorIcons.handGrabbing(PhosphorIconsStyle.fill),
         color: const Color(0xFFEF5350),
-        description:
-            'Cualquier jugador rival en la trayectoria del pase puede intentar '
-            'una Interception (necesita AG 2+ con modificadores). Si tiene éxito, '
-            'roba el balón y recibe 2 SPP.',
+        description: es
+          ? 'Un rival de pie en la trayectoria del pase puede intentar interceptarlo antes de que llegue al objetivo.'
+          : 'A standing opponent in the flight path may try to intercept the ball before it reaches the target.',
       ),
       _PassStep(
         number: '5',
-        title: 'RECEPCIÓN',
+        title: es ? 'RECEPCION' : 'CATCH',
         icon: PhosphorIcons.handPalm(PhosphorIconsStyle.fill),
         color: const Color(0xFF7E57C2),
-        description:
-            'El jugador en la casilla objetivo tira AG para atrapar. Si el pase '
-            'fue preciso obtiene +1. Si fue impreciso, el balón se desvía antes. '
-            'Si atrapa, el lanzador recibe 1 SPP por Completion.',
+        description: es
+          ? 'El jugador objetivo intenta atrapar el balon. Si lo consigue en un pase completado, el lanzador gana 1 SPP.'
+          : 'The target player attempts to catch the ball. If the completion succeeds, the thrower gains 1 SPP.',
       ),
     ];
 
@@ -339,18 +366,20 @@ class WikiPassingScreen extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 6),
-          const Text(
-            'Pasos para resolver un pase en Blood Bowl.',
+          Text(
+            es
+                ? 'Pasos para resolver un pase en Blood Bowl.'
+                : 'Steps to resolve a pass in Blood Bowl.',
             style: TextStyle(fontSize: 12, color: AppColors.textMuted),
           ),
           const SizedBox(height: 20),
-          ...steps.map((s) => _buildPassStepCard(s, steps.length)),
+          ...steps.map((s) => _buildPassStepCard(s, steps.length, lang)),
         ],
       ),
     );
   }
 
-  Widget _buildPassStepCard(_PassStep step, int totalSteps) {
+  Widget _buildPassStepCard(_PassStep step, int totalSteps, String lang) {
     final stepNum = int.parse(step.number);
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -430,7 +459,7 @@ class WikiPassingScreen extends ConsumerWidget {
                     ],
                   ),
                   const SizedBox(height: 6),
-                  _buildRichDescription(step.description),
+                  _buildRichDescription(step.description, lang: lang),
                 ],
               ),
             ),
@@ -443,35 +472,36 @@ class WikiPassingScreen extends ConsumerWidget {
   // ── Modifiers Table ─────────────────────────────────────────────────────────
 
   Widget _buildModifiersSection(String lang) {
+    final es = lang == 'es';
     final modifiers = [
       _PassModifier(
-        name: 'Rango del pase',
-        effect: 'Quick +1 / Short 0 / Long −1 / Bomb −2',
+        name: es ? 'Rango del pase' : 'Pass range',
+        effect: es ? 'Rapido +1 / Corto 0 / Largo −1 / Bomba −2' : 'Quick +1 / Short 0 / Long −1 / Bomb −2',
         color: const Color(0xFF42A5F5),
       ),
       _PassModifier(
-        name: 'Tackle Zones enemigas sobre el lanzador',
-        effect: '−1 por cada Tackle Zone enemiga',
+        name: es ? 'Zonas enemigas sobre el lanzador' : 'Enemy Tackle Zones on thrower',
+        effect: es ? '−1 por cada zona enemiga' : '−1 for each enemy Tackle Zone',
         color: const Color(0xFFEF5350),
       ),
       _PassModifier(
-        name: 'Clima: Lluvia Torrencial',
-        effect: '−1 al pase',
+        name: es ? 'Clima: Lluvia Torrencial' : 'Weather: Pouring Rain',
+        effect: es ? '−1 al pase' : '−1 to passing',
         color: const Color(0xFF78909C),
       ),
       _PassModifier(
-        name: 'Clima: Ventisca',
-        effect: 'Solo Quick Pass y Short Pass permitidos',
+        name: es ? 'Clima: Ventisca' : 'Weather: Blizzard',
+        effect: es ? 'Solo pases rapidos y cortos' : 'Only Quick and Short Passes allowed',
         color: const Color(0xFF90CAF9),
       ),
       _PassModifier(
-        name: 'Resultado natural de 1',
-        effect: 'Siempre es Fumble (fallo automático)',
+        name: es ? 'Resultado natural de 1' : 'Natural 1',
+        effect: es ? 'Siempre es Fumble' : 'Always a Fumble',
         color: const Color(0xFFB71C1C),
       ),
       _PassModifier(
-        name: 'Resultado natural de 6',
-        effect: 'Siempre es Accurate Pass (éxito automático)',
+        name: es ? 'Resultado natural de 6' : 'Natural 6',
+        effect: es ? 'Siempre es Accurate Pass' : 'Always an Accurate Pass',
         color: const Color(0xFF2E7D32),
       ),
     ];
@@ -505,8 +535,10 @@ class WikiPassingScreen extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 6),
-          const Text(
-            'Modificadores que afectan a la tirada de pase (1D6 + PA del lanzador + modificadores).',
+          Text(
+            es
+                ? 'Modificadores que afectan a la tirada de pase.'
+                : 'Modifiers that affect the pass roll.',
             style: TextStyle(fontSize: 12, color: AppColors.textMuted),
           ),
           const SizedBox(height: 16),
@@ -572,43 +604,43 @@ class WikiPassingScreen extends ConsumerWidget {
   // ── Catch & Interception ────────────────────────────────────────────────────
 
   Widget _buildCatchAndIntercept(String lang) {
+    final es = lang == 'es';
     final entries = [
       _CatchEntry(
-        name: 'ATRAPAR PASE PRECISO',
+        name: es ? 'ATRAPAR PASE PRECISO' : 'CATCH ACCURATE PASS',
         nameEn: 'Catch Accurate Pass',
         icon: PhosphorIcons.handPalm(PhosphorIconsStyle.fill),
         color: const Color(0xFF66BB6A),
-        description:
-            'Tira 1D6 + AG del receptor. Obtiene +1 por pase preciso (Accurate Pass). '
-            'Se aplica -1 por cada Tackle Zone enemiga. Éxito con 2+.',
+        description: es
+          ? 'El receptor tira para atrapar con bonificador por Accurate Pass y penalizadores por marcas enemigas.'
+          : 'The receiver rolls to catch with a bonus for an Accurate Pass and penalties for enemy markers.',
       ),
       _CatchEntry(
-        name: 'ATRAPAR PASE IMPRECISO',
+        name: es ? 'ATRAPAR PASE IMPRECISO' : 'CATCH INACCURATE PASS',
         nameEn: 'Catch Inaccurate Pass',
         icon: PhosphorIcons.arrowsClockwise(PhosphorIconsStyle.fill),
         color: const Color(0xFFFFA726),
-        description:
-            'Si el pase fue impreciso, el balón se desvía (scatter D8, D6 casillas). '
-            'Si aterriza en un jugador, este puede intentar atraparlo sin el +1 de precisión.',
+        description: es
+          ? 'Si el pase es impreciso, el balon se desvia antes de que alguien pueda intentar atraparlo.'
+          : 'If the pass is inaccurate, the ball deviates before anyone may try to catch it.',
       ),
       _CatchEntry(
-        name: 'INTERCEPCIÓN',
+        name: es ? 'INTERCEPCION' : 'INTERCEPTION',
         nameEn: 'Interception',
         icon: PhosphorIcons.handGrabbing(PhosphorIconsStyle.fill),
         color: const Color(0xFFEF5350),
-        description:
-            'Un jugador rival de pie en la trayectoria del pase puede intentar '
-            'interceptar tirando AG con -2 de penalizador. Si tiene éxito, '
-            'atrapa el balón y recibe 2 SPP.',
+        description: es
+          ? 'Un rival de pie en la trayectoria puede intentar una intercepcion con penalizador.'
+          : 'A standing opponent in the flight path may attempt an interception with a penalty.',
       ),
       _CatchEntry(
-        name: 'FUMBLE',
+        name: es ? 'FUMBLE' : 'FUMBLE',
         nameEn: 'Fumble',
         icon: PhosphorIcons.warning(PhosphorIconsStyle.fill),
         color: const Color(0xFFB71C1C),
-        description: 'Si el lanzador saca un 1 natural, es Fumble automático. '
-            'El balón se cae y se dispersa (scatter) desde la casilla del lanzador. '
-            'Se pierde el turno si no se tiene Safe Pass.',
+        description: es
+          ? 'Con un 1 natural, el pase falla automaticamente y el balon cae junto al lanzador.'
+          : 'On a natural 1, the pass automatically fails and the ball drops near the thrower.',
       ),
     ];
 
@@ -641,18 +673,20 @@ class WikiPassingScreen extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 6),
-          const Text(
-            'Resolución de recepciones, intercepciones y balones sueltos.',
+          Text(
+            es
+                ? 'Resolucion de recepciones, intercepciones y balones sueltos.'
+                : 'Resolution of catches, interceptions, and loose balls.',
             style: TextStyle(fontSize: 12, color: AppColors.textMuted),
           ),
           const SizedBox(height: 16),
-          ...entries.map((e) => _buildCatchRow(e)),
+          ...entries.map((e) => _buildCatchRow(e, lang)),
         ],
       ),
     );
   }
 
-  Widget _buildCatchRow(_CatchEntry e) {
+  Widget _buildCatchRow(_CatchEntry e, String lang) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
@@ -706,7 +740,7 @@ class WikiPassingScreen extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 6),
-                _buildRichDescription(e.description),
+                _buildRichDescription(e.description, lang: lang),
               ],
             ),
           ),
@@ -718,36 +752,34 @@ class WikiPassingScreen extends ConsumerWidget {
   // ── Special Plays ───────────────────────────────────────────────────────────
 
   Widget _buildSpecialPlays(String lang) {
+    final es = lang == 'es';
     final plays = [
       _SpecialPlay(
         name: 'HAND-OFF',
-        nameEs: 'ENTREGA EN MANO',
+        nameEs: es ? 'ENTREGA EN MANO' : 'HAND-OFF',
         icon: PhosphorIcons.handshake(PhosphorIconsStyle.fill),
         color: const Color(0xFF26A69A),
-        description:
-            'Pasa el balón a un jugador adyacente sin hacer tirada de pase. '
-            'El receptor solo necesita hacer una tirada de AG para atrapar. '
-            'No puede ser interceptado. Cuenta como Completion si tiene éxito.',
+        description: es
+          ? 'Pasa el balon a un jugador adyacente sin tirada de pase. Solo hay que atrapar.'
+          : 'Pass the ball to an adjacent player without a passing roll. Only the catch matters.',
       ),
       _SpecialPlay(
         name: 'DUMP-OFF',
-        nameEs: 'PASE DESESPERADO',
+        nameEs: es ? 'PASE DESESPERADO' : 'DUMP-OFF',
         icon: PhosphorIcons.lightning(PhosphorIconsStyle.fill),
         color: const Color(0xFFFFA726),
-        description:
-            'Si un jugador con el balón tiene la habilidad Dump-Off y un oponente '
-            'declara un bloqueo contra él, puede intentar un pase rápido (Quick Pass) '
-            'antes de que se resuelva el bloqueo.',
+        description: es
+          ? 'Si un rival declara un bloqueo, el portador con Dump-Off puede intentar un Quick Pass antes de resolverlo.'
+          : 'If an opponent declares a block, a ball carrier with Dump-Off may attempt a Quick Pass before it is resolved.',
       ),
       _SpecialPlay(
         name: 'HAIL MARY PASS',
-        nameEs: 'PASE AVE MARÍA',
+        nameEs: es ? 'PASE AVE MARIA' : 'HAIL MARY PASS',
         icon: PhosphorIcons.rocketLaunch(PhosphorIconsStyle.fill),
         color: const Color(0xFF7E57C2),
-        description:
-            'Habilidad especial: permite lanzar el balón a cualquier casilla del campo, '
-            'sin importar la distancia. El pase siempre se trata como impreciso '
-            'y no puede ser interceptado.',
+        description: es
+          ? 'Permite lanzar a cualquier casilla sin importar distancia. Siempre es impreciso y no puede interceptarse.'
+          : 'Lets the player throw to any square regardless of distance. It is always inaccurate and cannot be intercepted.',
       ),
     ];
 
@@ -780,18 +812,20 @@ class WikiPassingScreen extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 6),
-          const Text(
-            'Jugadas especiales relacionadas con el pase.',
+          Text(
+            es
+                ? 'Jugadas especiales relacionadas con el pase.'
+                : 'Special plays related to passing.',
             style: TextStyle(fontSize: 12, color: AppColors.textMuted),
           ),
           const SizedBox(height: 16),
-          ...plays.map((p) => _buildSpecialPlayRow(p)),
+          ...plays.map((p) => _buildSpecialPlayRow(p, lang)),
         ],
       ),
     );
   }
 
-  Widget _buildSpecialPlayRow(_SpecialPlay p) {
+  Widget _buildSpecialPlayRow(_SpecialPlay p, String lang) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -844,7 +878,7 @@ class WikiPassingScreen extends ConsumerWidget {
                   ],
                 ),
                 const SizedBox(height: 3),
-                _buildRichDescription(p.description, fontSize: 11),
+                _buildRichDescription(p.description, lang: lang, fontSize: 11),
               ],
             ),
           ),
@@ -856,8 +890,12 @@ class WikiPassingScreen extends ConsumerWidget {
 
 // ── Rich description with glossary ──────────────────────────────────────────
 
-Widget _buildRichDescription(String text,
-    {double fontSize = 12, Color color = AppColors.textSecondary}) {
+Widget _buildRichDescription(
+  String text, {
+  required String lang,
+  double fontSize = 12,
+  Color color = AppColors.textSecondary,
+}) {
   final style = TextStyle(fontSize: fontSize, color: color, height: 1.5);
   final boldStyle = TextStyle(
     fontSize: fontSize,
@@ -869,7 +907,8 @@ Widget _buildRichDescription(String text,
     decorationStyle: TextDecorationStyle.dotted,
   );
 
-  final sortedKeys = _glossary.keys.toList()
+  final glossary = _glossary(lang);
+  final sortedKeys = glossary.keys.toList()
     ..sort((a, b) => b.length.compareTo(a.length));
   final pattern = sortedKeys.map((k) => RegExp.escape(k)).join('|');
   final regex = RegExp('($pattern)', caseSensitive: false);
@@ -883,8 +922,8 @@ Widget _buildRichDescription(String text,
           TextSpan(text: text.substring(lastEnd, match.start), style: style));
     }
     final matched = match.group(0)!;
-    final tooltip = _glossary[matched] ??
-        _glossary.entries
+    final tooltip = glossary[matched] ??
+      glossary.entries
             .firstWhere((e) => e.key.toLowerCase() == matched.toLowerCase())
             .value;
     spans.add(WidgetSpan(

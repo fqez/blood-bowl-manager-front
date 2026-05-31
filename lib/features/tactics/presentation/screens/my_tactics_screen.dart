@@ -31,6 +31,8 @@ class MyTacticsScreen extends ConsumerStatefulWidget {
 
 class _MyTacticsScreenState extends ConsumerState<MyTacticsScreen> {
   String? _selectedRosterId;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
   Map<String, dynamic> _exportableTactic(Map<String, dynamic> tactic) {
     return {
@@ -41,6 +43,37 @@ class _MyTacticsScreenState extends ConsumerState<MyTacticsScreen> {
       'good_against': tactic['good_against'] ?? const [],
       'notes': tactic['notes'] ?? '',
     };
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  bool _matchesSearch(
+    Map<String, dynamic> tactic,
+    Map<String, BaseTeam> rosterMap,
+  ) {
+    final query = _searchQuery.trim().toLowerCase();
+    if (query.isEmpty) return true;
+
+    final rosterId = tactic['base_roster_id'] as String? ?? '';
+    final rosterName = _rosterName(rosterId, rosterMap).toLowerCase();
+    final name = (tactic['name'] as String? ?? '').toLowerCase();
+    final notes = (tactic['notes'] as String? ?? '').toLowerCase();
+    final mode = (tactic['mode'] as String? ?? '').toLowerCase();
+    final goodAgainst = ((tactic['good_against'] as List?) ?? const [])
+        .whereType<String>()
+        .join(' ')
+        .toLowerCase();
+
+    return name.contains(query) ||
+        notes.contains(query) ||
+        rosterName.contains(query) ||
+        rosterId.toLowerCase().contains(query) ||
+        mode.contains(query) ||
+        goodAgainst.contains(query);
   }
 
   Future<void> _exportTactics(
@@ -242,12 +275,15 @@ class _MyTacticsScreenState extends ConsumerState<MyTacticsScreen> {
                             in rostersAsync.valueOrNull ?? const <BaseTeam>[])
                           team.id: team,
                       };
-                      final filteredTactics = _selectedRosterId == null
+                      final filteredByTeam = _selectedRosterId == null
                           ? tactics
                           : tactics
                               .where((tactic) =>
                                   tactic['base_roster_id'] == _selectedRosterId)
                               .toList();
+                      final filteredTactics = filteredByTeam
+                          .where((tactic) => _matchesSearch(tactic, rosterMap))
+                          .toList();
 
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -285,10 +321,15 @@ class _MyTacticsScreenState extends ConsumerState<MyTacticsScreen> {
                             ],
                           ),
                           const SizedBox(height: 12),
+                          _buildSearchField(lang),
+                          const SizedBox(height: 12),
                           _buildTeamFilter(tactics, rosterMap, lang),
                           const SizedBox(height: 18),
-                          _buildGroupedTactics(
-                              context, ref, filteredTactics, rosterMap, lang),
+                          if (filteredTactics.isEmpty)
+                            _buildFilteredEmptyState(lang)
+                          else
+                            _buildGroupedTactics(
+                                context, ref, filteredTactics, rosterMap, lang),
                         ],
                       );
                     },
@@ -355,6 +396,51 @@ class _MyTacticsScreenState extends ConsumerState<MyTacticsScreen> {
           );
         }),
       ],
+    );
+  }
+
+  Widget _buildSearchField(String lang) {
+    return TextField(
+      controller: _searchController,
+      onChanged: (value) => setState(() => _searchQuery = value),
+      style: const TextStyle(color: AppColors.textPrimary),
+      decoration: InputDecoration(
+        hintText: tr(lang, 'myTactics.searchHint'),
+        hintStyle: const TextStyle(color: AppColors.textMuted),
+        prefixIcon: Icon(
+          PhosphorIcons.magnifyingGlass(PhosphorIconsStyle.regular),
+          color: AppColors.textMuted,
+          size: 18,
+        ),
+        suffixIcon: _searchQuery.isEmpty
+            ? null
+            : IconButton(
+                tooltip: tr(lang, 'myTactics.clearSearch'),
+                onPressed: () {
+                  _searchController.clear();
+                  setState(() => _searchQuery = '');
+                },
+                icon: Icon(
+                  PhosphorIcons.xCircle(PhosphorIconsStyle.fill),
+                  color: AppColors.textMuted,
+                  size: 18,
+                ),
+              ),
+        filled: true,
+        fillColor: AppColors.card,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.surfaceLight),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.surfaceLight),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.primary),
+        ),
+      ),
     );
   }
 
@@ -690,6 +776,34 @@ class _MyTacticsScreenState extends ConsumerState<MyTacticsScreen> {
               onPressed: () => _showImportDialog(lang),
               icon: const Icon(Icons.upload_file, size: 16),
               label: const Text('IMPORTAR JSON'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFilteredEmptyState(String lang) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 48),
+        child: Column(
+          children: [
+            Icon(PhosphorIcons.funnel(PhosphorIconsStyle.regular),
+                size: 54, color: AppColors.textMuted.withOpacity(0.3)),
+            const SizedBox(height: 16),
+            Text(
+              tr(lang, 'myTactics.noFilteredTactics'),
+              style: const TextStyle(
+                fontSize: 16,
+                color: AppColors.textMuted,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              tr(lang, 'myTactics.adjustFilters'),
+              style: const TextStyle(fontSize: 13, color: AppColors.textMuted),
             ),
           ],
         ),

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_client.dart';
 import '../../league/domain/models/league.dart';
+import '../../my_teams/domain/models/user_team.dart';
 
 final quickMatchRepositoryProvider = Provider<QuickMatchRepository>((ref) {
   return QuickMatchRepository(dio: ref.watch(dioProvider));
@@ -43,6 +44,21 @@ class QuickMatchRepository {
     try {
       final response = await _dio.get('/quick-matches/$matchId');
       return Match.fromJson(response.data);
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  Future<({UserTeamDetail home, UserTeamDetail away})> getMatchTeamDetails(
+    String matchId,
+  ) async {
+    try {
+      final response = await _dio.get('/quick-matches/$matchId/teams');
+      final data = response.data as Map<String, dynamic>;
+      return (
+        home: UserTeamDetail.fromJson(data['home'] as Map<String, dynamic>),
+        away: UserTeamDetail.fromJson(data['away'] as Map<String, dynamic>),
+      );
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }

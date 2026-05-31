@@ -10,31 +10,48 @@ import '../widgets/wiki_page_layout.dart';
 // ignore_for_file: deprecated_member_use
 
 /// Glossary of Blood Bowl advancement terms.
-const _glossary = <String, String>{
-  'SPP':
-      'Star Player Points – puntos de experiencia que ganan los jugadores por acciones destacadas.',
-  'Touchdown':
-      'Anotación (TD): llevar el balón a la zona de anotación rival. Otorga 3 SPP.',
-  'Casualty':
-      'Baja: causar una Casualty a un rival (resultado 10+ en tabla de lesión). Otorga 2 SPP.',
-  'Completion':
-      'Pase completado: completar un pase exitoso que es atrapado. Otorga 1 SPP.',
-  'Interception': 'Interceptar un pase rival. Otorga 2 SPP.',
-  'MVP':
-      'Most Valuable Player: al final del partido, un jugador aleatorio del equipo recibe 4 SPP.',
-  'Primary':
-      'Categoría de habilidades primaria del jugador. Se accede más fácilmente (más barato).',
-  'Secondary':
-      'Categoría de habilidades secundaria del jugador. Es más difícil y costoso acceder.',
-  'Random':
-      'Habilidad aleatoria: se tira en la tabla de habilidades del tipo elegido.',
-  'Chosen':
-      'Habilidad elegida: el entrenador escoge libremente qué habilidad adquirir.',
-  'TV':
-      'Team Value – Valor de Equipo. Suma del coste de todos los jugadores, habilidades, re-rolls, etc.',
-  'Niggling Injury':
-      'Lesión persistente: se acumulan y añaden +1 a futuras tiradas de Casualty.',
-};
+Map<String, String> _glossary(String lang) {
+  final es = lang == 'es';
+
+  return <String, String>{
+  'SPP': es
+    ? 'Puntos de experiencia que los jugadores ganan por acciones destacadas.'
+    : 'Experience points players earn for standout actions.',
+  'Touchdown': es
+    ? 'Anotacion: llevar el balon a la zona rival. Otorga 3 SPP.'
+    : 'A score in the opponent end zone. Grants 3 SPP.',
+  'Casualty': es
+    ? 'Lesion grave causada a un rival. Otorga 2 SPP.'
+    : 'A serious injury caused to an opponent. Grants 2 SPP.',
+  'Completion': es
+    ? 'Pase completado con exito. Otorga 1 SPP al lanzador.'
+    : 'A successfully completed pass. Grants 1 SPP to the thrower.',
+  'Interception': es
+    ? 'Interceptar un pase rival. Otorga 2 SPP.'
+    : 'Intercepting an opposing pass. Grants 2 SPP.',
+  'MVP': es
+    ? 'Jugador mas valioso. Un jugador aleatorio del equipo recibe 4 SPP al final del partido.'
+    : 'Most Valuable Player. A random player on the team gains 4 SPP after the match.',
+  'Primary': es
+    ? 'Categoria primaria: mas facil y barata de mejorar.'
+    : 'Primary category: easier and cheaper to improve.',
+  'Secondary': es
+    ? 'Categoria secundaria: mas costosa de mejorar.'
+    : 'Secondary category: more expensive to improve.',
+  'Random': es
+    ? 'Mejora aleatoria: se decide tirando en una tabla.'
+    : 'Random improvement: determined by rolling on a table.',
+  'Chosen': es
+    ? 'Mejora elegida libremente por el entrenador.'
+    : 'Improvement freely chosen by the coach.',
+  'TV': es
+    ? 'Valor de Equipo: suma de jugadores, habilidades y extras.'
+    : 'Team Value: the sum of players, skills, and extra costs.',
+  'Niggling Injury': es
+    ? 'Lesion persistente que empeora futuras Casualties.'
+    : 'A lingering injury that worsens future Casualty results.',
+  };
+}
 
 class WikiAchievementsScreen extends ConsumerWidget {
   const WikiAchievementsScreen({super.key});
@@ -67,65 +84,67 @@ class WikiAchievementsScreen extends ConsumerWidget {
   // ── SPP Earning Table ───────────────────────────────────────────────────────
 
   Widget _buildSppTable(String lang) {
+    final es = lang == 'es';
     final actions = [
       _SppAction(
         name: 'TOUCHDOWN',
-        nameEs: 'ANOTACIÓN',
+        nameEs: es ? 'ANOTACION' : 'TOUCHDOWN',
         spp: '3',
         icon: PhosphorIcons.flag(PhosphorIconsStyle.fill),
         color: const Color(0xFF66BB6A),
-        description:
-            'El jugador que lleva el balón a la zona de anotación rival '
-            'recibe 3 SPP. Es la forma principal de ganar experiencia.',
+        description: es
+          ? 'El jugador que lleva el balon a la zona rival recibe 3 SPP. Es la forma principal de ganar experiencia.'
+          : 'The player who carries the ball into the opponent end zone gains 3 SPP. This is the main way to gain experience.',
       ),
       _SppAction(
         name: 'CASUALTY',
-        nameEs: 'BAJA',
+        nameEs: es ? 'BAJA' : 'CASUALTY',
         spp: '2',
         icon: PhosphorIcons.skull(PhosphorIconsStyle.fill),
         color: const Color(0xFFEF5350),
-        description:
-            'El jugador que causa una Casualty (10+ en la tabla de Lesión) '
-            'a un rival recibe 2 SPP.',
+        description: es
+          ? 'El jugador que causa una Casualty a un rival recibe 2 SPP.'
+          : 'The player who causes a Casualty to an opponent gains 2 SPP.',
       ),
       _SppAction(
         name: 'INTERCEPTION',
-        nameEs: 'INTERCEPCIÓN',
+        nameEs: es ? 'INTERCEPCION' : 'INTERCEPTION',
         spp: '2',
         icon: PhosphorIcons.handGrabbing(PhosphorIconsStyle.fill),
         color: const Color(0xFF42A5F5),
-        description:
-            'El jugador que intercepta un pase rival con éxito recibe 2 SPP.',
+        description: es
+          ? 'El jugador que intercepta un pase rival con exito recibe 2 SPP.'
+          : 'A player who successfully intercepts an opposing pass gains 2 SPP.',
       ),
       _SppAction(
         name: 'COMPLETION',
-        nameEs: 'PASE COMPLETADO',
+        nameEs: es ? 'PASE COMPLETADO' : 'COMPLETION',
         spp: '1',
         icon: PhosphorIcons.football(PhosphorIconsStyle.fill),
         color: const Color(0xFFFFA726),
-        description: 'El lanzador recibe 1 SPP cuando completa un pase que es '
-            'atrapado con éxito por un compañero.',
+        description: es
+          ? 'El lanzador recibe 1 SPP cuando un companero atrapa con exito su pase.'
+          : 'The thrower gains 1 SPP when a team-mate successfully catches the pass.',
       ),
       _SppAction(
         name: 'DEFLECTION',
-        nameEs: 'DEFLEXIÓN',
+        nameEs: es ? 'DEFLEXION' : 'DEFLECTION',
         spp: '1',
         icon: PhosphorIcons.arrowBendUpLeft(PhosphorIconsStyle.fill),
         color: const Color(0xFF78909C),
-        description:
-            'El jugador que deflecta un pase rival (sin llegar a interceptarlo '
-            'completamente) recibe 1 SPP.',
+        description: es
+          ? 'El jugador que desvia un pase rival recibe 1 SPP.'
+          : 'A player who deflects an opposing pass gains 1 SPP.',
       ),
       _SppAction(
         name: 'MVP',
-        nameEs: 'MEJOR JUGADOR',
+        nameEs: es ? 'MEJOR JUGADOR' : 'MVP',
         spp: '4',
         icon: PhosphorIcons.star(PhosphorIconsStyle.fill),
         color: const Color(0xFFD4AF37),
-        description:
-            'Al final del partido, un jugador aleatorio de cada equipo '
-            'recibe 4 SPP como MVP (Most Valuable Player). Se da incluso a '
-            'jugadores que no participaron activamente.',
+        description: es
+          ? 'Al final del partido, un jugador aleatorio de cada equipo recibe 4 SPP como MVP.'
+          : 'At the end of the match, one random player on each team gains 4 SPP as MVP.',
       ),
     ];
 
@@ -158,18 +177,20 @@ class WikiAchievementsScreen extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 6),
-          const Text(
-            'Puntos de experiencia (SPP) ganados por cada acción destacada durante un partido.',
+          Text(
+            es
+                ? 'Puntos de experiencia ganados por cada accion destacada durante un partido.'
+                : 'Experience points gained for each standout action during a match.',
             style: TextStyle(fontSize: 12, color: AppColors.textMuted),
           ),
           const SizedBox(height: 16),
-          ...actions.map((a) => _buildSppRow(a)),
+          ...actions.map((a) => _buildSppRow(a, lang)),
         ],
       ),
     );
   }
 
-  Widget _buildSppRow(_SppAction a) {
+  Widget _buildSppRow(_SppAction a, String lang) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
@@ -247,7 +268,7 @@ class WikiAchievementsScreen extends ConsumerWidget {
                 ],
               ),
               const SizedBox(height: 6),
-              _buildRichDescription(a.description),
+              _buildRichDescription(a.description, lang: lang),
             ],
           );
 
@@ -278,62 +299,70 @@ class WikiAchievementsScreen extends ConsumerWidget {
   // ── Advancement Table ───────────────────────────────────────────────────────
 
   Widget _buildAdvancementTable(String lang) {
+    final es = lang == 'es';
     final levels = [
       _AdvancementLevel(
         spp: '0–5',
-        title: 'NOVATO',
-        titleEn: 'Rookie',
+        title: es ? 'NOVATO' : 'ROOKIE',
+        titleEn: es ? 'Rookie' : 'NOVATO',
         color: const Color(0xFF78909C),
-        description: 'El jugador es inexperto. No puede gastar SPP en mejoras.',
+        description: es
+            ? 'El jugador es inexperto. No puede gastar SPP en mejoras.'
+            : 'The player is inexperienced and cannot spend SPP on improvements yet.',
       ),
       _AdvancementLevel(
         spp: '6',
-        title: 'EXPERIMENTADO',
-        titleEn: 'Experienced',
+        title: es ? 'EXPERIMENTADO' : 'EXPERIENCED',
+        titleEn: es ? 'Experienced' : 'EXPERIMENTADO',
         color: const Color(0xFF66BB6A),
-        description:
-            'Primera mejora disponible. Puede elegir: habilidad aleatoria primaria '
-            'o habilidad elegida primaria.',
+        description: es
+            ? 'Primera mejora disponible. Puede elegir habilidad primaria aleatoria o elegida.'
+            : 'First improvement unlocked. The player may take a random or chosen Primary skill.',
       ),
       _AdvancementLevel(
         spp: '16',
-        title: 'VETERANO',
-        titleEn: 'Veteran',
+        title: es ? 'VETERANO' : 'VETERAN',
+        titleEn: es ? 'Veteran' : 'VETERANO',
         color: const Color(0xFF42A5F5),
-        description:
-            'Segunda mejora. Se desbloquea además: habilidad aleatoria secundaria.',
+        description: es
+          ? 'Segunda mejora. Se desbloquea la habilidad secundaria aleatoria.'
+          : 'Second improvement. Random Secondary skills are now unlocked.',
       ),
       _AdvancementLevel(
         spp: '31',
-        title: 'ESTRELLA EMERGENTE',
-        titleEn: 'Emerging Star',
+        title: es ? 'ESTRELLA EMERGENTE' : 'EMERGING STAR',
+        titleEn: es ? 'Emerging Star' : 'ESTRELLA EMERGENTE',
         color: const Color(0xFFFFA726),
-        description:
-            'Tercera mejora. Se desbloquea además: habilidad elegida secundaria.',
+        description: es
+          ? 'Tercera mejora. Se desbloquea la habilidad secundaria elegida.'
+          : 'Third improvement. Chosen Secondary skills are now unlocked.',
       ),
       _AdvancementLevel(
         spp: '51',
-        title: 'ESTRELLA',
-        titleEn: 'Star',
+        title: es ? 'ESTRELLA' : 'STAR',
+        titleEn: es ? 'Star' : 'ESTRELLA',
         color: const Color(0xFFD4AF37),
-        description:
-            'Cuarta mejora. Se desbloquea además: mejora de característica (+1 MA, AG, PA, AV o ST).',
+        description: es
+          ? 'Cuarta mejora. Se desbloquean las mejoras de caracteristica.'
+          : 'Fourth improvement. Characteristic increases become available.',
       ),
       _AdvancementLevel(
         spp: '76',
-        title: 'SUPER ESTRELLA',
-        titleEn: 'Super Star',
+        title: es ? 'SUPER ESTRELLA' : 'SUPER STAR',
+        titleEn: es ? 'Super Star' : 'SUPER ESTRELLA',
         color: const Color(0xFFEF5350),
-        description:
-            'Quinta mejora. Acceso a todas las opciones de mejora disponibles.',
+        description: es
+          ? 'Quinta mejora. Acceso a todas las opciones disponibles.'
+          : 'Fifth improvement. Full access to all available options.',
       ),
       _AdvancementLevel(
         spp: '176',
-        title: 'LEYENDA',
-        titleEn: 'Legend',
+        title: es ? 'LEYENDA' : 'LEGEND',
+        titleEn: es ? 'Legend' : 'LEYENDA',
         color: const Color(0xFF7E57C2),
-        description:
-            'Sexta y última mejora. El jugador ha alcanzado el máximo nivel de experiencia.',
+        description: es
+          ? 'Sexta y ultima mejora. El jugador ha alcanzado el maximo nivel de experiencia.'
+          : 'Sixth and final improvement. The player has reached the highest experience tier.',
       ),
     ];
 
@@ -366,18 +395,20 @@ class WikiAchievementsScreen extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 6),
-          const Text(
-            'SPP necesarios para alcanzar cada nivel de experiencia y desbloquear mejoras.',
+          Text(
+            es
+                ? 'SPP necesarios para alcanzar cada nivel de experiencia y desbloquear mejoras.'
+                : 'SPP needed to reach each experience tier and unlock improvements.',
             style: TextStyle(fontSize: 12, color: AppColors.textMuted),
           ),
           const SizedBox(height: 16),
-          ...levels.map((l) => _buildAdvancementRow(l)),
+          ...levels.map((l) => _buildAdvancementRow(l, lang)),
         ],
       ),
     );
   }
 
-  Widget _buildAdvancementRow(_AdvancementLevel level) {
+  Widget _buildAdvancementRow(_AdvancementLevel level, String lang) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -450,7 +481,7 @@ class WikiAchievementsScreen extends ConsumerWidget {
                 ],
               ),
               const SizedBox(height: 3),
-              _buildRichDescription(level.description, fontSize: 11),
+              _buildRichDescription(level.description, lang: lang, fontSize: 11),
             ],
           );
 
@@ -477,64 +508,67 @@ class WikiAchievementsScreen extends ConsumerWidget {
   // ── Improvement Options ─────────────────────────────────────────────────────
 
   Widget _buildImprovementOptions(String lang) {
+    final es = lang == 'es';
     final options = [
       _ImprovementOption(
-        name: 'HABILIDAD ALEATORIA PRIMARIA',
-        nameEn: 'Random Primary Skill',
+        name: es ? 'HABILIDAD ALEATORIA PRIMARIA' : 'RANDOM PRIMARY SKILL',
+        nameEn: es ? 'Random Primary Skill' : 'HABILIDAD ALEATORIA PRIMARIA',
         icon: PhosphorIcons.diceSix(PhosphorIconsStyle.fill),
         color: const Color(0xFF66BB6A),
         cost: '+10K TV',
-        description: 'Tira 1D6 en la tabla de habilidades Primary del jugador. '
-            'Opción más barata pero sin control sobre el resultado.',
+        description: es
+          ? 'Tira 1D6 en la tabla Primary. Es la opcion mas barata, pero no controlas el resultado.'
+          : 'Roll 1D6 on the Primary table. It is the cheapest option, but you do not control the result.',
       ),
       _ImprovementOption(
-        name: 'HABILIDAD ELEGIDA PRIMARIA',
-        nameEn: 'Chosen Primary Skill',
+        name: es ? 'HABILIDAD ELEGIDA PRIMARIA' : 'CHOSEN PRIMARY SKILL',
+        nameEn: es ? 'Chosen Primary Skill' : 'HABILIDAD ELEGIDA PRIMARIA',
         icon: PhosphorIcons.check(PhosphorIconsStyle.fill),
         color: const Color(0xFF42A5F5),
         cost: '+20K TV',
-        description:
-            'Elige cualquier habilidad de las categorías Primary del jugador. '
-            'Control total sobre la mejora.',
+        description: es
+          ? 'Elige cualquier habilidad Primary del jugador. Da control total sobre la mejora.'
+          : 'Choose any of the player\'s Primary skills. This gives full control over the upgrade.',
       ),
       _ImprovementOption(
-        name: 'HABILIDAD ALEATORIA SECUNDARIA',
-        nameEn: 'Random Secondary Skill',
+        name: es ? 'HABILIDAD ALEATORIA SECUNDARIA' : 'RANDOM SECONDARY SKILL',
+        nameEn: es ? 'Random Secondary Skill' : 'HABILIDAD ALEATORIA SECUNDARIA',
         icon: PhosphorIcons.diceSix(PhosphorIconsStyle.fill),
         color: const Color(0xFFFFA726),
         cost: '+20K TV',
-        description:
-            'Tira 1D6 en la tabla de habilidades Secondary del jugador. '
-            'Disponible desde nivel Veterano (16 SPP).',
+        description: es
+          ? 'Tira 1D6 en la tabla Secondary. Disponible desde nivel Veterano.'
+          : 'Roll 1D6 on the Secondary table. Available from Veteran level onward.',
       ),
       _ImprovementOption(
-        name: 'HABILIDAD ELEGIDA SECUNDARIA',
-        nameEn: 'Chosen Secondary Skill',
+        name: es ? 'HABILIDAD ELEGIDA SECUNDARIA' : 'CHOSEN SECONDARY SKILL',
+        nameEn: es ? 'Chosen Secondary Skill' : 'HABILIDAD ELEGIDA SECUNDARIA',
         icon: PhosphorIcons.check(PhosphorIconsStyle.fill),
         color: const Color(0xFFEF5350),
         cost: '+40K TV',
-        description: 'Elige cualquier habilidad de las categorías Secondary. '
-            'Opción más costosa pero da acceso a habilidades fuera de categoría.',
+        description: es
+          ? 'Elige cualquier habilidad Secondary. Es mas cara, pero abre acceso fuera de categoria.'
+          : 'Choose any Secondary skill. It costs more, but opens access beyond the usual category.',
       ),
       _ImprovementOption(
-        name: 'CARACTERÍSTICA ALEATORIA',
-        nameEn: 'Random Characteristic',
+        name: es ? 'CARACTERISTICA ALEATORIA' : 'RANDOM CHARACTERISTIC',
+        nameEn: es ? 'Random Characteristic' : 'CARACTERISTICA ALEATORIA',
         icon: PhosphorIcons.arrowUp(PhosphorIconsStyle.fill),
         color: const Color(0xFF7E57C2),
         cost: '+10K TV',
-        description:
-            'Tira 1D6: 1-2 = +1 MA, 3 = +1 PA, 4 = +1 AG, 5-6 = +1 AV. '
-            'Disponible desde nivel Estrella (51 SPP).',
+        description: es
+          ? 'Tira 1D6 para obtener una mejora de caracteristica aleatoria. Disponible desde nivel Estrella.'
+          : 'Roll 1D6 to get a random Characteristic increase. Available from Star level onward.',
       ),
       _ImprovementOption(
-        name: 'CARACTERÍSTICA ELEGIDA',
-        nameEn: 'Chosen Characteristic',
+        name: es ? 'CARACTERISTICA ELEGIDA' : 'CHOSEN CHARACTERISTIC',
+        nameEn: es ? 'Chosen Characteristic' : 'CARACTERISTICA ELEGIDA',
         icon: PhosphorIcons.arrowFatUp(PhosphorIconsStyle.fill),
         color: const Color(0xFFD4AF37),
         cost: 'Variable',
-        description: 'Elige una característica: +1 MA (+20K), +1 PA (+20K), '
-            '+1 AG (+40K), +1 AV (+10K), +1 ST (+80K). '
-            'Disponible desde nivel Estrella (51 SPP).',
+        description: es
+          ? 'Elige directamente una caracteristica para mejorar. Disponible desde nivel Estrella.'
+          : 'Choose directly which Characteristic to improve. Available from Star level onward.',
       ),
     ];
 
@@ -567,18 +601,20 @@ class WikiAchievementsScreen extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 6),
-          const Text(
-            'Opciones disponibles al subir de nivel. Cada opción incrementa el TV del jugador.',
+          Text(
+            es
+                ? 'Opciones disponibles al subir de nivel. Cada opcion incrementa el TV del jugador.'
+                : 'Upgrade options available when leveling up. Each one increases the player\'s TV.',
             style: TextStyle(fontSize: 12, color: AppColors.textMuted),
           ),
           const SizedBox(height: 16),
-          ...options.map((o) => _buildImprovementRow(o)),
+          ...options.map((o) => _buildImprovementRow(o, lang)),
         ],
       ),
     );
   }
 
-  Widget _buildImprovementRow(_ImprovementOption o) {
+  Widget _buildImprovementRow(_ImprovementOption o, String lang) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -638,7 +674,7 @@ class WikiAchievementsScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 3),
-              _buildRichDescription(o.description, fontSize: 11),
+              _buildRichDescription(o.description, lang: lang, fontSize: 11),
             ],
           );
 
@@ -665,42 +701,43 @@ class WikiAchievementsScreen extends ConsumerWidget {
   // ── Special Rules ───────────────────────────────────────────────────────────
 
   Widget _buildSpecialRules(String lang) {
+    final es = lang == 'es';
     final rules = [
       _SpecialRule(
-        name: 'LÍMITE DE MEJORAS',
-        nameEn: 'Improvement Cap',
+        name: es ? 'LIMITE DE MEJORAS' : 'IMPROVEMENT CAP',
+        nameEn: es ? 'Improvement Cap' : 'LIMITE DE MEJORAS',
         icon: PhosphorIcons.prohibit(PhosphorIconsStyle.fill),
         color: const Color(0xFFEF5350),
-        description:
-            'Cada jugador puede tener un máximo de 6 mejoras (una por cada nivel, '
-            'de Experienced a Legend). No se pueden acumular más.',
+        description: es
+          ? 'Cada jugador puede tener un maximo de 6 mejoras.'
+          : 'Each player may have a maximum of 6 improvements.',
       ),
       _SpecialRule(
-        name: 'LÍMITE DE CARACTERÍSTICA',
-        nameEn: 'Characteristic Limit',
+        name: es ? 'LIMITE DE CARACTERISTICA' : 'CHARACTERISTIC LIMIT',
+        nameEn: es ? 'Characteristic Limit' : 'LIMITE DE CARACTERISTICA',
         icon: PhosphorIcons.arrowsVertical(PhosphorIconsStyle.fill),
         color: const Color(0xFFFFA726),
-        description:
-            'Cada característica solo puede mejorarse +2 sobre su valor base. '
-            'Si un resultado aleatorio da una característica que ya está al máximo, '
-            'se elige otra opción.',
+        description: es
+          ? 'Cada caracteristica solo puede mejorar hasta cierto limite sobre su valor base.'
+          : 'Each Characteristic can only improve by a limited amount above its base value.',
       ),
       _SpecialRule(
-        name: 'INCREMENTO DE TV',
-        nameEn: 'TV Increase',
+        name: es ? 'INCREMENTO DE TV' : 'TV INCREASE',
+        nameEn: es ? 'TV Increase' : 'INCREMENTO DE TV',
         icon: PhosphorIcons.coins(PhosphorIconsStyle.fill),
         color: const Color(0xFFD4AF37),
-        description: 'Cada mejora incrementa el TV del jugador (y del equipo). '
-            'Esto puede hacer que el oponente reciba más Petty Cash para Inducements.',
+        description: es
+          ? 'Cada mejora incrementa el TV del jugador y del equipo.'
+          : 'Each improvement increases both the player\'s and team\'s TV.',
       ),
       _SpecialRule(
-        name: 'MVP ALEATORIO',
-        nameEn: 'Random MVP',
+        name: es ? 'MVP ALEATORIO' : 'RANDOM MVP',
+        nameEn: es ? 'Random MVP' : 'MVP ALEATORIO',
         icon: PhosphorIcons.shuffle(PhosphorIconsStyle.fill),
         color: const Color(0xFF42A5F5),
-        description:
-            'El MVP se otorga a un jugador aleatorio al final del partido. '
-            'Puede ser cualquier jugador del roster, incluso uno que esté KO o lesionado.',
+        description: es
+          ? 'El MVP se otorga a un jugador aleatorio al final del partido.'
+          : 'MVP is awarded to a random player at the end of the match.',
       ),
     ];
 
@@ -733,18 +770,20 @@ class WikiAchievementsScreen extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 6),
-          const Text(
-            'Reglas adicionales sobre experiencia y mejoras.',
+          Text(
+            es
+                ? 'Reglas adicionales sobre experiencia y mejoras.'
+                : 'Additional rules about experience and improvements.',
             style: TextStyle(fontSize: 12, color: AppColors.textMuted),
           ),
           const SizedBox(height: 16),
-          ...rules.map((r) => _buildSpecialRuleRow(r)),
+          ...rules.map((r) => _buildSpecialRuleRow(r, lang)),
         ],
       ),
     );
   }
 
-  Widget _buildSpecialRuleRow(_SpecialRule r) {
+  Widget _buildSpecialRuleRow(_SpecialRule r, String lang) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -798,7 +837,7 @@ class WikiAchievementsScreen extends ConsumerWidget {
                 ],
               ),
               const SizedBox(height: 3),
-              _buildRichDescription(r.description, fontSize: 11),
+              _buildRichDescription(r.description, lang: lang, fontSize: 11),
             ],
           );
 
@@ -825,8 +864,12 @@ class WikiAchievementsScreen extends ConsumerWidget {
 
 // ── Rich description with glossary ──────────────────────────────────────────
 
-Widget _buildRichDescription(String text,
-    {double fontSize = 12, Color color = AppColors.textSecondary}) {
+Widget _buildRichDescription(
+  String text, {
+  required String lang,
+  double fontSize = 12,
+  Color color = AppColors.textSecondary,
+}) {
   final style = TextStyle(fontSize: fontSize, color: color, height: 1.5);
   final boldStyle = TextStyle(
     fontSize: fontSize,
@@ -838,7 +881,8 @@ Widget _buildRichDescription(String text,
     decorationStyle: TextDecorationStyle.dotted,
   );
 
-  final sortedKeys = _glossary.keys.toList()
+  final glossary = _glossary(lang);
+  final sortedKeys = glossary.keys.toList()
     ..sort((a, b) => b.length.compareTo(a.length));
   final pattern = sortedKeys.map((k) => RegExp.escape(k)).join('|');
   final regex = RegExp('($pattern)', caseSensitive: false);
@@ -852,8 +896,8 @@ Widget _buildRichDescription(String text,
           TextSpan(text: text.substring(lastEnd, match.start), style: style));
     }
     final matched = match.group(0)!;
-    final tooltip = _glossary[matched] ??
-        _glossary.entries
+    final tooltip = glossary[matched] ??
+      glossary.entries
             .firstWhere((e) => e.key.toLowerCase() == matched.toLowerCase())
             .value;
     spans.add(WidgetSpan(

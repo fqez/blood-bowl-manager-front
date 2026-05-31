@@ -376,6 +376,23 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
     }
   }
 
+  Future<({UserTeamDetail home, UserTeamDetail away})>
+      _loadVisibleMatchTeamDetails() {
+    if (_isQM) {
+      return ref
+          .read(quickMatchRepositoryProvider)
+          .getMatchTeamDetails(widget.matchId);
+    }
+    return ref
+        .read(leagueRepositoryProvider)
+        .getMatchTeamDetails(widget.leagueId, widget.matchId);
+  }
+
+  Future<UserTeamDetail> _loadVisibleTeamDetail({required bool isHome}) async {
+    final teams = await _loadVisibleMatchTeamDetails();
+    return isHome ? teams.home : teams.away;
+  }
+
   Future<void> _loadRosters(Match match) async {
     if (_rosterLoading || (_homePlayers != null && _awayPlayers != null)) {
       return;
@@ -383,26 +400,23 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
     _rosterLoading = true;
     try {
       final teamRepo = ref.read(teamRepositoryProvider);
-      final results = await Future.wait([
-        teamRepo.getUserTeamDetail(match.home.teamId),
-        teamRepo.getUserTeamDetail(match.away.teamId),
-      ]);
+      final teams = await _loadVisibleMatchTeamDetails();
       final baseResults = await Future.wait([
-        teamRepo.getBaseTeamDetail(results[0].baseRosterId),
-        teamRepo.getBaseTeamDetail(results[1].baseRosterId),
+        teamRepo.getBaseTeamDetail(teams.home.baseRosterId),
+        teamRepo.getBaseTeamDetail(teams.away.baseRosterId),
       ]);
-      await _restoreInducementBudgetState(results[0], results[1]);
+      await _restoreInducementBudgetState(teams.home, teams.away);
       await _maybeMigrateLegacyInducementsToServer(match);
       if (mounted) {
         setState(() {
           _seedSquadSelection(
             isHome: true,
-            team: results[0],
+            team: teams.home,
             persistedSquad: match.homeSquad,
           );
           _seedSquadSelection(
             isHome: false,
-            team: results[1],
+            team: teams.away,
             persistedSquad: match.awaySquad,
           );
 
@@ -411,26 +425,24 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
           final awaySquad = _selectedAwayPlayers;
 
           _homePlayers = homeSquad.isNotEmpty
-              ? results[0]
-                  .players
+              ? teams.home.players
                   .where((p) =>
                       homeSquad.contains(p.id) ||
                       (p.temporaryForMatch &&
                           p.temporaryMatchId == widget.matchId))
                   .toList()
-              : results[0].players.where((p) => p.status == 'healthy').toList();
+              : teams.home.players.where((p) => p.status == 'healthy').toList();
           _awayPlayers = awaySquad.isNotEmpty
-              ? results[1]
-                  .players
+              ? teams.away.players
                   .where((p) =>
                       awaySquad.contains(p.id) ||
                       (p.temporaryForMatch &&
                           p.temporaryMatchId == widget.matchId))
                   .toList()
-              : results[1].players.where((p) => p.status == 'healthy').toList();
+              : teams.away.players.where((p) => p.status == 'healthy').toList();
           // Keep team details for reroll budget in live view
-          _homeTeam ??= results[0];
-          _awayTeam ??= results[1];
+          _homeTeam ??= teams.home;
+          _awayTeam ??= teams.away;
           _homeBaseRoster ??= baseResults[0];
           _awayBaseRoster ??= baseResults[1];
         });
@@ -444,12 +456,9 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
     _prepLoading = true;
     try {
       final teamRepo = ref.read(teamRepositoryProvider);
-      final results = await Future.wait([
-        teamRepo.getUserTeamDetail(match.home.teamId),
-        teamRepo.getUserTeamDetail(match.away.teamId),
-      ]);
-      var home = results[0];
-      var away = results[1];
+      final teams = await _loadVisibleMatchTeamDetails();
+      final home = teams.home;
+      final away = teams.away;
       // Load base rosters for position catalog
       final baseResults = await Future.wait([
         teamRepo.getBaseTeamDetail(home.baseRosterId),
@@ -492,26 +501,22 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
     if (_homeTeam == null || _awayTeam == null) return;
     _preMatchRefreshInFlight = true;
     try {
-      final teamRepo = ref.read(teamRepositoryProvider);
-      final results = await Future.wait([
-        teamRepo.getUserTeamDetail(_homeTeam!.id),
-        teamRepo.getUserTeamDetail(_awayTeam!.id),
-      ]);
-      await _restoreInducementBudgetState(results[0], results[1]);
+      final teams = await _loadVisibleMatchTeamDetails();
+      await _restoreInducementBudgetState(teams.home, teams.away);
       if (mounted) {
         setState(() {
           _seedSquadSelection(
             isHome: true,
-            team: results[0],
+            team: teams.home,
             persistedSquad: const [],
           );
           _seedSquadSelection(
             isHome: false,
-            team: results[1],
+            team: teams.away,
             persistedSquad: const [],
           );
-          _homeTeam = results[0];
-          _awayTeam = results[1];
+          _homeTeam = teams.home;
+          _awayTeam = teams.away;
         });
       }
     } catch (_) {}

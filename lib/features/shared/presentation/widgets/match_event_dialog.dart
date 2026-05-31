@@ -33,6 +33,7 @@ class MatchEventDraft {
   final String? injuryNote;
   final int? lastingInjuryRoll;
   final bool sentOff;
+  final bool accidentalCasualty;
   final String? detail;
   final int half;
   final int turn;
@@ -49,6 +50,7 @@ class MatchEventDraft {
     this.injuryNote,
     this.lastingInjuryRoll,
     this.sentOff = false,
+    this.accidentalCasualty = false,
     this.detail,
     required this.half,
     required this.turn,
@@ -80,6 +82,7 @@ Future<void> showMatchEventDialog({
   bool superbThrow = false;
   bool landedStanding = false;
   bool foulSentOff = false;
+  bool accidentalCasualty = false;
   bool submitting = false;
 
   final isThrowTeammate = eventType == 'throw_teammate';
@@ -104,7 +107,9 @@ Future<void> showMatchEventDialog({
       team == 'home' ? awayPlayers : homePlayers;
   List<UserPlayer> getVictimCandidates(String team) => isThrowTeammate
       ? getPlayers(team).where((p) => p.id != selectedPlayer?.id).toList()
-      : getOpponents(team);
+      : isCasualty && accidentalCasualty
+          ? getPlayers(team)
+          : getOpponents(team);
 
   await showDialog<void>(
     context: context,
@@ -261,7 +266,11 @@ Future<void> showMatchEventDialog({
                                 const TextStyle(color: AppColors.textPrimary),
                             decoration: _inputDeco(isThrowTeammate
                                 ? 'Jugador que lanza'
-                                : tr(lang, 'liveMatch.selectPlayer')),
+                                : accidentalCasualty
+                                    ? (lang == 'es'
+                                        ? 'Sin jugador causante'
+                                        : 'No causing player')
+                                    : tr(lang, 'liveMatch.selectPlayer')),
                             items: players
                                 .map((p) => DropdownMenuItem(
                                       value: p,
@@ -274,12 +283,14 @@ Future<void> showMatchEventDialog({
                                       ),
                                     ))
                                 .toList(),
-                            onChanged: (v) => setS(() {
-                              selectedPlayer = v;
-                              if (selectedVictim?.id == v?.id) {
-                                selectedVictim = null;
-                              }
-                            }),
+                            onChanged: accidentalCasualty
+                                ? null
+                                : (v) => setS(() {
+                                      selectedPlayer = v;
+                                      if (selectedVictim?.id == v?.id) {
+                                        selectedVictim = null;
+                                      }
+                                    }),
                           )
                         else
                           TextField(
@@ -304,7 +315,11 @@ Future<void> showMatchEventDialog({
                                   const TextStyle(color: AppColors.textPrimary),
                               decoration: _inputDeco(isThrowTeammate
                                   ? 'Jugador lanzado'
-                                  : tr(lang, 'liveMatch.selectVictim')),
+                                  : accidentalCasualty
+                                      ? (lang == 'es'
+                                          ? 'Jugador lesionado'
+                                          : 'Injured player')
+                                      : tr(lang, 'liveMatch.selectVictim')),
                               items: getVictimCandidates(selectedTeam)
                                   .map((p) => DropdownMenuItem(
                                         value: p,
@@ -365,6 +380,30 @@ Future<void> showMatchEventDialog({
                           ),
                         ],
                         if (isCasualty) ...[
+                          const SizedBox(height: 12),
+                          CheckboxListTile(
+                            value: accidentalCasualty,
+                            dense: true,
+                            activeColor: AppColors.warning,
+                            contentPadding: EdgeInsets.zero,
+                            title: Text(
+                              lang == 'es'
+                                  ? 'Caida/accidente (sin SPP)'
+                                  : 'Fall/accident (no SPP)',
+                              style: const TextStyle(
+                                color: AppColors.textSecondary,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            onChanged: submitting
+                                ? null
+                                : (value) => setS(() {
+                                      accidentalCasualty = value ?? false;
+                                      selectedPlayer = null;
+                                      selectedVictim = null;
+                                    }),
+                          ),
                           const SizedBox(height: 12),
                           DropdownButtonFormField<String>(
                             value: casualtyCategory,
@@ -515,7 +554,9 @@ Future<void> showMatchEventDialog({
                                 final cleanDetail = detail.trim();
                                 final eventDetail = isThrowTeammate
                                     ? 'Soberbio: ${superbThrow ? 'sí' : 'no'} · Cae de pie: ${landedStanding ? 'sí' : 'no'}${cleanDetail.isEmpty ? '' : ' · $cleanDetail'}'
-                                    : cleanDetail;
+                                    : accidentalCasualty
+                                        ? 'accidental=true${cleanDetail.isEmpty ? '' : ' · $cleanDetail'}'
+                                        : cleanDetail;
                                 final injuryCategory = isCasualty &&
                                         casualtyCategory != 'badly_hurt'
                                     ? casualtyCategory
@@ -523,12 +564,16 @@ Future<void> showMatchEventDialog({
                                 final shouldClose = await onAdd(MatchEventDraft(
                                   type: eventType,
                                   team: selectedTeam,
-                                  playerId: selectedPlayer?.id,
-                                  playerName: selectedPlayer != null
-                                      ? '#${selectedPlayer!.number} ${selectedPlayer!.name}'
-                                      : (playerNameText.isEmpty
-                                          ? null
-                                          : playerNameText),
+                                  playerId: accidentalCasualty
+                                      ? null
+                                      : selectedPlayer?.id,
+                                  playerName: accidentalCasualty
+                                      ? null
+                                      : selectedPlayer != null
+                                          ? '#${selectedPlayer!.number} ${selectedPlayer!.name}'
+                                          : (playerNameText.isEmpty
+                                              ? null
+                                              : playerNameText),
                                   victimId: selectedVictim?.id,
                                   victimName: selectedVictim != null
                                       ? '#${selectedVictim!.number} ${selectedVictim!.name}'
@@ -550,6 +595,7 @@ Future<void> showMatchEventDialog({
                                           ? lastingInjuryRoll
                                           : null,
                                   sentOff: isFoul && foulSentOff,
+                                  accidentalCasualty: accidentalCasualty,
                                   detail:
                                       eventDetail.isEmpty ? null : eventDetail,
                                   half: match.currentHalf,
