@@ -16,42 +16,42 @@ Map<String, String> _glossary(String lang) {
   final es = lang == 'es';
 
   return <String, String>{
-  'Petty Cash': es
-    ? 'Dinero temporal que recibe el equipo con menor Valor de Equipo para equilibrar el partido.'
-    : 'Temporary money the lower Team Value side receives to balance the match.',
-  'Inducements': es
-    ? 'Contrataciones especiales de un solo partido: Jugadores Estrella, Sobornos, pociones y similares.'
-    : 'Special one-match hires such as Star Players, Bribes, potions, and similar options.',
-  'Bribe': es
-    ? 'Soborno al arbitro. Permite ignorar una expulsion por Foul una vez por partido.'
-    : 'A bribe for the referee. It can ignore a sending-off from a Foul once per game.',
-  'Re-roll': es
-    ? 'Permite repetir una tirada fallida. Cada equipo tiene un numero limitado por drive.'
-    : 'Allows a failed roll to be repeated. Each team has a limited number per drive.',
-  'FAME': es
-    ? 'Factor de audiencia del equipo. Bono basado en la diferencia de aficion entre ambos equipos.'
-    : 'Fan advantage based on the difference in support between both teams.',
-  'Blitz': es
-    ? 'Accion especial: un jugador puede moverse y realizar un placaje en la misma activacion.'
-    : 'Special action: a player can move and perform a Block in the same activation.',
-  'Cheerleaders': es
-    ? 'Animadoras del equipo. Dan bonificacion en eventos como Cheering Fans.'
-    : 'Team cheerleaders. They add bonuses to events such as Cheering Fans.',
-  'Assistant Coaches': es
-    ? 'Entrenadores asistentes. Dan bonificacion en eventos como Brilliant Coaching.'
-    : 'Assistant coaches. They add bonuses to events such as Brilliant Coaching.',
-  'Línea de Scrimmage': es
-    ? 'La linea central del campo. Debe haber al menos 3 jugadores propios ahi al inicio.'
-    : 'The centre line of the pitch. You must place at least 3 players there during setup.',
-  'Stunned': es
-    ? 'Estado del jugador: boca abajo y sin siguiente activacion.'
-    : 'Player state: face down and losing their next activation.',
-  'Prone': es
-    ? 'Estado del jugador: en el suelo y debe gastar movimiento para levantarse.'
-    : 'Player state: on the ground and must spend movement to stand up.',
-  'Jugadores Estrella': es
-    ? 'Mercenarios legendarios que se contratan como Inducement por un solo partido.'
-    : 'Legendary mercenaries hired as a one-match Inducement.',
+    'Petty Cash': es
+        ? 'Dinero temporal que recibe el equipo con menor Valor de Equipo para equilibrar el partido.'
+        : 'Temporary money the lower Team Value side receives to balance the match.',
+    'Inducements': es
+        ? 'Contrataciones especiales de un solo partido: Jugadores Estrella, Sobornos, pociones y similares.'
+        : 'Special one-match hires such as Star Players, Bribes, potions, and similar options.',
+    'Bribe': es
+        ? 'Soborno al arbitro. Permite ignorar una expulsion por Foul una vez por partido.'
+        : 'A bribe for the referee. It can ignore a sending-off from a Foul once per game.',
+    'Re-roll': es
+        ? 'Permite repetir una tirada fallida. Cada equipo tiene un numero limitado por drive.'
+        : 'Allows a failed roll to be repeated. Each team has a limited number per drive.',
+    'FAME': es
+        ? 'Factor de audiencia del equipo. Bono basado en la diferencia de aficion entre ambos equipos.'
+        : 'Fan advantage based on the difference in support between both teams.',
+    'Blitz': es
+        ? 'Accion especial: un jugador puede moverse y realizar un placaje en la misma activacion.'
+        : 'Special action: a player can move and perform a Block in the same activation.',
+    'Cheerleaders': es
+        ? 'Animadoras del equipo. Dan bonificacion en eventos como Cheering Fans.'
+        : 'Team cheerleaders. They add bonuses to events such as Cheering Fans.',
+    'Assistant Coaches': es
+        ? 'Entrenadores asistentes. Dan bonificacion en eventos como Brilliant Coaching.'
+        : 'Assistant coaches. They add bonuses to events such as Brilliant Coaching.',
+    'Línea de Scrimmage': es
+        ? 'La linea central del campo. Debe haber al menos 3 jugadores propios ahi al inicio.'
+        : 'The centre line of the pitch. You must place at least 3 players there during setup.',
+    'Stunned': es
+        ? 'Estado del jugador: boca abajo y sin siguiente activacion.'
+        : 'Player state: face down and losing their next activation.',
+    'Prone': es
+        ? 'Estado del jugador: en el suelo y debe gastar movimiento para levantarse.'
+        : 'Player state: on the ground and must spend movement to stand up.',
+    'Jugadores Estrella': es
+        ? 'Mercenarios legendarios que se contratan como Inducement por un solo partido.'
+        : 'Legendary mercenaries hired as a one-match Inducement.',
   };
 }
 
@@ -88,69 +88,71 @@ class WikiWeatherScreen extends ConsumerWidget {
     final steps = [
       WikiTimelineEntry(
         marker: '1',
-      title: es ? 'PETTY CASH' : 'PETTY CASH',
+        title: es ? 'PETTY CASH' : 'PETTY CASH',
         icon: PhosphorIcons.coins(PhosphorIconsStyle.fill),
         color: const Color(0xFFD4AF37),
-      description: es
-        ? 'Ambos entrenadores revelan su Valor de Equipo. El equipo con menor TV recibe la diferencia como Petty Cash para gastarla en Inducements.'
-        : 'Both coaches reveal their Team Value. The team with the lower TV receives the difference as Petty Cash to spend on Inducements.',
+        description: es
+            ? 'Ambos entrenadores revelan su Valor de Equipo. El equipo con menor TV recibe la diferencia como Petty Cash para gastarla en Inducements.'
+            : 'Both coaches reveal their Team Value. The team with the lower TV receives the difference as Petty Cash to spend on Inducements.',
       ),
       WikiTimelineEntry(
         marker: '2',
-      title: es ? 'COMPRAR INDUCEMENTS' : 'BUY INDUCEMENTS',
+        title: es ? 'COMPRAR INDUCEMENTS' : 'BUY INDUCEMENTS',
         icon: PhosphorIcons.shoppingCart(PhosphorIconsStyle.fill),
         color: const Color(0xFF7E57C2),
-      description: es
-        ? 'El entrenador que recibio Petty Cash gasta ese dinero en Inducements. El otro entrenador tambien puede comprar con su propio tesoro.'
-        : 'The coach who received Petty Cash spends it on Inducements. The other coach may also buy Inducements with their own treasury.',
+        description: es
+            ? 'El entrenador que recibio Petty Cash gasta ese dinero en Inducements. El otro entrenador tambien puede comprar con su propio tesoro.'
+            : 'The coach who received Petty Cash spends it on Inducements. The other coach may also buy Inducements with their own treasury.',
       ),
       WikiTimelineEntry(
         marker: '3',
-      title: es ? 'TIRADA DE CLIMA' : 'WEATHER ROLL',
+        title: es ? 'TIRADA DE CLIMA' : 'WEATHER ROLL',
         icon: PhosphorIcons.cloudSun(PhosphorIconsStyle.fill),
         color: const Color(0xFF42A5F5),
-      description: es
-        ? 'Tira 2D6 y consulta la tabla de clima para determinar las condiciones meteorologicas del partido.'
-        : 'Roll 2D6 and consult the Weather table to determine the match conditions.',
+        description: es
+            ? 'Tira 2D6 y consulta la tabla de clima para determinar las condiciones meteorologicas del partido.'
+            : 'Roll 2D6 and consult the Weather table to determine the match conditions.',
       ),
       WikiTimelineEntry(
         marker: '4',
-      title: es ? 'SORTEO DE CAMPO' : 'KICK OR RECEIVE',
+        title: es ? 'SORTEO DE CAMPO' : 'KICK OR RECEIVE',
         icon: PhosphorIcons.coinVertical(PhosphorIconsStyle.fill),
         color: const Color(0xFFEF5350),
-      description: es
-        ? 'Ambos entrenadores tiran 1D6. El ganador decide si patea o recibe. En la segunda parte se invierten los roles.'
-        : 'Both coaches roll 1D6. The winner decides whether to kick or receive. Roles swap in the second half.',
+        description: es
+            ? 'Ambos entrenadores tiran 1D6. El ganador decide si patea o recibe. En la segunda parte se invierten los roles.'
+            : 'Both coaches roll 1D6. The winner decides whether to kick or receive. Roles swap in the second half.',
       ),
       WikiTimelineEntry(
         marker: '5',
-      title: es ? 'COLOCACION DE JUGADORES' : 'SET UP PLAYERS',
+        title: es ? 'COLOCACION DE JUGADORES' : 'SET UP PLAYERS',
         icon: PhosphorIcons.usersThree(PhosphorIconsStyle.fill),
         color: const Color(0xFF66BB6A),
-      description: es
-        ? 'El equipo que patea se coloca primero en su mitad del campo. Debe cumplir las reglas de colocacion antes de que el rival se despliegue.'
-        : 'The kicking team sets up first in its own half. It must follow the usual setup rules before the receiving team deploys.',
+        description: es
+            ? 'El equipo que patea se coloca primero en su mitad del campo. Debe cumplir las reglas de colocacion antes de que el rival se despliegue.'
+            : 'The kicking team sets up first in its own half. It must follow the usual setup rules before the receiving team deploys.',
       ),
       WikiTimelineEntry(
         marker: '6',
-      title: es ? 'KICKOFF' : 'KICK-OFF',
+        title: es ? 'KICKOFF' : 'KICK-OFF',
         icon: PhosphorIcons.football(PhosphorIconsStyle.fill),
         color: const Color(0xFFFFA726),
-      description: es
-        ? 'El equipo que patea hace el kickoff y luego se tira en la tabla de Kickoff para resolver un evento especial.'
-        : 'The kicking team performs the kick-off, then the Kick-off table is rolled to resolve a special event.',
+        description: es
+            ? 'El equipo que patea hace el kickoff y luego se tira en la tabla de Kickoff para resolver un evento especial.'
+            : 'The kicking team performs the kick-off, then the Kick-off table is rolled to resolve a special event.',
       ),
     ];
 
     return WikiTimelineSection(
       headerIcon: PhosphorIcons.listNumbers(PhosphorIconsStyle.fill),
       title: tr(lang, 'wikiWeather.preGame'),
-        subtitle: es
+      subtitle: es
           ? 'Pasos a seguir antes de que comience la accion en el campo.'
           : 'Steps to follow before the action begins on the pitch.',
       entries: steps,
-      descriptionBuilder: (context, entry, fontSize) =>
-          _buildRichDescription(entry.description, lang: lang, fontSize: fontSize),
+      descriptionBuilder: (context, entry, fontSize) => _buildRichDescription(
+          entry.description,
+          lang: lang,
+          fontSize: fontSize),
     );
   }
 
@@ -229,102 +231,102 @@ class WikiWeatherScreen extends ConsumerWidget {
     final events = [
       WikiDiceBoardEntry(
         roll: '2',
-      title: es ? 'A POR EL ARBITRO' : 'GET THE REF!',
+        title: es ? 'A POR EL ARBITRO' : 'GET THE REF!',
         icon: PhosphorIcons.warningCircle(PhosphorIconsStyle.fill),
         color: const Color(0xFFE53935),
-      description: es
-        ? 'Ambos equipos reciben un Bribe gratuito para este partido.'
-        : 'Each team immediately gains one free Bribe for this game.',
+        description: es
+            ? 'Ambos equipos reciben un Bribe gratuito para este partido.'
+            : 'Each team immediately gains one free Bribe for this game.',
       ),
       WikiDiceBoardEntry(
         roll: '3',
-      title: es ? 'TIEMPO MUERTO' : 'TIME-OUT',
+        title: es ? 'TIEMPO MUERTO' : 'TIME-OUT',
         icon: PhosphorIcons.usersThree(PhosphorIconsStyle.fill),
         color: const Color(0xFFFF7043),
-      description: es
-        ? 'El marcador de turno puede avanzar o retroceder un espacio, segun indique el evento.'
-        : 'Turn markers may move forward or backward one space, depending on the event result.',
+        description: es
+            ? 'El marcador de turno puede avanzar o retroceder un espacio, segun indique el evento.'
+            : 'Turn markers may move forward or backward one space, depending on the event result.',
       ),
       WikiDiceBoardEntry(
         roll: '4',
-      title: es ? 'DEFENSA SOLIDA' : 'SOLID DEFENCE',
+        title: es ? 'DEFENSA SOLIDA' : 'SOLID DEFENCE',
         icon: PhosphorIcons.shieldCheck(PhosphorIconsStyle.fill),
         color: const Color(0xFF66BB6A),
-      description: es
-        ? 'El equipo que patea puede recolocar a varios jugadores respetando las reglas de colocacion.'
-        : 'The kicking team may reset a number of players while still following setup restrictions.',
+        description: es
+            ? 'El equipo que patea puede recolocar a varios jugadores respetando las reglas de colocacion.'
+            : 'The kicking team may reset a number of players while still following setup restrictions.',
       ),
       WikiDiceBoardEntry(
         roll: '5',
-      title: es ? 'PATADA ALTA' : 'HIGH KICK',
+        title: es ? 'PATADA ALTA' : 'HIGH KICK',
         icon: PhosphorIcons.football(PhosphorIconsStyle.fill),
         color: const Color(0xFF42A5F5),
-      description: es
-        ? 'Un jugador libre del equipo receptor puede colocarse bajo el balon para intentar atraparlo.'
-        : 'One open player on the receiving team may move under the ball to try to catch it.',
+        description: es
+            ? 'Un jugador libre del equipo receptor puede colocarse bajo el balon para intentar atraparlo.'
+            : 'One open player on the receiving team may move under the ball to try to catch it.',
       ),
       WikiDiceBoardEntry(
         roll: '6',
-      title: es ? 'AFICIONADOS ANIMANDO' : 'CHEERING FANS',
+        title: es ? 'AFICIONADOS ANIMANDO' : 'CHEERING FANS',
         icon: PhosphorIcons.megaphone(PhosphorIconsStyle.fill),
         color: const Color(0xFFAB47BC),
-      description: es
-        ? 'Ambos entrenadores comparan su tirada y las animadoras. El ganador obtiene una ayuda en su siguiente accion de Placaje.'
-        : 'Both coaches compare their roll plus cheerleaders. The winner gains a bonus for the next Block action.',
+        description: es
+            ? 'Ambos entrenadores comparan su tirada y las animadoras. El ganador obtiene una ayuda en su siguiente accion de Placaje.'
+            : 'Both coaches compare their roll plus cheerleaders. The winner gains a bonus for the next Block action.',
       ),
       WikiDiceBoardEntry(
         roll: '7',
-      title: es ? 'ENTRENAMIENTO BRILLANTE' : 'BRILLIANT COACHING',
+        title: es ? 'ENTRENAMIENTO BRILLANTE' : 'BRILLIANT COACHING',
         icon: PhosphorIcons.cloudSun(PhosphorIconsStyle.fill),
         color: const Color(0xFF78909C),
-      description: es
-        ? 'Ambos entrenadores comparan su tirada y asistentes. El ganador obtiene un Re-roll de equipo para esta entrada.'
-        : 'Both coaches compare their roll plus assistant coaches. The winner gains a Team Re-roll for this drive.',
+        description: es
+            ? 'Ambos entrenadores comparan su tirada y asistentes. El ganador obtiene un Re-roll de equipo para esta entrada.'
+            : 'Both coaches compare their roll plus assistant coaches. The winner gains a Team Re-roll for this drive.',
       ),
       WikiDiceBoardEntry(
         roll: '8',
-      title: es ? 'TIEMPO CAMBIANTE' : 'CHANGING WEATHER',
+        title: es ? 'TIEMPO CAMBIANTE' : 'CHANGING WEATHER',
         icon: PhosphorIcons.megaphone(PhosphorIconsStyle.fill),
         color: const Color(0xFFD4AF37),
-      description: es
-        ? 'Vuelve a tirarse en la tabla de clima. Si sale Condiciones Perfectas, el balon se dispersa antes de aterrizar.'
-        : 'Roll on the Weather table again. If Perfect Conditions is rolled, the ball scatters before landing.',
+        description: es
+            ? 'Vuelve a tirarse en la tabla de clima. Si sale Condiciones Perfectas, el balon se dispersa antes de aterrizar.'
+            : 'Roll on the Weather table again. If Perfect Conditions is rolled, the ball scatters before landing.',
       ),
       WikiDiceBoardEntry(
         roll: '9',
-      title: es ? 'CIERRE RAPIDO' : 'QUICK SNAP',
+        title: es ? 'CIERRE RAPIDO' : 'QUICK SNAP',
         icon: PhosphorIcons.lightning(PhosphorIconsStyle.fill),
         color: const Color(0xFF26A69A),
-      description: es
-        ? 'El equipo receptor puede mover varios jugadores una casilla antes de que caiga el balon.'
-        : 'The receiving team may move several players one square before the ball lands.',
+        description: es
+            ? 'El equipo receptor puede mover varios jugadores una casilla antes de que caiga el balon.'
+            : 'The receiving team may move several players one square before the ball lands.',
       ),
       WikiDiceBoardEntry(
         roll: '10',
-      title: es ? 'CARGA' : 'CHARGE!',
+        title: es ? 'CARGA' : 'CHARGE!',
         icon: PhosphorIcons.sword(PhosphorIconsStyle.fill),
         color: const Color(0xFFEF5350),
-      description: es
-        ? 'El equipo que patea puede activar varios jugadores de inmediato para moverse, e incluso hacer un Blitz.'
-        : 'The kicking team may immediately activate several players to move, and one of them may Blitz.',
+        description: es
+            ? 'El equipo que patea puede activar varios jugadores de inmediato para moverse, e incluso hacer un Blitz.'
+            : 'The kicking team may immediately activate several players to move, and one of them may Blitz.',
       ),
       WikiDiceBoardEntry(
         roll: '11',
-      title: es ? 'APERITIVO SOSPECHOSO' : 'DODGY SNACK',
+        title: es ? 'APERITIVO SOSPECHOSO' : 'DODGY SNACK',
         icon: PhosphorIcons.flag(PhosphorIconsStyle.fill),
         color: const Color(0xFFFF8A65),
-      description: es
-        ? 'Un jugador aleatorio puede empezar la entrada debilitado o terminar en Reservas por el mal tentempie.'
-        : 'A random player may begin the drive weakened or even end up in Reserves after a bad snack.',
+        description: es
+            ? 'Un jugador aleatorio puede empezar la entrada debilitado o terminar en Reservas por el mal tentempie.'
+            : 'A random player may begin the drive weakened or even end up in Reserves after a bad snack.',
       ),
       WikiDiceBoardEntry(
         roll: '12',
-      title: es ? 'INVASION DE CAMPO' : 'PITCH INVASION',
+        title: es ? 'INVASION DE CAMPO' : 'PITCH INVASION',
         icon: PhosphorIcons.usersThree(PhosphorIconsStyle.fill),
         color: const Color(0xFFE53935),
-      description: es
-        ? 'La aficion entra en el campo y varios jugadores pueden quedar Cuerpo a Tierra y Aturdidos.'
-        : 'The crowd spills onto the pitch and several players may be Placed Prone and Stunned.',
+        description: es
+            ? 'La aficion entra en el campo y varios jugadores pueden quedar Cuerpo a Tierra y Aturdidos.'
+            : 'The crowd spills onto the pitch and several players may be Placed Prone and Stunned.',
       ),
     ];
 
@@ -381,7 +383,7 @@ Widget _buildRichDescription(
     }
     final matched = match.group(0)!;
     final tooltip = glossary[matched] ??
-      glossary.entries
+        glossary.entries
             .firstWhere((e) => e.key.toLowerCase() == matched.toLowerCase())
             .value;
     spans.add(WidgetSpan(
@@ -410,4 +412,3 @@ Widget _buildRichDescription(
 }
 
 // ── Data classes ─────────────────────────────────────────────────────────────
-

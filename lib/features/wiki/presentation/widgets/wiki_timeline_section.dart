@@ -215,7 +215,8 @@ class WikiTimelineSection extends StatelessWidget {
                       ),
                       const SizedBox(height: 6),
                       descriptionBuilder != null
-                          ? descriptionBuilder!(context, entry, descriptionFontSize)
+                          ? descriptionBuilder!(
+                              context, entry, descriptionFontSize)
                           : Text(
                               entry.description,
                               style: TextStyle(

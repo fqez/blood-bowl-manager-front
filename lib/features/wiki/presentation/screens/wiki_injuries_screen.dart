@@ -18,49 +18,49 @@ Map<String, String> _glossary(String lang) {
   final es = lang == 'es';
 
   return <String, String>{
-  'Armour Value': es
-    ? 'Valor de Armadura del jugador. Debes superar este valor con 2D6 para romper la armadura.'
-    : 'The player\'s Armour Value. You must beat it on 2D6 to break armour.',
-  'AV': es ? 'Valor de Armadura del jugador.' : 'The player\'s Armour Value.',
-  'Stunned': es
-    ? 'Aturdido: el jugador queda boca abajo y pierde su siguiente activacion.'
-    : 'Stunned: the player is face down and loses their next activation.',
-  'KO': es
-    ? 'Inconsciente: el jugador va al banquillo de KO y puede volver mas tarde.'
-    : 'Knocked-out: the player goes to the KO box and may return later.',
-  'Casualty': es
-    ? 'Lesion grave: el jugador sale del campo y se tira en la tabla correspondiente.'
-    : 'Serious injury result: the player leaves the pitch and a Casualty roll is made.',
-  'Badly Hurt': es
-    ? 'Magullado: sin efecto permanente, pero fuera el resto del partido.'
-    : 'Badly Hurt: no lasting effect, but the player misses the rest of the game.',
-  'Serious Injury': es
-    ? 'Herida grave: el jugador sufre una secuela y pierde el siguiente partido.'
-    : 'Serious Injury: the player suffers a lasting effect and misses the next game.',
-  'Dead': es
-    ? 'Muerto: el jugador es eliminado permanentemente del roster.'
-    : 'Dead: the player is removed from the roster permanently.',
-  'Niggling Injury': es
-    ? 'Lesion persistente: suma +1 a futuras tiradas de Casualty.'
-    : 'Niggling Injury: adds +1 to future Casualty rolls.',
-  'Apothecary': es
-    ? 'Apotecario: puede usarse una vez por partido para mejorar un KO o Casualty.'
-    : 'Apothecary: may be used once per game to improve a KO or Casualty result.',
-  'Regeneration': es
-    ? 'Regeneracion: permite ignorar una Casualty con una tirada de 4+.'
-    : 'Regeneration: may ignore a Casualty on a 4+ roll.',
-  'Mighty Blow': es
-    ? 'Golpe Poderoso: anade +1 a Armadura o Lesion, pero no a ambas.'
-    : 'Mighty Blow: adds +1 to Armour or Injury, but not both.',
-  'Claw': es
-    ? 'Garra: al tirar Armadura tras un bloqueo, trata la AV rival como 8+.'
-    : 'Claw: when making an Armour roll after a block, treat the opponent as AV 8+.',
-  'Foul': es
-    ? 'Falta: patear a un jugador caido, con riesgo de expulsion.'
-    : 'Foul: kicking a prone player with a risk of being sent off.',
-  'Piling On': es
-    ? 'Ensanamiento: permite repetir Armadura o Lesion al bloquear.'
-    : 'Piling On: allows an Armour or Injury reroll after a block.',
+    'Armour Value': es
+        ? 'Valor de Armadura del jugador. Debes superar este valor con 2D6 para romper la armadura.'
+        : 'The player\'s Armour Value. You must beat it on 2D6 to break armour.',
+    'AV': es ? 'Valor de Armadura del jugador.' : 'The player\'s Armour Value.',
+    'Stunned': es
+        ? 'Aturdido: el jugador queda boca abajo y pierde su siguiente activacion.'
+        : 'Stunned: the player is face down and loses their next activation.',
+    'KO': es
+        ? 'Inconsciente: el jugador va al banquillo de KO y puede volver mas tarde.'
+        : 'Knocked-out: the player goes to the KO box and may return later.',
+    'Casualty': es
+        ? 'Lesion grave: el jugador sale del campo y se tira en la tabla correspondiente.'
+        : 'Serious injury result: the player leaves the pitch and a Casualty roll is made.',
+    'Badly Hurt': es
+        ? 'Magullado: sin efecto permanente, pero fuera el resto del partido.'
+        : 'Badly Hurt: no lasting effect, but the player misses the rest of the game.',
+    'Serious Injury': es
+        ? 'Herida grave: el jugador sufre una secuela y pierde el siguiente partido.'
+        : 'Serious Injury: the player suffers a lasting effect and misses the next game.',
+    'Dead': es
+        ? 'Muerto: el jugador es eliminado permanentemente del roster.'
+        : 'Dead: the player is removed from the roster permanently.',
+    'Niggling Injury': es
+        ? 'Lesion persistente: suma +1 a futuras tiradas de Casualty.'
+        : 'Niggling Injury: adds +1 to future Casualty rolls.',
+    'Apothecary': es
+        ? 'Apotecario: puede usarse una vez por partido para mejorar un KO o Casualty.'
+        : 'Apothecary: may be used once per game to improve a KO or Casualty result.',
+    'Regeneration': es
+        ? 'Regeneracion: permite ignorar una Casualty con una tirada de 4+.'
+        : 'Regeneration: may ignore a Casualty on a 4+ roll.',
+    'Mighty Blow': es
+        ? 'Golpe Poderoso: anade +1 a Armadura o Lesion, pero no a ambas.'
+        : 'Mighty Blow: adds +1 to Armour or Injury, but not both.',
+    'Claw': es
+        ? 'Garra: al tirar Armadura tras un bloqueo, trata la AV rival como 8+.'
+        : 'Claw: when making an Armour roll after a block, treat the opponent as AV 8+.',
+    'Foul': es
+        ? 'Falta: patear a un jugador caido, con riesgo de expulsion.'
+        : 'Foul: kicking a prone player with a risk of being sent off.',
+    'Piling On': es
+        ? 'Ensanamiento: permite repetir Armadura o Lesion al bloquear.'
+        : 'Piling On: allows an Armour or Injury reroll after a block.',
   };
 }
 
@@ -108,8 +108,8 @@ class WikiInjuriesScreen extends ConsumerWidget {
         icon: PhosphorIcons.shieldChevron(PhosphorIconsStyle.fill),
         color: const Color(0xFF78909C),
         description: es
-          ? 'Cuando un jugador es derribado, el rival tira 2D6. Si supera el Armour Value, la armadura se rompe.'
-          : 'When a player is Knocked Down, the opponent rolls 2D6. If the result beats the Armour Value, the armour is broken.',
+            ? 'Cuando un jugador es derribado, el rival tira 2D6. Si supera el Armour Value, la armadura se rompe.'
+            : 'When a player is Knocked Down, the opponent rolls 2D6. If the result beats the Armour Value, the armour is broken.',
       ),
       _ProcedureStep(
         number: '2',
@@ -118,8 +118,8 @@ class WikiInjuriesScreen extends ConsumerWidget {
         icon: PhosphorIcons.firstAidKit(PhosphorIconsStyle.fill),
         color: const Color(0xFFEF5350),
         description: es
-          ? 'Si la armadura se rompe, se tira en la tabla de Lesiones para ver si el jugador queda Aturdido, KO o sufre Casualty.'
-          : 'If armour breaks, roll on the Injury table to see whether the player is Stunned, KO, or suffers a Casualty.',
+            ? 'Si la armadura se rompe, se tira en la tabla de Lesiones para ver si el jugador queda Aturdido, KO o sufre Casualty.'
+            : 'If armour breaks, roll on the Injury table to see whether the player is Stunned, KO, or suffers a Casualty.',
       ),
       _ProcedureStep(
         number: '3',
@@ -128,8 +128,8 @@ class WikiInjuriesScreen extends ConsumerWidget {
         icon: PhosphorIcons.skull(PhosphorIconsStyle.fill),
         color: const Color(0xFFB71C1C),
         description: es
-          ? 'Si sale Casualty, tira 1D16 para saber si el jugador queda Magullado, pierde el siguiente partido, sufre secuelas o muere.'
-          : 'If the result is a Casualty, roll 1D16 to find out whether the player is Badly Hurt, misses the next game, suffers lasting damage, or dies.',
+            ? 'Si sale Casualty, tira 1D16 para saber si el jugador queda Magullado, pierde el siguiente partido, sufre secuelas o muere.'
+            : 'If the result is a Casualty, roll 1D16 to find out whether the player is Badly Hurt, misses the next game, suffers lasting damage, or dies.',
       ),
     ];
 
@@ -295,13 +295,14 @@ class WikiInjuriesScreen extends ConsumerWidget {
         return WikiDiceBoard(
           headerIcon: PhosphorIcons.hash(PhosphorIconsStyle.fill),
           title: tr(lang, 'wikiInjuries.injuryTable'),
-            subtitle: lang == 'es'
+          subtitle: lang == 'es'
               ? 'Se tiran 2D6 cuando la armadura del jugador se rompe.'
               : 'Roll 2D6 when a player\'s armour has been broken.',
           diceAssetPath: 'assets/images/dice/2D6.png',
           entries: injuries,
           descriptionBuilder: (context, entry, fontSize) =>
-              _buildRichDescription(entry.description, lang: lang, fontSize: fontSize),
+              _buildRichDescription(entry.description,
+                  lang: lang, fontSize: fontSize),
         );
       },
     );
@@ -315,16 +316,17 @@ class WikiInjuriesScreen extends ConsumerWidget {
 
         return WikiDiceBoard(
           headerIcon: PhosphorIcons.personSimpleRun(PhosphorIconsStyle.fill),
-            title: lang == 'es'
+          title: lang == 'es'
               ? 'TABLA DE HERIDAS PARA ESCURRIDIZOS'
               : 'STUNTY INJURY TABLE',
-            subtitle: lang == 'es'
+          subtitle: lang == 'es'
               ? 'Se usa en lugar de la tabla normal para jugadores con Escurridizo.'
               : 'Used instead of the standard injury table for players with Stunty.',
           diceAssetPath: 'assets/images/dice/2D6.png',
           entries: injuries,
           descriptionBuilder: (context, entry, fontSize) =>
-              _buildRichDescription(entry.description, lang: lang, fontSize: fontSize),
+              _buildRichDescription(entry.description,
+                  lang: lang, fontSize: fontSize),
         );
       },
     );
@@ -536,13 +538,14 @@ class WikiInjuriesScreen extends ConsumerWidget {
         return WikiDiceBoard(
           headerIcon: PhosphorIcons.skull(PhosphorIconsStyle.fill),
           title: tr(lang, 'wikiInjuries.casualtyTable'),
-            subtitle: lang == 'es'
+          subtitle: lang == 'es'
               ? 'Se tira 1D16 cuando un jugador sufre una Casualty.'
               : 'Roll 1D16 when a player suffers a Casualty.',
           diceAssetPath: 'assets/images/dice/1D16.png',
           entries: casualties,
           descriptionBuilder: (context, entry, fontSize) =>
-              _buildRichDescription(entry.description, lang: lang, fontSize: fontSize),
+              _buildRichDescription(entry.description,
+                  lang: lang, fontSize: fontSize),
         );
       },
     );
@@ -712,7 +715,7 @@ class WikiInjuriesScreen extends ConsumerWidget {
           children: [
             WikiDiceBoard(
               headerIcon: PhosphorIcons.chartLineDown(PhosphorIconsStyle.fill),
-                title: lang == 'es'
+              title: lang == 'es'
                   ? 'REDUCCION DE ATRIBUTO'
                   : 'CHARACTERISTIC REDUCTION',
               subtitle: data.intro,
@@ -925,8 +928,8 @@ class WikiInjuriesScreen extends ConsumerWidget {
         icon: PhosphorIcons.handFist(PhosphorIconsStyle.fill),
         color: const Color(0xFFEF5350),
         description: es
-          ? 'Anade +1 a Armadura o Lesion. El entrenador elige cual, pero no ambas.'
-          : 'Adds +1 to either the Armour roll or the Injury roll. The coach chooses which one, not both.',
+            ? 'Anade +1 a Armadura o Lesion. El entrenador elige cual, pero no ambas.'
+            : 'Adds +1 to either the Armour roll or the Injury roll. The coach chooses which one, not both.',
       ),
       _ModifierEntry(
         name: es ? 'CLAW' : 'GARRA',
@@ -934,8 +937,8 @@ class WikiInjuriesScreen extends ConsumerWidget {
         icon: PhosphorIcons.pawPrint(PhosphorIconsStyle.fill),
         color: const Color(0xFFAB47BC),
         description: es
-          ? 'Al tirar Armadura tras un bloqueo, trata el Armour Value rival como 8+.'
-          : 'When making an Armour roll after a block, treat the opponent\'s Armour Value as 8+.',
+            ? 'Al tirar Armadura tras un bloqueo, trata el Armour Value rival como 8+.'
+            : 'When making an Armour roll after a block, treat the opponent\'s Armour Value as 8+.',
       ),
       _ModifierEntry(
         name: es ? 'DIRTY PLAYER (+1)' : 'JUEGO SUCIO',
@@ -943,8 +946,8 @@ class WikiInjuriesScreen extends ConsumerWidget {
         icon: PhosphorIcons.sneakerMove(PhosphorIconsStyle.fill),
         color: const Color(0xFF8D6E63),
         description: es
-          ? 'Anade +1 a Armadura o Lesion al hacer un Foul. Solo funciona en faltas.'
-          : 'Adds +1 to Armour or Injury during a Foul. It only works on Fouls.',
+            ? 'Anade +1 a Armadura o Lesion al hacer un Foul. Solo funciona en faltas.'
+            : 'Adds +1 to Armour or Injury during a Foul. It only works on Fouls.',
       ),
       _ModifierEntry(
         name: es ? 'STUNTY' : 'PEQUENAJO',
@@ -952,8 +955,8 @@ class WikiInjuriesScreen extends ConsumerWidget {
         icon: PhosphorIcons.personSimple(PhosphorIconsStyle.fill),
         color: const Color(0xFF42A5F5),
         description: es
-          ? 'Los jugadores con Stunty usan su tabla especial y suelen sufrir peores resultados con mas facilidad.'
-          : 'Players with Stunty use their own injury table and usually suffer worse results more easily.',
+            ? 'Los jugadores con Stunty usan su tabla especial y suelen sufrir peores resultados con mas facilidad.'
+            : 'Players with Stunty use their own injury table and usually suffer worse results more easily.',
       ),
       _ModifierEntry(
         name: es ? 'THICK SKULL' : 'CRANEO DURO',
@@ -961,8 +964,8 @@ class WikiInjuriesScreen extends ConsumerWidget {
         icon: PhosphorIcons.shieldStar(PhosphorIconsStyle.fill),
         color: const Color(0xFF78909C),
         description: es
-          ? 'Hace menos probable que el jugador salga KO, reduciendo parte del impacto de la tirada.'
-          : 'Makes the player less likely to be knocked out, softening part of the injury roll.',
+            ? 'Hace menos probable que el jugador salga KO, reduciendo parte del impacto de la tirada.'
+            : 'Makes the player less likely to be knocked out, softening part of the injury roll.',
       ),
       _ModifierEntry(
         name: es ? 'APOTHECARY' : 'APOTECARIO',
@@ -970,8 +973,8 @@ class WikiInjuriesScreen extends ConsumerWidget {
         icon: PhosphorIcons.firstAid(PhosphorIconsStyle.fill),
         color: const Color(0xFF66BB6A),
         description: es
-          ? 'Se usa una vez por partido para intentar mejorar una Casualty o recuperar un KO.'
-          : 'Used once per game to try to improve a Casualty result or recover a KO player.',
+            ? 'Se usa una vez por partido para intentar mejorar una Casualty o recuperar un KO.'
+            : 'Used once per game to try to improve a Casualty result or recover a KO player.',
       ),
     ];
 
@@ -1115,7 +1118,7 @@ Widget _buildRichDescription(
     }
     final matched = match.group(0)!;
     final tooltip = glossary[matched] ??
-      glossary.entries
+        glossary.entries
             .firstWhere((e) => e.key.toLowerCase() == matched.toLowerCase())
             .value;
     spans.add(WidgetSpan(

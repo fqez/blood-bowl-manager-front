@@ -14,57 +14,57 @@ Map<String, String> _glossary(String lang) {
   final es = lang == 'es';
 
   return <String, String>{
-  'AG': es
-    ? 'Agilidad del jugador. Marca la dificultad base de esquivas, recepciones e intercepciones.'
-    : 'The player\'s Agility. It sets the base difficulty for catches and interceptions.',
-  'PA': es
-    ? 'Capacidad de Pase del jugador. Marca lo facil o dificil que es lanzar pases.'
-    : 'The player\'s Passing Ability. It determines how easy or hard it is to throw a pass.',
-  'Tackle Zone': es
-    ? 'Zona de control alrededor de un jugador en pie. Cada casilla adyacente forma su zona de defensa.'
-    : 'Area of control around a standing player. Each adjacent square is part of that player\'s Tackle Zone.',
-  'Re-roll': es
-    ? 'Permite repetir una tirada fallida. Cada equipo tiene un numero limitado por drive.'
-    : 'Allows a failed roll to be repeated. Each team has a limited number per drive.',
-  'Fumble': es
-    ? 'Fallo catastrofico del pase. El balon cae junto al lanzador.'
-    : 'A catastrophic passing failure. The ball is dropped near the thrower.',
-  'Accurate Pass': es
-    ? 'Pase preciso: el balon llega exactamente a la casilla objetivo.'
-    : 'An accurate pass: the ball lands exactly in the target square.',
-  'Inaccurate Pass': es
-    ? 'Pase impreciso: el balon se desvia antes de poder ser atrapado.'
-    : 'An inaccurate pass: the ball deviates before anyone can catch it.',
-  'Interception': es
-    ? 'Un jugador rival en la trayectoria puede intentar cortar el pase.'
-    : 'An opposing player in the flight path may try to cut off the pass.',
-  'Completion': es
-    ? 'Pase completado: un companero atrapa el balon y el lanzador gana 1 SPP.'
-    : 'Completed pass: a team-mate catches the ball and the thrower gains 1 SPP.',
-  'Hand-off': es
-    ? 'Entrega en mano a un companero adyacente sin tirada de pase.'
-    : 'A hand-off to an adjacent team-mate without a passing roll.',
-  'Catch': es
-    ? 'Habilidad: permite repetir una tirada fallida para atrapar el balon.'
-    : 'Skill: allows a failed catch roll to be rerolled.',
-  'Pass': es
-    ? 'Habilidad: permite repetir una tirada fallida de pase.'
-    : 'Skill: allows a failed passing roll to be rerolled.',
-  'Nerves of Steel': es
-    ? 'Habilidad: ignora modificadores por zonas enemigas al pasar o atrapar.'
-    : 'Skill: ignores enemy marking modifiers when passing or catching.',
-  'Safe Pass': es
-    ? 'Habilidad: ayuda a evitar perder el balon tras un pase fallido.'
-    : 'Skill: helps prevent the thrower from losing the ball after a failed pass.',
-  'Diving Catch': es
-    ? 'Habilidad: mejora la recepcion de pases precisos y amplia el alcance para atraparlos.'
-    : 'Skill: improves catching accurate passes and extends catching reach.',
-  'Dump-Off': es
-    ? 'Habilidad: permite un pase rapido cuando un rival declara un bloqueo.'
-    : 'Skill: allows a Quick Pass when an opponent declares a block.',
-  'SPP': es
-    ? 'Puntos de experiencia que los jugadores ganan por acciones destacadas.'
-    : 'Experience points players earn for standout actions.',
+    'AG': es
+        ? 'Agilidad del jugador. Marca la dificultad base de esquivas, recepciones e intercepciones.'
+        : 'The player\'s Agility. It sets the base difficulty for catches and interceptions.',
+    'PA': es
+        ? 'Capacidad de Pase del jugador. Marca lo facil o dificil que es lanzar pases.'
+        : 'The player\'s Passing Ability. It determines how easy or hard it is to throw a pass.',
+    'Tackle Zone': es
+        ? 'Zona de control alrededor de un jugador en pie. Cada casilla adyacente forma su zona de defensa.'
+        : 'Area of control around a standing player. Each adjacent square is part of that player\'s Tackle Zone.',
+    'Re-roll': es
+        ? 'Permite repetir una tirada fallida. Cada equipo tiene un numero limitado por drive.'
+        : 'Allows a failed roll to be repeated. Each team has a limited number per drive.',
+    'Fumble': es
+        ? 'Fallo catastrofico del pase. El balon cae junto al lanzador.'
+        : 'A catastrophic passing failure. The ball is dropped near the thrower.',
+    'Accurate Pass': es
+        ? 'Pase preciso: el balon llega exactamente a la casilla objetivo.'
+        : 'An accurate pass: the ball lands exactly in the target square.',
+    'Inaccurate Pass': es
+        ? 'Pase impreciso: el balon se desvia antes de poder ser atrapado.'
+        : 'An inaccurate pass: the ball deviates before anyone can catch it.',
+    'Interception': es
+        ? 'Un jugador rival en la trayectoria puede intentar cortar el pase.'
+        : 'An opposing player in the flight path may try to cut off the pass.',
+    'Completion': es
+        ? 'Pase completado: un companero atrapa el balon y el lanzador gana 1 SPP.'
+        : 'Completed pass: a team-mate catches the ball and the thrower gains 1 SPP.',
+    'Hand-off': es
+        ? 'Entrega en mano a un companero adyacente sin tirada de pase.'
+        : 'A hand-off to an adjacent team-mate without a passing roll.',
+    'Catch': es
+        ? 'Habilidad: permite repetir una tirada fallida para atrapar el balon.'
+        : 'Skill: allows a failed catch roll to be rerolled.',
+    'Pass': es
+        ? 'Habilidad: permite repetir una tirada fallida de pase.'
+        : 'Skill: allows a failed passing roll to be rerolled.',
+    'Nerves of Steel': es
+        ? 'Habilidad: ignora modificadores por zonas enemigas al pasar o atrapar.'
+        : 'Skill: ignores enemy marking modifiers when passing or catching.',
+    'Safe Pass': es
+        ? 'Habilidad: ayuda a evitar perder el balon tras un pase fallido.'
+        : 'Skill: helps prevent the thrower from losing the ball after a failed pass.',
+    'Diving Catch': es
+        ? 'Habilidad: mejora la recepcion de pases precisos y amplia el alcance para atraparlos.'
+        : 'Skill: improves catching accurate passes and extends catching reach.',
+    'Dump-Off': es
+        ? 'Habilidad: permite un pase rapido cuando un rival declara un bloqueo.'
+        : 'Skill: allows a Quick Pass when an opponent declares a block.',
+    'SPP': es
+        ? 'Puntos de experiencia que los jugadores ganan por acciones destacadas.'
+        : 'Experience points players earn for standout actions.',
   };
 }
 
@@ -296,8 +296,8 @@ class WikiPassingScreen extends ConsumerWidget {
         icon: PhosphorIcons.megaphone(PhosphorIconsStyle.fill),
         color: const Color(0xFF42A5F5),
         description: es
-          ? 'Elige al lanzador y declara una casilla objetivo. Puede moverse antes, pero no lanzar bien si esta demasiado presionado.'
-          : 'Choose the thrower and declare a target square. The player may move first, but pressure still makes the pass harder.',
+            ? 'Elige al lanzador y declara una casilla objetivo. Puede moverse antes, pero no lanzar bien si esta demasiado presionado.'
+            : 'Choose the thrower and declare a target square. The player may move first, but pressure still makes the pass harder.',
       ),
       _PassStep(
         number: '2',
@@ -305,8 +305,8 @@ class WikiPassingScreen extends ConsumerWidget {
         icon: PhosphorIcons.ruler(PhosphorIconsStyle.fill),
         color: const Color(0xFFFFA726),
         description: es
-          ? 'Cuenta la distancia entre lanzador y objetivo para saber si es Quick Pass, Short Pass, Long Pass o Long Bomb.'
-          : 'Measure the distance between thrower and target to determine the pass category.',
+            ? 'Cuenta la distancia entre lanzador y objetivo para saber si es Quick Pass, Short Pass, Long Pass o Long Bomb.'
+            : 'Measure the distance between thrower and target to determine the pass category.',
       ),
       _PassStep(
         number: '3',
@@ -314,8 +314,8 @@ class WikiPassingScreen extends ConsumerWidget {
         icon: PhosphorIcons.diceSix(PhosphorIconsStyle.fill),
         color: const Color(0xFF66BB6A),
         description: es
-          ? 'Tira 1D6 aplicando PA y modificadores. Un 1 natural siempre es Fumble.'
-          : 'Roll 1D6 and apply PA plus modifiers. A natural 1 is always a Fumble.',
+            ? 'Tira 1D6 aplicando PA y modificadores. Un 1 natural siempre es Fumble.'
+            : 'Roll 1D6 and apply PA plus modifiers. A natural 1 is always a Fumble.',
       ),
       _PassStep(
         number: '4',
@@ -323,8 +323,8 @@ class WikiPassingScreen extends ConsumerWidget {
         icon: PhosphorIcons.handGrabbing(PhosphorIconsStyle.fill),
         color: const Color(0xFFEF5350),
         description: es
-          ? 'Un rival de pie en la trayectoria del pase puede intentar interceptarlo antes de que llegue al objetivo.'
-          : 'A standing opponent in the flight path may try to intercept the ball before it reaches the target.',
+            ? 'Un rival de pie en la trayectoria del pase puede intentar interceptarlo antes de que llegue al objetivo.'
+            : 'A standing opponent in the flight path may try to intercept the ball before it reaches the target.',
       ),
       _PassStep(
         number: '5',
@@ -332,8 +332,8 @@ class WikiPassingScreen extends ConsumerWidget {
         icon: PhosphorIcons.handPalm(PhosphorIconsStyle.fill),
         color: const Color(0xFF7E57C2),
         description: es
-          ? 'El jugador objetivo intenta atrapar el balon. Si lo consigue en un pase completado, el lanzador gana 1 SPP.'
-          : 'The target player attempts to catch the ball. If the completion succeeds, the thrower gains 1 SPP.',
+            ? 'El jugador objetivo intenta atrapar el balon. Si lo consigue en un pase completado, el lanzador gana 1 SPP.'
+            : 'The target player attempts to catch the ball. If the completion succeeds, the thrower gains 1 SPP.',
       ),
     ];
 
@@ -476,12 +476,17 @@ class WikiPassingScreen extends ConsumerWidget {
     final modifiers = [
       _PassModifier(
         name: es ? 'Rango del pase' : 'Pass range',
-        effect: es ? 'Rapido +1 / Corto 0 / Largo −1 / Bomba −2' : 'Quick +1 / Short 0 / Long −1 / Bomb −2',
+        effect: es
+            ? 'Rapido +1 / Corto 0 / Largo −1 / Bomba −2'
+            : 'Quick +1 / Short 0 / Long −1 / Bomb −2',
         color: const Color(0xFF42A5F5),
       ),
       _PassModifier(
-        name: es ? 'Zonas enemigas sobre el lanzador' : 'Enemy Tackle Zones on thrower',
-        effect: es ? '−1 por cada zona enemiga' : '−1 for each enemy Tackle Zone',
+        name: es
+            ? 'Zonas enemigas sobre el lanzador'
+            : 'Enemy Tackle Zones on thrower',
+        effect:
+            es ? '−1 por cada zona enemiga' : '−1 for each enemy Tackle Zone',
         color: const Color(0xFFEF5350),
       ),
       _PassModifier(
@@ -491,7 +496,9 @@ class WikiPassingScreen extends ConsumerWidget {
       ),
       _PassModifier(
         name: es ? 'Clima: Ventisca' : 'Weather: Blizzard',
-        effect: es ? 'Solo pases rapidos y cortos' : 'Only Quick and Short Passes allowed',
+        effect: es
+            ? 'Solo pases rapidos y cortos'
+            : 'Only Quick and Short Passes allowed',
         color: const Color(0xFF90CAF9),
       ),
       _PassModifier(
@@ -612,8 +619,8 @@ class WikiPassingScreen extends ConsumerWidget {
         icon: PhosphorIcons.handPalm(PhosphorIconsStyle.fill),
         color: const Color(0xFF66BB6A),
         description: es
-          ? 'El receptor tira para atrapar con bonificador por Accurate Pass y penalizadores por marcas enemigas.'
-          : 'The receiver rolls to catch with a bonus for an Accurate Pass and penalties for enemy markers.',
+            ? 'El receptor tira para atrapar con bonificador por Accurate Pass y penalizadores por marcas enemigas.'
+            : 'The receiver rolls to catch with a bonus for an Accurate Pass and penalties for enemy markers.',
       ),
       _CatchEntry(
         name: es ? 'ATRAPAR PASE IMPRECISO' : 'CATCH INACCURATE PASS',
@@ -621,8 +628,8 @@ class WikiPassingScreen extends ConsumerWidget {
         icon: PhosphorIcons.arrowsClockwise(PhosphorIconsStyle.fill),
         color: const Color(0xFFFFA726),
         description: es
-          ? 'Si el pase es impreciso, el balon se desvia antes de que alguien pueda intentar atraparlo.'
-          : 'If the pass is inaccurate, the ball deviates before anyone may try to catch it.',
+            ? 'Si el pase es impreciso, el balon se desvia antes de que alguien pueda intentar atraparlo.'
+            : 'If the pass is inaccurate, the ball deviates before anyone may try to catch it.',
       ),
       _CatchEntry(
         name: es ? 'INTERCEPCION' : 'INTERCEPTION',
@@ -630,8 +637,8 @@ class WikiPassingScreen extends ConsumerWidget {
         icon: PhosphorIcons.handGrabbing(PhosphorIconsStyle.fill),
         color: const Color(0xFFEF5350),
         description: es
-          ? 'Un rival de pie en la trayectoria puede intentar una intercepcion con penalizador.'
-          : 'A standing opponent in the flight path may attempt an interception with a penalty.',
+            ? 'Un rival de pie en la trayectoria puede intentar una intercepcion con penalizador.'
+            : 'A standing opponent in the flight path may attempt an interception with a penalty.',
       ),
       _CatchEntry(
         name: es ? 'FUMBLE' : 'FUMBLE',
@@ -639,8 +646,8 @@ class WikiPassingScreen extends ConsumerWidget {
         icon: PhosphorIcons.warning(PhosphorIconsStyle.fill),
         color: const Color(0xFFB71C1C),
         description: es
-          ? 'Con un 1 natural, el pase falla automaticamente y el balon cae junto al lanzador.'
-          : 'On a natural 1, the pass automatically fails and the ball drops near the thrower.',
+            ? 'Con un 1 natural, el pase falla automaticamente y el balon cae junto al lanzador.'
+            : 'On a natural 1, the pass automatically fails and the ball drops near the thrower.',
       ),
     ];
 
@@ -760,8 +767,8 @@ class WikiPassingScreen extends ConsumerWidget {
         icon: PhosphorIcons.handshake(PhosphorIconsStyle.fill),
         color: const Color(0xFF26A69A),
         description: es
-          ? 'Pasa el balon a un jugador adyacente sin tirada de pase. Solo hay que atrapar.'
-          : 'Pass the ball to an adjacent player without a passing roll. Only the catch matters.',
+            ? 'Pasa el balon a un jugador adyacente sin tirada de pase. Solo hay que atrapar.'
+            : 'Pass the ball to an adjacent player without a passing roll. Only the catch matters.',
       ),
       _SpecialPlay(
         name: 'DUMP-OFF',
@@ -769,8 +776,8 @@ class WikiPassingScreen extends ConsumerWidget {
         icon: PhosphorIcons.lightning(PhosphorIconsStyle.fill),
         color: const Color(0xFFFFA726),
         description: es
-          ? 'Si un rival declara un bloqueo, el portador con Dump-Off puede intentar un Quick Pass antes de resolverlo.'
-          : 'If an opponent declares a block, a ball carrier with Dump-Off may attempt a Quick Pass before it is resolved.',
+            ? 'Si un rival declara un bloqueo, el portador con Dump-Off puede intentar un Quick Pass antes de resolverlo.'
+            : 'If an opponent declares a block, a ball carrier with Dump-Off may attempt a Quick Pass before it is resolved.',
       ),
       _SpecialPlay(
         name: 'HAIL MARY PASS',
@@ -778,8 +785,8 @@ class WikiPassingScreen extends ConsumerWidget {
         icon: PhosphorIcons.rocketLaunch(PhosphorIconsStyle.fill),
         color: const Color(0xFF7E57C2),
         description: es
-          ? 'Permite lanzar a cualquier casilla sin importar distancia. Siempre es impreciso y no puede interceptarse.'
-          : 'Lets the player throw to any square regardless of distance. It is always inaccurate and cannot be intercepted.',
+            ? 'Permite lanzar a cualquier casilla sin importar distancia. Siempre es impreciso y no puede interceptarse.'
+            : 'Lets the player throw to any square regardless of distance. It is always inaccurate and cannot be intercepted.',
       ),
     ];
 
@@ -923,7 +930,7 @@ Widget _buildRichDescription(
     }
     final matched = match.group(0)!;
     final tooltip = glossary[matched] ??
-      glossary.entries
+        glossary.entries
             .firstWhere((e) => e.key.toLowerCase() == matched.toLowerCase())
             .value;
     spans.add(WidgetSpan(

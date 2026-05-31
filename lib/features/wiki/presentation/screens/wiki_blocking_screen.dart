@@ -18,51 +18,51 @@ Map<String, String> _glossary(String lang) {
   final es = lang == 'es';
 
   return <String, String>{
-  'Blitz': es
-    ? 'Accion especial: un jugador puede moverse y realizar un placaje en la misma activacion. Solo una por turno.'
-    : 'Special action: a player can move and perform a Block in the same activation. Only one per turn.',
-  'Block': es
-    ? 'Habilidad: permite ignorar el resultado "Both Down" al placar sin caer.'
-    : 'Skill: lets a player ignore the "Both Down" result when blocking without being knocked over.',
-  'Dodge': es
-    ? 'Habilidad: permite ignorar el resultado "Defender Stumbles" al ser placado.'
-    : 'Skill: lets a player ignore the "Defender Stumbles" result when they are blocked.',
-  'Guard': es
-    ? 'Habilidad: permite dar asistencias de placaje incluso estando en la zona de defensa de un oponente.'
-    : 'Skill: lets a player provide Block assists even while marked by an opponent.',
-  'Tackle': es
-    ? 'Habilidad: anula la habilidad Dodge del rival al bloquearlo.'
-    : 'Skill: cancels the opponent\'s Dodge skill when blocking them.',
-  'Frenzy': es
-    ? 'Habilidad: obliga a hacer un segundo placaje si el primero termina en Push Back.'
-    : 'Skill: forces a second Block if the first one results in a Push Back.',
-  'Horns': es
-    ? 'Habilidad: anade +1 ST al jugador al realizar un Blitz.'
-    : 'Skill: adds +1 ST when the player performs a Blitz.',
-  'Wrestle': es
-    ? 'Habilidad: al obtener Both Down, puedes elegir que ambos jugadores caigan sin tirada de armadura.'
-    : 'Skill: on Both Down, you may choose for both players to go down without making an Armour roll.',
-  'Juggernaut': es
-    ? 'Habilidad: al hacer Blitz, Both Down cuenta como Push Back en lugar de derribar a ambos.'
-    : 'Skill: when making a Blitz, Both Down becomes Push Back instead of knocking both players down.',
-  'Stand Firm': es
-    ? 'Habilidad: el jugador puede elegir no ser empujado por un Push Back.'
-    : 'Skill: the player may choose not to be moved by a Push Back.',
-  'Strength': es
-    ? 'Fuerza (ST) del jugador. Determina cuantos dados de placaje se tiran.'
-    : 'The player\'s Strength (ST). It determines how many Block dice are rolled.',
-  'Re-roll': es
-    ? 'Permite repetir una tirada fallida. Cada equipo tiene un numero limitado por drive.'
-    : 'Allows a failed roll to be repeated. Each team has a limited number per drive.',
-  'Prone': es
-    ? 'Estado del jugador: tumbado en el suelo; debe gastar movimiento para levantarse.'
-    : 'Player state: lying on the ground and must spend movement to stand up.',
-  'Stunned': es
-    ? 'Estado del jugador: tumbado boca abajo; pierde su siguiente activacion.'
-    : 'Player state: face down and loses their next activation.',
-  'Tackle Zone': es
-    ? 'Zona de control alrededor de un jugador en pie. Cada casilla adyacente forma su zona de defensa.'
-    : 'Area of control around a standing player. Each adjacent square is part of that player\'s Tackle Zone.',
+    'Blitz': es
+        ? 'Accion especial: un jugador puede moverse y realizar un placaje en la misma activacion. Solo una por turno.'
+        : 'Special action: a player can move and perform a Block in the same activation. Only one per turn.',
+    'Block': es
+        ? 'Habilidad: permite ignorar el resultado "Both Down" al placar sin caer.'
+        : 'Skill: lets a player ignore the "Both Down" result when blocking without being knocked over.',
+    'Dodge': es
+        ? 'Habilidad: permite ignorar el resultado "Defender Stumbles" al ser placado.'
+        : 'Skill: lets a player ignore the "Defender Stumbles" result when they are blocked.',
+    'Guard': es
+        ? 'Habilidad: permite dar asistencias de placaje incluso estando en la zona de defensa de un oponente.'
+        : 'Skill: lets a player provide Block assists even while marked by an opponent.',
+    'Tackle': es
+        ? 'Habilidad: anula la habilidad Dodge del rival al bloquearlo.'
+        : 'Skill: cancels the opponent\'s Dodge skill when blocking them.',
+    'Frenzy': es
+        ? 'Habilidad: obliga a hacer un segundo placaje si el primero termina en Push Back.'
+        : 'Skill: forces a second Block if the first one results in a Push Back.',
+    'Horns': es
+        ? 'Habilidad: anade +1 ST al jugador al realizar un Blitz.'
+        : 'Skill: adds +1 ST when the player performs a Blitz.',
+    'Wrestle': es
+        ? 'Habilidad: al obtener Both Down, puedes elegir que ambos jugadores caigan sin tirada de armadura.'
+        : 'Skill: on Both Down, you may choose for both players to go down without making an Armour roll.',
+    'Juggernaut': es
+        ? 'Habilidad: al hacer Blitz, Both Down cuenta como Push Back en lugar de derribar a ambos.'
+        : 'Skill: when making a Blitz, Both Down becomes Push Back instead of knocking both players down.',
+    'Stand Firm': es
+        ? 'Habilidad: el jugador puede elegir no ser empujado por un Push Back.'
+        : 'Skill: the player may choose not to be moved by a Push Back.',
+    'Strength': es
+        ? 'Fuerza (ST) del jugador. Determina cuantos dados de placaje se tiran.'
+        : 'The player\'s Strength (ST). It determines how many Block dice are rolled.',
+    'Re-roll': es
+        ? 'Permite repetir una tirada fallida. Cada equipo tiene un numero limitado por drive.'
+        : 'Allows a failed roll to be repeated. Each team has a limited number per drive.',
+    'Prone': es
+        ? 'Estado del jugador: tumbado en el suelo; debe gastar movimiento para levantarse.'
+        : 'Player state: lying on the ground and must spend movement to stand up.',
+    'Stunned': es
+        ? 'Estado del jugador: tumbado boca abajo; pierde su siguiente activacion.'
+        : 'Player state: face down and loses their next activation.',
+    'Tackle Zone': es
+        ? 'Zona de control alrededor de un jugador en pie. Cada casilla adyacente forma su zona de defensa.'
+        : 'Area of control around a standing player. Each adjacent square is part of that player\'s Tackle Zone.',
   };
 }
 
@@ -103,10 +103,9 @@ class WikiBlockingScreen extends ConsumerWidget {
         subtitle: es ? 'ATTACKER DOWN' : 'ATACANTE DERRIBADO',
         iconAssetPath: 'assets/images/dice/skull.png',
         color: const Color(0xFFE53935),
-        description:
-            es
-                ? 'El jugador que realiza el placaje es derribado. Se hace tirada de Armadura contra el. Este es el peor resultado posible para el atacante.'
-                : 'The player making the Block is Knocked Down. Make an Armour roll against them. This is the worst possible result for the attacker.',
+        description: es
+            ? 'El jugador que realiza el placaje es derribado. Se hace tirada de Armadura contra el. Este es el peor resultado posible para el atacante.'
+            : 'The player making the Block is Knocked Down. Make an Armour roll against them. This is the worst possible result for the attacker.',
       ),
       WikiDiceBoardEntry(
         roll: '×1',
@@ -114,10 +113,9 @@ class WikiBlockingScreen extends ConsumerWidget {
         subtitle: es ? 'BOTH DOWN' : 'AMBOS CAIDOS',
         iconAssetPath: 'assets/images/dice/both_down.png',
         color: const Color(0xFFFF7043),
-        description:
-            es
-                ? 'Ambos jugadores caen al suelo. Se tira Armadura contra los dos. La habilidad Block permite ignorar este resultado sin caer. Wrestle permite que ambos caigan sin tirada de armadura.'
-                : 'Both players go down. Make an Armour roll against both. Block lets a player ignore this result without falling, and Wrestle lets both players go down without an Armour roll.',
+        description: es
+            ? 'Ambos jugadores caen al suelo. Se tira Armadura contra los dos. La habilidad Block permite ignorar este resultado sin caer. Wrestle permite que ambos caigan sin tirada de armadura.'
+            : 'Both players go down. Make an Armour roll against both. Block lets a player ignore this result without falling, and Wrestle lets both players go down without an Armour roll.',
       ),
       WikiDiceBoardEntry(
         roll: '×2',
@@ -125,10 +123,9 @@ class WikiBlockingScreen extends ConsumerWidget {
         subtitle: es ? 'PUSH BACK' : 'EMPUJON',
         iconAssetPath: 'assets/images/dice/push.png',
         color: const Color(0xFF42A5F5),
-        description:
-            es
-                ? 'El defensor es empujado una casilla hacia atras en una direccion elegida por el atacante. No es derribado. Si sale del campo, la multitud lo golpea.'
-                : 'The defender is pushed back one square in a direction chosen by the attacker. They are not knocked down. If pushed off the pitch, the crowd hits them.',
+        description: es
+            ? 'El defensor es empujado una casilla hacia atras en una direccion elegida por el atacante. No es derribado. Si sale del campo, la multitud lo golpea.'
+            : 'The defender is pushed back one square in a direction chosen by the attacker. They are not knocked down. If pushed off the pitch, the crowd hits them.',
       ),
       WikiDiceBoardEntry(
         roll: '×1',
@@ -136,10 +133,9 @@ class WikiBlockingScreen extends ConsumerWidget {
         subtitle: es ? 'DEFENDER STUMBLES' : 'DEFENSOR TROPIEZA',
         iconAssetPath: 'assets/images/dice/def_down.png',
         color: const Color(0xFFFFA726),
-        description:
-            es
-                ? 'El defensor es empujado y derribado. Si tiene la habilidad Dodge, puede convertirlo en un simple Push Back. Tackle anula Dodge.'
-                : 'The defender is pushed back and Knocked Down. If they have Dodge, they may turn this into a simple Push Back instead. Tackle cancels Dodge.',
+        description: es
+            ? 'El defensor es empujado y derribado. Si tiene la habilidad Dodge, puede convertirlo en un simple Push Back. Tackle anula Dodge.'
+            : 'The defender is pushed back and Knocked Down. If they have Dodge, they may turn this into a simple Push Back instead. Tackle cancels Dodge.',
       ),
       WikiDiceBoardEntry(
         roll: '×1',
@@ -147,17 +143,16 @@ class WikiBlockingScreen extends ConsumerWidget {
         subtitle: es ? 'POW!' : 'DERRIBADO',
         iconAssetPath: 'assets/images/dice/pow.png',
         color: const Color(0xFF66BB6A),
-        description:
-            es
-                ? 'El defensor es empujado y derribado. Este es el mejor resultado para el atacante. Dodge no puede anularlo.'
-                : 'The defender is pushed back and Knocked Down. This is the best result for the attacker. Dodge cannot cancel it.',
+        description: es
+            ? 'El defensor es empujado y derribado. Este es el mejor resultado para el atacante. Dodge no puede anularlo.'
+            : 'The defender is pushed back and Knocked Down. This is the best result for the attacker. Dodge cannot cancel it.',
       ),
     ];
 
     return WikiDiceBoard(
       headerIcon: PhosphorIcons.diceSix(PhosphorIconsStyle.fill),
       title: tr(lang, 'wikiBlocking.blockDice'),
-        subtitle: es
+      subtitle: es
           ? 'El dado de Placaje tiene 6 caras con 5 resultados distintos (Push Back aparece 2 veces).'
           : 'The Block die has 6 faces with 5 different results (Push Back appears twice).',
       diceAssetPath: 'assets/images/dice/3POW.png',
@@ -178,53 +173,48 @@ class WikiBlockingScreen extends ConsumerWidget {
     final steps = [
       _BlockStep(
         number: '1',
-      title: es ? 'DECLARAR PLACAJE' : 'DECLARE BLOCK',
+        title: es ? 'DECLARAR PLACAJE' : 'DECLARE BLOCK',
         icon: PhosphorIcons.target(PhosphorIconsStyle.fill),
         color: const Color(0xFF42A5F5),
-        description:
-        es
-          ? 'Elige a un jugador oponente adyacente como objetivo. El atacante no puede moverse antes de placar salvo que sea un Blitz.'
-          : 'Choose an adjacent opposing player as the target. The attacker cannot move before blocking unless this is part of a Blitz.',
+        description: es
+            ? 'Elige a un jugador oponente adyacente como objetivo. El atacante no puede moverse antes de placar salvo que sea un Blitz.'
+            : 'Choose an adjacent opposing player as the target. The attacker cannot move before blocking unless this is part of a Blitz.',
       ),
       _BlockStep(
         number: '2',
-      title: es ? 'CALCULAR DADOS' : 'CALCULATE DICE',
+        title: es ? 'CALCULAR DADOS' : 'CALCULATE DICE',
         icon: PhosphorIcons.scales(PhosphorIconsStyle.fill),
         color: const Color(0xFFFFA726),
-        description:
-        es
-          ? 'Compara la Strength del atacante con la del defensor, incluyendo asistencias. Eso determina cuantos dados se tiran y quien elige el resultado.'
-          : 'Compare the attacker\'s Strength to the defender\'s, including assists. That decides how many dice are rolled and who chooses the result.',
+        description: es
+            ? 'Compara la Strength del atacante con la del defensor, incluyendo asistencias. Eso determina cuantos dados se tiran y quien elige el resultado.'
+            : 'Compare the attacker\'s Strength to the defender\'s, including assists. That decides how many dice are rolled and who chooses the result.',
       ),
       _BlockStep(
         number: '3',
-      title: es ? 'TIRAR DADOS DE PLACAJE' : 'ROLL BLOCK DICE',
+        title: es ? 'TIRAR DADOS DE PLACAJE' : 'ROLL BLOCK DICE',
         icon: PhosphorIcons.diceSix(PhosphorIconsStyle.fill),
         color: const Color(0xFF66BB6A),
-        description:
-        es
-          ? 'Tira el numero de dados correspondiente. El jugador que elige decide cual de los resultados aplicar.'
-          : 'Roll the required number of Block dice. The player who has choice decides which result is applied.',
+        description: es
+            ? 'Tira el numero de dados correspondiente. El jugador que elige decide cual de los resultados aplicar.'
+            : 'Roll the required number of Block dice. The player who has choice decides which result is applied.',
       ),
       _BlockStep(
         number: '4',
-      title: es ? 'APLICAR RESULTADO' : 'APPLY RESULT',
+        title: es ? 'APLICAR RESULTADO' : 'APPLY RESULT',
         icon: PhosphorIcons.checkCircle(PhosphorIconsStyle.fill),
         color: const Color(0xFFEF5350),
-        description:
-        es
-          ? 'Resuelve el resultado elegido: Push Back, derribo o ambos. Si hay empujon, elige la direccion. Si hay derribo, tira Armadura.'
-          : 'Resolve the chosen result: Push Back, a knockdown, or both. If there is a push, choose the direction. If someone goes down, make the Armour roll.',
+        description: es
+            ? 'Resuelve el resultado elegido: Push Back, derribo o ambos. Si hay empujon, elige la direccion. Si hay derribo, tira Armadura.'
+            : 'Resolve the chosen result: Push Back, a knockdown, or both. If there is a push, choose the direction. If someone goes down, make the Armour roll.',
       ),
       _BlockStep(
         number: '5',
-      title: es ? 'SEGUIR' : 'FOLLOW UP',
+        title: es ? 'SEGUIR' : 'FOLLOW UP',
         icon: PhosphorIcons.arrowRight(PhosphorIconsStyle.fill),
         color: const Color(0xFF7E57C2),
-        description:
-        es
-          ? 'El atacante puede avanzar de forma opcional a la casilla que dejo libre el defensor empujado. Con Frenzy esto es obligatorio.'
-          : 'The attacker may optionally move into the square vacated by the pushed defender. With Frenzy, this follow-up is mandatory.',
+        description: es
+            ? 'El atacante puede avanzar de forma opcional a la casilla que dejo libre el defensor empujado. Con Frenzy esto es obligatorio.'
+            : 'The attacker may optionally move into the square vacated by the pushed defender. With Frenzy, this follow-up is mandatory.',
       ),
     ];
 
@@ -373,8 +363,8 @@ class WikiBlockingScreen extends ConsumerWidget {
           title: '${tr(lang, 'wikiBlocking.diceCount')} '
               '(${_diceCountLegend(lang)})',
           subtitle: lang == 'es'
-            ? 'La cantidad de dados depende de la comparacion de Fuerza entre atacante y defensor, incluyendo asistencias.'
-            : 'The number of dice depends on the Strength comparison between attacker and defender, including assists.',
+              ? 'La cantidad de dados depende de la comparacion de Fuerza entre atacante y defensor, incluyendo asistencias.'
+              : 'The number of dice depends on the Strength comparison between attacker and defender, including assists.',
           diceAssetPath: 'assets/images/dice/3POW.png',
           entries: entries,
           compactRowHeight: 124,
@@ -384,10 +374,10 @@ class WikiBlockingScreen extends ConsumerWidget {
           rollTextScale: 0.18,
           descriptionBuilder: (context, entry, fontSize) =>
               _buildRichDescription(
-                entry.description,
-                lang: lang,
-                fontSize: fontSize,
-              ),
+            entry.description,
+            lang: lang,
+            fontSize: fontSize,
+          ),
         );
       },
     );
@@ -461,7 +451,7 @@ class WikiBlockingScreen extends ConsumerWidget {
         iconAssetPath: 'assets/images/dice/+3POW.png',
         color: const Color(0xFF2E7D32),
         description: es
-          ? 'Se lanzan 3 dados de placaje y el atacante elige el resultado. Requisito: la Fuerza del Atacante debe ser más del doble que la del Defensor tras aplicar asistencias y modificadores.'
+            ? 'Se lanzan 3 dados de placaje y el atacante elige el resultado. Requisito: la Fuerza del Atacante debe ser más del doble que la del Defensor tras aplicar asistencias y modificadores.'
             : 'Roll 3 Block dice and the attacker chooses the result. Requirement: the Attacker Strength must be more than double the Defender Strength after assists and modifiers are applied.',
       ),
       WikiDiceBoardEntry(
@@ -471,7 +461,7 @@ class WikiBlockingScreen extends ConsumerWidget {
         iconAssetPath: 'assets/images/dice/+2POW.png',
         color: const Color(0xFF66BB6A),
         description: es
-          ? 'Se lanzan 2 dados de placaje y el atacante elige el resultado. Requisito: la Fuerza del Atacante debe ser mayor que la del Defensor, pero no más del doble, tras aplicar asistencias y modificadores.'
+            ? 'Se lanzan 2 dados de placaje y el atacante elige el resultado. Requisito: la Fuerza del Atacante debe ser mayor que la del Defensor, pero no más del doble, tras aplicar asistencias y modificadores.'
             : 'Roll 2 Block dice and the attacker chooses the result. Requirement: the Attacker Strength must be higher than the Defender Strength, but not more than double, after assists and modifiers are applied.',
       ),
       WikiDiceBoardEntry(
@@ -481,7 +471,7 @@ class WikiBlockingScreen extends ConsumerWidget {
         iconAssetPath: 'assets/images/dice/+1POW.png',
         color: const Color(0xFFFFA726),
         description: es
-          ? 'Se lanza 1 dado de placaje. Requisito: la Fuerza del Atacante y la del Defensor deben ser iguales tras aplicar asistencias y modificadores.'
+            ? 'Se lanza 1 dado de placaje. Requisito: la Fuerza del Atacante y la del Defensor deben ser iguales tras aplicar asistencias y modificadores.'
             : 'Roll 1 Block die. Requirement: the Attacker Strength and Defender Strength must be equal after assists and modifiers are applied.',
       ),
       WikiDiceBoardEntry(
@@ -491,7 +481,7 @@ class WikiBlockingScreen extends ConsumerWidget {
         iconAssetPath: 'assets/images/dice/-2POW.png',
         color: const Color(0xFFEF5350),
         description: es
-          ? 'Se lanzan 2 dados de placaje y el defensor elige el resultado. Requisito: la Fuerza del Defensor debe ser mayor que la del Atacante, pero no más del doble, tras aplicar asistencias y modificadores.'
+            ? 'Se lanzan 2 dados de placaje y el defensor elige el resultado. Requisito: la Fuerza del Defensor debe ser mayor que la del Atacante, pero no más del doble, tras aplicar asistencias y modificadores.'
             : 'Roll 2 Block dice and the defender chooses the result. Requirement: the Defender Strength must be higher than the Attacker Strength, but not more than double, after assists and modifiers are applied.',
       ),
       WikiDiceBoardEntry(
@@ -501,7 +491,7 @@ class WikiBlockingScreen extends ConsumerWidget {
         iconAssetPath: 'assets/images/dice/-3POW.png',
         color: const Color(0xFFB71C1C),
         description: es
-          ? 'Se lanzan 3 dados de placaje y el defensor elige el resultado. Requisito: la Fuerza del Defensor debe ser más del doble que la del Atacante tras aplicar asistencias y modificadores.'
+            ? 'Se lanzan 3 dados de placaje y el defensor elige el resultado. Requisito: la Fuerza del Defensor debe ser más del doble que la del Atacante tras aplicar asistencias y modificadores.'
             : 'Roll 3 Block dice and the defender chooses the result. Requirement: the Defender Strength must be more than double the Attacker Strength after assists and modifiers are applied.',
       ),
     ];
@@ -532,7 +522,6 @@ class WikiBlockingScreen extends ConsumerWidget {
 
     return Color(value);
   }
-
 }
 
 // ── Rich description with glossary ──────────────────────────────────────────
@@ -570,7 +559,7 @@ Widget _buildRichDescription(
     }
     final matched = match.group(0)!;
     final tooltip = glossary[matched] ??
-      glossary.entries
+        glossary.entries
             .firstWhere((e) => e.key.toLowerCase() == matched.toLowerCase())
             .value;
     spans.add(WidgetSpan(
@@ -605,4 +594,3 @@ class _BlockStep {
     required this.description,
   });
 }
-

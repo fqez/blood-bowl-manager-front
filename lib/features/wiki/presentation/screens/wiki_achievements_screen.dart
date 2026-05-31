@@ -14,42 +14,42 @@ Map<String, String> _glossary(String lang) {
   final es = lang == 'es';
 
   return <String, String>{
-  'SPP': es
-    ? 'Puntos de experiencia que los jugadores ganan por acciones destacadas.'
-    : 'Experience points players earn for standout actions.',
-  'Touchdown': es
-    ? 'Anotacion: llevar el balon a la zona rival. Otorga 3 SPP.'
-    : 'A score in the opponent end zone. Grants 3 SPP.',
-  'Casualty': es
-    ? 'Lesion grave causada a un rival. Otorga 2 SPP.'
-    : 'A serious injury caused to an opponent. Grants 2 SPP.',
-  'Completion': es
-    ? 'Pase completado con exito. Otorga 1 SPP al lanzador.'
-    : 'A successfully completed pass. Grants 1 SPP to the thrower.',
-  'Interception': es
-    ? 'Interceptar un pase rival. Otorga 2 SPP.'
-    : 'Intercepting an opposing pass. Grants 2 SPP.',
-  'MVP': es
-    ? 'Jugador mas valioso. Un jugador aleatorio del equipo recibe 4 SPP al final del partido.'
-    : 'Most Valuable Player. A random player on the team gains 4 SPP after the match.',
-  'Primary': es
-    ? 'Categoria primaria: mas facil y barata de mejorar.'
-    : 'Primary category: easier and cheaper to improve.',
-  'Secondary': es
-    ? 'Categoria secundaria: mas costosa de mejorar.'
-    : 'Secondary category: more expensive to improve.',
-  'Random': es
-    ? 'Mejora aleatoria: se decide tirando en una tabla.'
-    : 'Random improvement: determined by rolling on a table.',
-  'Chosen': es
-    ? 'Mejora elegida libremente por el entrenador.'
-    : 'Improvement freely chosen by the coach.',
-  'TV': es
-    ? 'Valor de Equipo: suma de jugadores, habilidades y extras.'
-    : 'Team Value: the sum of players, skills, and extra costs.',
-  'Niggling Injury': es
-    ? 'Lesion persistente que empeora futuras Casualties.'
-    : 'A lingering injury that worsens future Casualty results.',
+    'SPP': es
+        ? 'Puntos de experiencia que los jugadores ganan por acciones destacadas.'
+        : 'Experience points players earn for standout actions.',
+    'Touchdown': es
+        ? 'Anotacion: llevar el balon a la zona rival. Otorga 3 SPP.'
+        : 'A score in the opponent end zone. Grants 3 SPP.',
+    'Casualty': es
+        ? 'Lesion grave causada a un rival. Otorga 2 SPP.'
+        : 'A serious injury caused to an opponent. Grants 2 SPP.',
+    'Completion': es
+        ? 'Pase completado con exito. Otorga 1 SPP al lanzador.'
+        : 'A successfully completed pass. Grants 1 SPP to the thrower.',
+    'Interception': es
+        ? 'Interceptar un pase rival. Otorga 2 SPP.'
+        : 'Intercepting an opposing pass. Grants 2 SPP.',
+    'MVP': es
+        ? 'Jugador mas valioso. Un jugador aleatorio del equipo recibe 4 SPP al final del partido.'
+        : 'Most Valuable Player. A random player on the team gains 4 SPP after the match.',
+    'Primary': es
+        ? 'Categoria primaria: mas facil y barata de mejorar.'
+        : 'Primary category: easier and cheaper to improve.',
+    'Secondary': es
+        ? 'Categoria secundaria: mas costosa de mejorar.'
+        : 'Secondary category: more expensive to improve.',
+    'Random': es
+        ? 'Mejora aleatoria: se decide tirando en una tabla.'
+        : 'Random improvement: determined by rolling on a table.',
+    'Chosen': es
+        ? 'Mejora elegida libremente por el entrenador.'
+        : 'Improvement freely chosen by the coach.',
+    'TV': es
+        ? 'Valor de Equipo: suma de jugadores, habilidades y extras.'
+        : 'Team Value: the sum of players, skills, and extra costs.',
+    'Niggling Injury': es
+        ? 'Lesion persistente que empeora futuras Casualties.'
+        : 'A lingering injury that worsens future Casualty results.',
   };
 }
 
@@ -93,8 +93,8 @@ class WikiAchievementsScreen extends ConsumerWidget {
         icon: PhosphorIcons.flag(PhosphorIconsStyle.fill),
         color: const Color(0xFF66BB6A),
         description: es
-          ? 'El jugador que lleva el balon a la zona rival recibe 3 SPP. Es la forma principal de ganar experiencia.'
-          : 'The player who carries the ball into the opponent end zone gains 3 SPP. This is the main way to gain experience.',
+            ? 'El jugador que lleva el balon a la zona rival recibe 3 SPP. Es la forma principal de ganar experiencia.'
+            : 'The player who carries the ball into the opponent end zone gains 3 SPP. This is the main way to gain experience.',
       ),
       _SppAction(
         name: 'CASUALTY',
@@ -103,8 +103,8 @@ class WikiAchievementsScreen extends ConsumerWidget {
         icon: PhosphorIcons.skull(PhosphorIconsStyle.fill),
         color: const Color(0xFFEF5350),
         description: es
-          ? 'El jugador que causa una Casualty a un rival recibe 2 SPP.'
-          : 'The player who causes a Casualty to an opponent gains 2 SPP.',
+            ? 'El jugador que causa una Casualty a un rival recibe 2 SPP.'
+            : 'The player who causes a Casualty to an opponent gains 2 SPP.',
       ),
       _SppAction(
         name: 'INTERCEPTION',
@@ -113,8 +113,8 @@ class WikiAchievementsScreen extends ConsumerWidget {
         icon: PhosphorIcons.handGrabbing(PhosphorIconsStyle.fill),
         color: const Color(0xFF42A5F5),
         description: es
-          ? 'El jugador que intercepta un pase rival con exito recibe 2 SPP.'
-          : 'A player who successfully intercepts an opposing pass gains 2 SPP.',
+            ? 'El jugador que intercepta un pase rival con exito recibe 2 SPP.'
+            : 'A player who successfully intercepts an opposing pass gains 2 SPP.',
       ),
       _SppAction(
         name: 'COMPLETION',
@@ -123,8 +123,8 @@ class WikiAchievementsScreen extends ConsumerWidget {
         icon: PhosphorIcons.football(PhosphorIconsStyle.fill),
         color: const Color(0xFFFFA726),
         description: es
-          ? 'El lanzador recibe 1 SPP cuando un companero atrapa con exito su pase.'
-          : 'The thrower gains 1 SPP when a team-mate successfully catches the pass.',
+            ? 'El lanzador recibe 1 SPP cuando un companero atrapa con exito su pase.'
+            : 'The thrower gains 1 SPP when a team-mate successfully catches the pass.',
       ),
       _SppAction(
         name: 'DEFLECTION',
@@ -133,8 +133,8 @@ class WikiAchievementsScreen extends ConsumerWidget {
         icon: PhosphorIcons.arrowBendUpLeft(PhosphorIconsStyle.fill),
         color: const Color(0xFF78909C),
         description: es
-          ? 'El jugador que desvia un pase rival recibe 1 SPP.'
-          : 'A player who deflects an opposing pass gains 1 SPP.',
+            ? 'El jugador que desvia un pase rival recibe 1 SPP.'
+            : 'A player who deflects an opposing pass gains 1 SPP.',
       ),
       _SppAction(
         name: 'MVP',
@@ -143,8 +143,8 @@ class WikiAchievementsScreen extends ConsumerWidget {
         icon: PhosphorIcons.star(PhosphorIconsStyle.fill),
         color: const Color(0xFFD4AF37),
         description: es
-          ? 'Al final del partido, un jugador aleatorio de cada equipo recibe 4 SPP como MVP.'
-          : 'At the end of the match, one random player on each team gains 4 SPP as MVP.',
+            ? 'Al final del partido, un jugador aleatorio de cada equipo recibe 4 SPP como MVP.'
+            : 'At the end of the match, one random player on each team gains 4 SPP as MVP.',
       ),
     ];
 
@@ -325,8 +325,8 @@ class WikiAchievementsScreen extends ConsumerWidget {
         titleEn: es ? 'Veteran' : 'VETERANO',
         color: const Color(0xFF42A5F5),
         description: es
-          ? 'Segunda mejora. Se desbloquea la habilidad secundaria aleatoria.'
-          : 'Second improvement. Random Secondary skills are now unlocked.',
+            ? 'Segunda mejora. Se desbloquea la habilidad secundaria aleatoria.'
+            : 'Second improvement. Random Secondary skills are now unlocked.',
       ),
       _AdvancementLevel(
         spp: '31',
@@ -334,8 +334,8 @@ class WikiAchievementsScreen extends ConsumerWidget {
         titleEn: es ? 'Emerging Star' : 'ESTRELLA EMERGENTE',
         color: const Color(0xFFFFA726),
         description: es
-          ? 'Tercera mejora. Se desbloquea la habilidad secundaria elegida.'
-          : 'Third improvement. Chosen Secondary skills are now unlocked.',
+            ? 'Tercera mejora. Se desbloquea la habilidad secundaria elegida.'
+            : 'Third improvement. Chosen Secondary skills are now unlocked.',
       ),
       _AdvancementLevel(
         spp: '51',
@@ -343,8 +343,8 @@ class WikiAchievementsScreen extends ConsumerWidget {
         titleEn: es ? 'Star' : 'ESTRELLA',
         color: const Color(0xFFD4AF37),
         description: es
-          ? 'Cuarta mejora. Se desbloquean las mejoras de caracteristica.'
-          : 'Fourth improvement. Characteristic increases become available.',
+            ? 'Cuarta mejora. Se desbloquean las mejoras de caracteristica.'
+            : 'Fourth improvement. Characteristic increases become available.',
       ),
       _AdvancementLevel(
         spp: '76',
@@ -352,8 +352,8 @@ class WikiAchievementsScreen extends ConsumerWidget {
         titleEn: es ? 'Super Star' : 'SUPER ESTRELLA',
         color: const Color(0xFFEF5350),
         description: es
-          ? 'Quinta mejora. Acceso a todas las opciones disponibles.'
-          : 'Fifth improvement. Full access to all available options.',
+            ? 'Quinta mejora. Acceso a todas las opciones disponibles.'
+            : 'Fifth improvement. Full access to all available options.',
       ),
       _AdvancementLevel(
         spp: '176',
@@ -361,8 +361,8 @@ class WikiAchievementsScreen extends ConsumerWidget {
         titleEn: es ? 'Legend' : 'LEYENDA',
         color: const Color(0xFF7E57C2),
         description: es
-          ? 'Sexta y ultima mejora. El jugador ha alcanzado el maximo nivel de experiencia.'
-          : 'Sixth and final improvement. The player has reached the highest experience tier.',
+            ? 'Sexta y ultima mejora. El jugador ha alcanzado el maximo nivel de experiencia.'
+            : 'Sixth and final improvement. The player has reached the highest experience tier.',
       ),
     ];
 
@@ -481,7 +481,8 @@ class WikiAchievementsScreen extends ConsumerWidget {
                 ],
               ),
               const SizedBox(height: 3),
-              _buildRichDescription(level.description, lang: lang, fontSize: 11),
+              _buildRichDescription(level.description,
+                  lang: lang, fontSize: 11),
             ],
           );
 
@@ -517,8 +518,8 @@ class WikiAchievementsScreen extends ConsumerWidget {
         color: const Color(0xFF66BB6A),
         cost: '+10K TV',
         description: es
-          ? 'Tira 1D6 en la tabla Primary. Es la opcion mas barata, pero no controlas el resultado.'
-          : 'Roll 1D6 on the Primary table. It is the cheapest option, but you do not control the result.',
+            ? 'Tira 1D6 en la tabla Primary. Es la opcion mas barata, pero no controlas el resultado.'
+            : 'Roll 1D6 on the Primary table. It is the cheapest option, but you do not control the result.',
       ),
       _ImprovementOption(
         name: es ? 'HABILIDAD ELEGIDA PRIMARIA' : 'CHOSEN PRIMARY SKILL',
@@ -527,18 +528,19 @@ class WikiAchievementsScreen extends ConsumerWidget {
         color: const Color(0xFF42A5F5),
         cost: '+20K TV',
         description: es
-          ? 'Elige cualquier habilidad Primary del jugador. Da control total sobre la mejora.'
-          : 'Choose any of the player\'s Primary skills. This gives full control over the upgrade.',
+            ? 'Elige cualquier habilidad Primary del jugador. Da control total sobre la mejora.'
+            : 'Choose any of the player\'s Primary skills. This gives full control over the upgrade.',
       ),
       _ImprovementOption(
         name: es ? 'HABILIDAD ALEATORIA SECUNDARIA' : 'RANDOM SECONDARY SKILL',
-        nameEn: es ? 'Random Secondary Skill' : 'HABILIDAD ALEATORIA SECUNDARIA',
+        nameEn:
+            es ? 'Random Secondary Skill' : 'HABILIDAD ALEATORIA SECUNDARIA',
         icon: PhosphorIcons.diceSix(PhosphorIconsStyle.fill),
         color: const Color(0xFFFFA726),
         cost: '+20K TV',
         description: es
-          ? 'Tira 1D6 en la tabla Secondary. Disponible desde nivel Veterano.'
-          : 'Roll 1D6 on the Secondary table. Available from Veteran level onward.',
+            ? 'Tira 1D6 en la tabla Secondary. Disponible desde nivel Veterano.'
+            : 'Roll 1D6 on the Secondary table. Available from Veteran level onward.',
       ),
       _ImprovementOption(
         name: es ? 'HABILIDAD ELEGIDA SECUNDARIA' : 'CHOSEN SECONDARY SKILL',
@@ -547,8 +549,8 @@ class WikiAchievementsScreen extends ConsumerWidget {
         color: const Color(0xFFEF5350),
         cost: '+40K TV',
         description: es
-          ? 'Elige cualquier habilidad Secondary. Es mas cara, pero abre acceso fuera de categoria.'
-          : 'Choose any Secondary skill. It costs more, but opens access beyond the usual category.',
+            ? 'Elige cualquier habilidad Secondary. Es mas cara, pero abre acceso fuera de categoria.'
+            : 'Choose any Secondary skill. It costs more, but opens access beyond the usual category.',
       ),
       _ImprovementOption(
         name: es ? 'CARACTERISTICA ALEATORIA' : 'RANDOM CHARACTERISTIC',
@@ -557,8 +559,8 @@ class WikiAchievementsScreen extends ConsumerWidget {
         color: const Color(0xFF7E57C2),
         cost: '+10K TV',
         description: es
-          ? 'Tira 1D6 para obtener una mejora de caracteristica aleatoria. Disponible desde nivel Estrella.'
-          : 'Roll 1D6 to get a random Characteristic increase. Available from Star level onward.',
+            ? 'Tira 1D6 para obtener una mejora de caracteristica aleatoria. Disponible desde nivel Estrella.'
+            : 'Roll 1D6 to get a random Characteristic increase. Available from Star level onward.',
       ),
       _ImprovementOption(
         name: es ? 'CARACTERISTICA ELEGIDA' : 'CHOSEN CHARACTERISTIC',
@@ -567,8 +569,8 @@ class WikiAchievementsScreen extends ConsumerWidget {
         color: const Color(0xFFD4AF37),
         cost: 'Variable',
         description: es
-          ? 'Elige directamente una caracteristica para mejorar. Disponible desde nivel Estrella.'
-          : 'Choose directly which Characteristic to improve. Available from Star level onward.',
+            ? 'Elige directamente una caracteristica para mejorar. Disponible desde nivel Estrella.'
+            : 'Choose directly which Characteristic to improve. Available from Star level onward.',
       ),
     ];
 
@@ -709,8 +711,8 @@ class WikiAchievementsScreen extends ConsumerWidget {
         icon: PhosphorIcons.prohibit(PhosphorIconsStyle.fill),
         color: const Color(0xFFEF5350),
         description: es
-          ? 'Cada jugador puede tener un maximo de 6 mejoras.'
-          : 'Each player may have a maximum of 6 improvements.',
+            ? 'Cada jugador puede tener un maximo de 6 mejoras.'
+            : 'Each player may have a maximum of 6 improvements.',
       ),
       _SpecialRule(
         name: es ? 'LIMITE DE CARACTERISTICA' : 'CHARACTERISTIC LIMIT',
@@ -718,8 +720,8 @@ class WikiAchievementsScreen extends ConsumerWidget {
         icon: PhosphorIcons.arrowsVertical(PhosphorIconsStyle.fill),
         color: const Color(0xFFFFA726),
         description: es
-          ? 'Cada caracteristica solo puede mejorar hasta cierto limite sobre su valor base.'
-          : 'Each Characteristic can only improve by a limited amount above its base value.',
+            ? 'Cada caracteristica solo puede mejorar hasta cierto limite sobre su valor base.'
+            : 'Each Characteristic can only improve by a limited amount above its base value.',
       ),
       _SpecialRule(
         name: es ? 'INCREMENTO DE TV' : 'TV INCREASE',
@@ -727,8 +729,8 @@ class WikiAchievementsScreen extends ConsumerWidget {
         icon: PhosphorIcons.coins(PhosphorIconsStyle.fill),
         color: const Color(0xFFD4AF37),
         description: es
-          ? 'Cada mejora incrementa el TV del jugador y del equipo.'
-          : 'Each improvement increases both the player\'s and team\'s TV.',
+            ? 'Cada mejora incrementa el TV del jugador y del equipo.'
+            : 'Each improvement increases both the player\'s and team\'s TV.',
       ),
       _SpecialRule(
         name: es ? 'MVP ALEATORIO' : 'RANDOM MVP',
@@ -736,8 +738,8 @@ class WikiAchievementsScreen extends ConsumerWidget {
         icon: PhosphorIcons.shuffle(PhosphorIconsStyle.fill),
         color: const Color(0xFF42A5F5),
         description: es
-          ? 'El MVP se otorga a un jugador aleatorio al final del partido.'
-          : 'MVP is awarded to a random player at the end of the match.',
+            ? 'El MVP se otorga a un jugador aleatorio al final del partido.'
+            : 'MVP is awarded to a random player at the end of the match.',
       ),
     ];
 
@@ -897,7 +899,7 @@ Widget _buildRichDescription(
     }
     final matched = match.group(0)!;
     final tooltip = glossary[matched] ??
-      glossary.entries
+        glossary.entries
             .firstWhere((e) => e.key.toLowerCase() == matched.toLowerCase())
             .value;
     spans.add(WidgetSpan(
