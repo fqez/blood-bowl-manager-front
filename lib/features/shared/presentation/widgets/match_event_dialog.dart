@@ -34,6 +34,7 @@ class MatchEventDraft {
   final int? lastingInjuryRoll;
   final bool sentOff;
   final bool accidentalCasualty;
+  final bool regenerated;
   final String? detail;
   final int half;
   final int turn;
@@ -51,6 +52,7 @@ class MatchEventDraft {
     this.lastingInjuryRoll,
     this.sentOff = false,
     this.accidentalCasualty = false,
+    this.regenerated = false,
     this.detail,
     required this.half,
     required this.turn,
@@ -83,6 +85,7 @@ Future<void> showMatchEventDialog({
   bool landedStanding = false;
   bool foulSentOff = false;
   bool accidentalCasualty = false;
+  bool regenerated = false;
   bool submitting = false;
 
   final isThrowTeammate = eventType == 'throw_teammate';
@@ -405,6 +408,27 @@ Future<void> showMatchEventDialog({
                                     }),
                           ),
                           const SizedBox(height: 12),
+                          CheckboxListTile(
+                            value: regenerated,
+                            dense: true,
+                            activeColor: AppColors.success,
+                            contentPadding: EdgeInsets.zero,
+                            title: Text(
+                              lang == 'es'
+                                  ? 'Regeneración usada (ignora la lesión, mantiene SPP)'
+                                  : 'Regeneration used (ignore injury, keep SPP)',
+                              style: const TextStyle(
+                                color: AppColors.textSecondary,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            onChanged: submitting
+                                ? null
+                                : (value) =>
+                                    setS(() => regenerated = value ?? false),
+                          ),
+                          const SizedBox(height: 12),
                           DropdownButtonFormField<String>(
                             value: casualtyCategory,
                             dropdownColor: AppColors.card,
@@ -554,10 +578,29 @@ Future<void> showMatchEventDialog({
                                 final cleanDetail = detail.trim();
                                 final eventDetail = isThrowTeammate
                                     ? 'Soberbio: ${superbThrow ? 'sí' : 'no'} · Cae de pie: ${landedStanding ? 'sí' : 'no'}${cleanDetail.isEmpty ? '' : ' · $cleanDetail'}'
-                                    : accidentalCasualty
-                                        ? 'accidental=true${cleanDetail.isEmpty ? '' : ' · $cleanDetail'}'
-                                        : cleanDetail;
+                                    : () {
+                                        final parts = <String>[];
+                                        if (accidentalCasualty) {
+                                          parts.add(
+                                            lang == 'es'
+                                                ? 'Accidental: sí (sin SPP)'
+                                                : 'Accidental: yes (no SPP)',
+                                          );
+                                        }
+                                        if (isCasualty && regenerated) {
+                                          parts.add(
+                                            lang == 'es'
+                                                ? 'Regeneración: sí'
+                                                : 'Regeneration: yes',
+                                          );
+                                        }
+                                        if (cleanDetail.isNotEmpty) {
+                                          parts.add(cleanDetail);
+                                        }
+                                        return parts.join(' · ');
+                                      }();
                                 final injuryCategory = isCasualty &&
+                                        !regenerated &&
                                         casualtyCategory != 'badly_hurt'
                                     ? casualtyCategory
                                     : null;
@@ -596,6 +639,7 @@ Future<void> showMatchEventDialog({
                                           : null,
                                   sentOff: isFoul && foulSentOff,
                                   accidentalCasualty: accidentalCasualty,
+                                    regenerated: regenerated,
                                   detail:
                                       eventDetail.isEmpty ? null : eventDetail,
                                   half: match.currentHalf,

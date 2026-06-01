@@ -57,6 +57,10 @@ extension _LiveMatchDialogs on _LiveMatchScreenState {
     MatchEventDraft draft,
     String lang,
   ) async {
+    if (draft.type == 'casualty' && draft.regenerated) {
+      return true;
+    }
+
     if (draft.type == 'casualty' && draft.injuryCategory != null) {
       if (draft.victimId == null) return true;
       final victimIsHome = draft.accidentalCasualty
