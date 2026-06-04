@@ -1486,6 +1486,42 @@ const _t = <String, Map<String, String>>{
     'es': 'Cargando habilidades...',
     'en': 'Loading skills...',
   },
+  'player.availableSpp': {
+    'es': 'SPP disponibles',
+    'en': 'SPP available',
+  },
+  'player.tapSkillForDetails': {
+    'es': 'Toca la habilidad para ver el detalle y usa el selector para marcarla.',
+    'en': 'Tap a skill to view its details and use the selector to mark it.',
+  },
+  'player.confirmAdvancement': {
+    'es': 'Confirmar mejora',
+    'en': 'Confirm improvement',
+  },
+  'player.confirmAdvancementTitle': {
+    'es': 'Confirmar mejora',
+    'en': 'Confirm improvement',
+  },
+  'player.confirmAdvancementPrompt': {
+    'es': '¿Estas seguro de que quieres aplicar esta mejora?',
+    'en': 'Are you sure you want to apply this improvement?',
+  },
+  'player.advancementTypeLabel': {
+    'es': 'Tipo de mejora',
+    'en': 'Improvement type',
+  },
+  'player.selectedImprovement': {
+    'es': 'Mejora seleccionada',
+    'en': 'Selected improvement',
+  },
+  'player.sppCost': {
+    'es': 'Coste',
+    'en': 'Cost',
+  },
+  'player.remainingSpp': {
+    'es': 'SPP restantes',
+    'en': 'SPP remaining',
+  },
   'player.noSkills': {'es': 'Sin habilidades', 'en': 'No skills'},
   'player.addSkillHint': {
     'es': 'Añade habilidades desde el botón de arriba',

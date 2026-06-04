@@ -467,6 +467,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
             ? secondaryRows.first.symbol
             : null;
     String searchQuery = '';
+    Map<String, dynamic>? selectedPerk;
     int? selectedCharacteristicRoll;
     String? selectedCharacteristic;
 
@@ -589,7 +590,11 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                               ],
                             ),
                           ),
-                          _sppPill('${player.spp} SPP disponibles', true),
+                          _sppPill(
+                            '${player.spp} ${tr(lang, 'player.availableSpp')}',
+                            true,
+                            prominent: true,
+                          ),
                           const SizedBox(width: 10),
                           IconButton(
                             onPressed: () => Navigator.pop(ctx),
@@ -632,6 +637,9 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                                           ? primaryRows.first.symbol
                                           : null;
                                       searchQuery = '';
+                                      selectedPerk = null;
+                                      selectedCharacteristicRoll = null;
+                                      selectedCharacteristic = null;
                                     }),
                                   ),
                                   const SizedBox(height: 8),
@@ -653,6 +661,9 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                                           ? primaryRows.first.symbol
                                           : null;
                                       searchQuery = '';
+                                      selectedPerk = null;
+                                      selectedCharacteristicRoll = null;
+                                      selectedCharacteristic = null;
                                     }),
                                   ),
                                   const SizedBox(height: 8),
@@ -674,6 +685,9 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                                           ? secondaryRows.first.symbol
                                           : null;
                                       searchQuery = '';
+                                      selectedPerk = null;
+                                      selectedCharacteristicRoll = null;
+                                      selectedCharacteristic = null;
                                     }),
                                   ),
                                   const SizedBox(height: 8),
@@ -691,6 +705,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                                       selectedMode =
                                           'characteristic_improvement';
                                       searchQuery = '';
+                                      selectedPerk = null;
                                     }),
                                   ),
                                   const SizedBox(height: 18),
@@ -715,6 +730,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                                               ? () => setDialogState(() {
                                                     selectedSymbol = row.symbol;
                                                     searchQuery = '';
+                                                    selectedPerk = null;
                                                   })
                                               : null,
                                         ),
@@ -775,6 +791,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                                                 selectedCharacteristicRoll =
                                                     roll;
                                                 selectedCharacteristic = null;
+                                                selectedPerk = null;
                                               }),
                                               onCharacteristicSelected:
                                                   (characteristic) =>
@@ -889,6 +906,27 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                                                                         .trim()),
                                                       ),
                                                     ),
+                                                    Padding(
+                                                      padding: const EdgeInsets
+                                                          .fromLTRB(
+                                                          16, 0, 16, 12),
+                                                      child: Align(
+                                                        alignment: Alignment
+                                                            .centerLeft,
+                                                        child: Text(
+                                                          tr(lang,
+                                                              'player.tapSkillForDetails'),
+                                                          style:
+                                                              const TextStyle(
+                                                            color: AppColors
+                                                                .textMuted,
+                                                            fontSize: 12,
+                                                            fontWeight:
+                                                                FontWeight.w700,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
                                                     Expanded(
                                                       child:
                                                           !selectedModeBrowsable
@@ -944,6 +982,10 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                                                                             '';
                                                                         final isOwned =
                                                                             ownedIds.contains(_skillKey(perkId));
+                                                                        final isSelected =
+                                                                          selectedPerk != null &&
+                                                                            _skillKey(perkIdFromJson(selectedPerk!)) ==
+                                                                              _skillKey(perkId);
 
                                                                         return _skillChoiceTile(
                                                                           perkId:
@@ -954,20 +996,93 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                                                                               _familyColor(selectedAccess?.family ?? ''),
                                                                           isOwned:
                                                                               isOwned,
-                                                                          onTap: isOwned || !selectedModeAffordable
-                                                                              ? null
-                                                                              : () => Navigator.pop(
-                                                                                    ctx,
-                                                                                    _SkillAdvancementChoice(
-                                                                                      perk: perk,
-                                                                                      advancementType: selectedMode,
-                                                                                      resultLabel: name,
-                                                                                    ),
-                                                                                  ),
+                                                                          selected:
+                                                                            isSelected,
+                                                                          onTap: () => showSkillPopup(
+                                                                          ctx,
+                                                                          ref,
+                                                                          skillName:
+                                                                            name,
+                                                                          ),
+                                                                          onSelect: isOwned || !selectedModeAffordable
+                                                                            ? null
+                                                                            : () => setDialogState(() {
+                                                                              selectedPerk = perk;
+                                                                              }),
                                                                         );
                                                                       },
                                                                     ),
                                                     ),
+                                                              Padding(
+                                                                padding: const EdgeInsets
+                                                                  .fromLTRB(
+                                                                  16, 0, 16, 16),
+                                                                child: SizedBox(
+                                                                width:
+                                                                  double.infinity,
+                                                                child:
+                                                                  ElevatedButton.icon(
+                                                                  onPressed: selectedModeAffordable &&
+                                                                      selectedPerk !=
+                                                                        null
+                                                                    ? () {
+                                                                      final perk =
+                                                                        selectedPerk!;
+                                                                      final nameMap =
+                                                                        perk['name']
+                                                                            as Map? ??
+                                                                          {};
+                                                                      final name = nameMap['es']
+                                                                          as String? ??
+                                                                        nameMap['en']
+                                                                          as String? ??
+                                                                        '';
+                                                                      Navigator.pop(
+                                                                      ctx,
+                                                                      _SkillAdvancementChoice(
+                                                                        perk:
+                                                                          perk,
+                                                                        advancementType:
+                                                                          selectedMode,
+                                                                        resultLabel:
+                                                                          name,
+                                                                      ),
+                                                                      );
+                                                                    }
+                                                                    : null,
+                                                                  icon: Icon(PhosphorIcons
+                                                                    .checkCircle(
+                                                                      PhosphorIconsStyle
+                                                                        .fill)),
+                                                                  label: Text(tr(lang,
+                                                                      'player.confirmAdvancement')
+                                                                    .toUpperCase()),
+                                                                  style:
+                                                                    ElevatedButton
+                                                                      .styleFrom(
+                                                                  backgroundColor:
+                                                                    AppColors
+                                                                      .warning,
+                                                                  foregroundColor:
+                                                                    AppColors
+                                                                      .background,
+                                                                  disabledBackgroundColor:
+                                                                    AppColors
+                                                                      .surfaceLight,
+                                                                  disabledForegroundColor:
+                                                                    AppColors
+                                                                      .textMuted,
+                                                                  padding:
+                                                                    const EdgeInsets
+                                                                      .symmetric(
+                                                                      horizontal:
+                                                                        18,
+                                                                      vertical:
+                                                                        14),
+                                                                  ),
+                                                                ),
+                                                                ),
+                                                              ),
                                                   ],
                                                 ),
                                 ),
@@ -987,8 +1102,16 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
     );
     if (!context.mounted || selectedChoice == null) return;
 
-    final selectedPerk = selectedChoice.perk;
-    final perkId = selectedPerk == null ? null : perkIdFromJson(selectedPerk);
+    final confirmed = await _showAdvancementConfirmationDialog(
+      context,
+      player: player,
+      choice: selectedChoice,
+      lang: lang,
+    );
+    if (!context.mounted || confirmed != true) return;
+
+    final chosenPerk = selectedChoice.perk;
+    final perkId = chosenPerk == null ? null : perkIdFromJson(chosenPerk);
     final resultName = selectedChoice.resultLabel ?? '';
 
     try {
@@ -1024,6 +1147,114 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
     }
   }
 
+  Future<bool?> _showAdvancementConfirmationDialog(
+    BuildContext context, {
+    required Character player,
+    required _SkillAdvancementChoice choice,
+    required String lang,
+  }) {
+    final cost = _advancementCost(player, choice.advancementType);
+    final remainingSpp = player.spp - cost;
+    final summary = choice.advancementType == 'characteristic_improvement'
+        ? '+${choice.characteristic ?? ''}'
+        : (choice.resultLabel ?? '');
+
+    return showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: Text(
+          tr(lang, 'player.confirmAdvancementTitle'),
+          style: const TextStyle(
+            color: AppColors.textPrimary,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: SizedBox(
+          width: min(420.0, MediaQuery.of(ctx).size.width - 64),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                tr(lang, 'player.confirmAdvancementPrompt'),
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 16),
+              _confirmationRow(
+                tr(lang, 'player.advancementTypeLabel'),
+                _advancementModeTitle(choice.advancementType),
+              ),
+              _confirmationRow(
+                tr(lang, 'player.selectedImprovement'),
+                summary,
+              ),
+              _confirmationRow(
+                tr(lang, 'player.sppCost'),
+                '$cost SPP',
+              ),
+              _confirmationRow(
+                tr(lang, 'player.remainingSpp'),
+                '$remainingSpp SPP',
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(tr(lang, 'common.cancel')),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.warning,
+              foregroundColor: AppColors.background,
+            ),
+            child: Text(tr(lang, 'player.confirmAdvancement')),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _confirmationRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 138,
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: AppColors.textMuted,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _dialogSectionLabel(String label) {
     return Text(label,
         style: const TextStyle(
@@ -1033,21 +1264,44 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
         ));
   }
 
-  Widget _sppPill(String label, bool available) {
+  Widget _sppPill(String label, bool available, {bool prominent = false}) {
     final color = available ? AppColors.success : AppColors.error;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.16),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.withValues(alpha: 0.45)),
+      padding: EdgeInsets.symmetric(
+        horizontal: prominent ? 14 : 11,
+        vertical: prominent ? 10 : 6,
       ),
-      child: Text(label,
-          style: TextStyle(
-            color: color,
-            fontSize: 12,
-            fontWeight: FontWeight.w900,
-          )),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: prominent ? 0.22 : 0.16),
+        borderRadius: BorderRadius.circular(prominent ? 10 : 6),
+        border: Border.all(color: color.withValues(alpha: 0.55)),
+        boxShadow: prominent
+            ? [
+                BoxShadow(
+                  color: color.withValues(alpha: 0.14),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
+                ),
+              ]
+            : null,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (prominent) ...[
+            Icon(PhosphorIcons.star(PhosphorIconsStyle.fill),
+                size: 16, color: color),
+            const SizedBox(width: 8),
+          ],
+          Text(label,
+              style: TextStyle(
+                color: color,
+                fontSize: prominent ? 15 : 12,
+                fontWeight: FontWeight.w900,
+                letterSpacing: prominent ? 0.3 : 0,
+              )),
+        ],
+      ),
     );
   }
 
@@ -1471,7 +1725,9 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
     required String name,
     required Color color,
     required bool isOwned,
+    required bool selected,
     required VoidCallback? onTap,
+    required VoidCallback? onSelect,
   }) {
     return Opacity(
       opacity: isOwned ? 0.42 : 1,
@@ -1483,12 +1739,44 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
             color: AppColors.card,
             borderRadius: BorderRadius.circular(6),
             border: Border.all(
-              color: isOwned ? AppColors.success.withValues(alpha: 0.6) : color,
-              width: 1.5,
+              color: isOwned
+                  ? AppColors.success.withValues(alpha: 0.6)
+                  : selected
+                      ? AppColors.warning
+                      : color,
+              width: selected ? 2 : 1.5,
             ),
+            boxShadow: selected
+                ? [
+                    BoxShadow(
+                      color: AppColors.warning.withValues(alpha: 0.16),
+                      blurRadius: 14,
+                      offset: const Offset(0, 4),
+                    ),
+                  ]
+                : null,
           ),
           child: Row(
             children: [
+              Padding(
+                padding: const EdgeInsets.only(left: 8),
+                child: Radio<bool>(
+                  value: true,
+                  groupValue: selected,
+                  onChanged: onSelect == null ? null : (_) => onSelect(),
+                  activeColor: AppColors.warning,
+                  fillColor: WidgetStateProperty.resolveWith((states) {
+                    if (states.contains(WidgetState.disabled)) {
+                      return AppColors.textMuted;
+                    }
+                    if (states.contains(WidgetState.selected)) {
+                      return AppColors.warning;
+                    }
+                    return AppColors.textSecondary;
+                  }),
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              ),
               Container(
                 width: 58,
                 height: double.infinity,
@@ -1532,6 +1820,15 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                       PhosphorIcons.checkCircle(PhosphorIconsStyle.fill),
                       color: AppColors.success,
                       size: 18),
+                )
+              else if (selected)
+                Padding(
+                  padding: const EdgeInsets.only(right: 10),
+                  child: Icon(
+                    PhosphorIcons.checkCircle(PhosphorIconsStyle.fill),
+                    color: AppColors.warning,
+                    size: 18,
+                  ),
                 ),
             ],
           ),

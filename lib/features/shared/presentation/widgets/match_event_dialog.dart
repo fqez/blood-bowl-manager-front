@@ -8,6 +8,8 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../league/domain/models/league.dart';
 import '../../../my_teams/domain/models/user_team.dart';
 
+const _accidentalCasualtyMarker = 'BBM_ACCIDENTAL:1';
+
 const matchEventInjuryTypes = [
   'Badly Hurt',
   'Serious Injury',
@@ -617,6 +619,7 @@ Future<void> showMatchEventDialog({
                                           parts.add('BBM_SELF_INFLICTED:1');
                                         }
                                         if (accidentalCasualty) {
+                                          parts.add(_accidentalCasualtyMarker);
                                           parts.add(
                                             lang == 'es'
                                                 ? 'Accidental: sí (sin SPP)'
