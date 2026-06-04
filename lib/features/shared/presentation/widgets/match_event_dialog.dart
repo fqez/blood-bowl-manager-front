@@ -32,6 +32,7 @@ class MatchEventDraft {
   final String? injuryCategory;
   final String? injuryNote;
   final int? lastingInjuryRoll;
+  final bool selfInflicted;
   final bool sentOff;
   final bool accidentalCasualty;
   final bool regenerated;
@@ -50,6 +51,7 @@ class MatchEventDraft {
     this.injuryCategory,
     this.injuryNote,
     this.lastingInjuryRoll,
+    this.selfInflicted = false,
     this.sentOff = false,
     this.accidentalCasualty = false,
     this.regenerated = false,
@@ -103,6 +105,7 @@ Future<void> showMatchEventDialog({
       isThrowTeammate;
   final needsInjury =
       ['rip', 'badly_hurt', 'serious_injury'].contains(eventType);
+  bool casualtyFromFall = false;
 
   List<UserPlayer> getPlayers(String team) =>
       team == 'home' ? homePlayers : awayPlayers;
@@ -110,7 +113,7 @@ Future<void> showMatchEventDialog({
       team == 'home' ? awayPlayers : homePlayers;
   List<UserPlayer> getVictimCandidates(String team) => isThrowTeammate
       ? getPlayers(team).where((p) => p.id != selectedPlayer?.id).toList()
-      : isCasualty && accidentalCasualty
+      : isCasualty && (accidentalCasualty || casualtyFromFall)
           ? getPlayers(team)
           : getOpponents(team);
 
@@ -259,7 +262,7 @@ Future<void> showMatchEventDialog({
                             onTap: () {},
                           ),
                         const SizedBox(height: 16),
-                        if (hasRoster)
+                        if (hasRoster && !(isCasualty && casualtyFromFall))
                           DropdownButtonFormField<UserPlayer>(
                             key: ValueKey('player-$selectedTeam'),
                             value: selectedPlayer,
@@ -295,7 +298,7 @@ Future<void> showMatchEventDialog({
                                       }
                                     }),
                           )
-                        else
+                        else if (!(isCasualty && casualtyFromFall))
                           TextField(
                             style:
                                 const TextStyle(color: AppColors.textPrimary),
@@ -318,7 +321,9 @@ Future<void> showMatchEventDialog({
                                   const TextStyle(color: AppColors.textPrimary),
                               decoration: _inputDeco(isThrowTeammate
                                   ? 'Jugador lanzado'
-                                  : accidentalCasualty
+                                  : isCasualty &&
+                                          (accidentalCasualty ||
+                                              casualtyFromFall)
                                       ? (lang == 'es'
                                           ? 'Jugador lesionado'
                                           : 'Injured player')
@@ -343,7 +348,11 @@ Future<void> showMatchEventDialog({
                                   const TextStyle(color: AppColors.textPrimary),
                               decoration: _inputDeco(isThrowTeammate
                                   ? 'Jugador lanzado'
-                                  : tr(lang, 'liveMatch.victimName')),
+                                  : isCasualty && casualtyFromFall
+                                      ? (lang == 'es'
+                                          ? 'Jugador lesionado'
+                                          : 'Injured player')
+                                      : tr(lang, 'liveMatch.victimName')),
                               onChanged: (v) => victimNameText = v,
                             ),
                         ],
@@ -459,6 +468,30 @@ Future<void> showMatchEventDialog({
                                       setS(() => casualtyCategory = value);
                                     }
                                   },
+                          ),
+                          const SizedBox(height: 12),
+                          CheckboxListTile(
+                            value: casualtyFromFall,
+                            dense: true,
+                            activeColor: AppColors.warning,
+                            contentPadding: EdgeInsets.zero,
+                            title: Text(
+                              lang == 'es'
+                                  ? 'La baja viene de una caída/autolesión'
+                                  : 'Casualty caused by a fall / self-inflicted',
+                              style: const TextStyle(
+                                color: AppColors.textSecondary,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            onChanged: submitting
+                                ? null
+                                : (value) => setS(() {
+                                      casualtyFromFall = value ?? false;
+                                      selectedPlayer = null;
+                                      selectedVictim = null;
+                                    }),
                           ),
                           if (casualtyCategory == 'lasting_injury') ...[
                             const SizedBox(height: 12),
@@ -580,6 +613,9 @@ Future<void> showMatchEventDialog({
                                     ? 'Soberbio: ${superbThrow ? 'sí' : 'no'} · Cae de pie: ${landedStanding ? 'sí' : 'no'}${cleanDetail.isEmpty ? '' : ' · $cleanDetail'}'
                                     : () {
                                         final parts = <String>[];
+                                        if (isCasualty && casualtyFromFall) {
+                                          parts.add('BBM_SELF_INFLICTED:1');
+                                        }
                                         if (accidentalCasualty) {
                                           parts.add(
                                             lang == 'es'
@@ -597,7 +633,7 @@ Future<void> showMatchEventDialog({
                                         if (cleanDetail.isNotEmpty) {
                                           parts.add(cleanDetail);
                                         }
-                                        return parts.join(' · ');
+                                        return parts.join('\n');
                                       }();
                                 final injuryCategory = isCasualty &&
                                         !regenerated &&
@@ -607,10 +643,14 @@ Future<void> showMatchEventDialog({
                                 final shouldClose = await onAdd(MatchEventDraft(
                                   type: eventType,
                                   team: selectedTeam,
-                                  playerId: accidentalCasualty
+                                  playerId: isCasualty &&
+                                          (accidentalCasualty ||
+                                              casualtyFromFall)
                                       ? null
                                       : selectedPlayer?.id,
-                                  playerName: accidentalCasualty
+                                  playerName: isCasualty &&
+                                          (accidentalCasualty ||
+                                              casualtyFromFall)
                                       ? null
                                       : selectedPlayer != null
                                           ? '#${selectedPlayer!.number} ${selectedPlayer!.name}'
@@ -637,9 +677,10 @@ Future<void> showMatchEventDialog({
                                       casualtyCategory == 'lasting_injury'
                                           ? lastingInjuryRoll
                                           : null,
+                                  selfInflicted: isCasualty && casualtyFromFall,
                                   sentOff: isFoul && foulSentOff,
                                   accidentalCasualty: accidentalCasualty,
-                                    regenerated: regenerated,
+                                  regenerated: regenerated,
                                   detail:
                                       eventDetail.isEmpty ? null : eventDetail,
                                   half: match.currentHalf,

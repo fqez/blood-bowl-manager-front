@@ -63,7 +63,7 @@ extension _LiveMatchDialogs on _LiveMatchScreenState {
 
     if (draft.type == 'casualty' && draft.injuryCategory != null) {
       if (draft.victimId == null) return true;
-      final victimIsHome = draft.accidentalCasualty
+      final victimIsHome = (draft.selfInflicted || draft.accidentalCasualty)
           ? draft.team == 'home'
           : draft.team != 'home';
       final team = victimIsHome ? _homeTeam : _awayTeam;

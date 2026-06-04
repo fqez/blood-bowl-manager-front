@@ -70,6 +70,7 @@ enum _PrepRosterSortColumn {
 final _goldFmt = NumberFormat('#,###');
 
 const _inducementSyncMarker = 'BBM_INDUCEMENT_SYNC:';
+const _selfInflictedMarker = 'BBM_SELF_INFLICTED:1';
 
 String _inducementInstanceUseKey(String ruleId, int index) => '$ruleId#$index';
 
@@ -491,7 +492,9 @@ extension _LiveMatchHelpers on _LiveMatchScreenState {
   String _visibleEventDetail(String detail) {
     return detail
         .split('\n')
-        .where((line) => !line.startsWith(_inducementSyncMarker))
+        .where((line) =>
+            !line.startsWith(_inducementSyncMarker) &&
+            line.trim() != _selfInflictedMarker)
         .join('\n')
         .trim();
   }

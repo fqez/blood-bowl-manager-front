@@ -4,6 +4,22 @@ part of '../screens/live_match_screen.dart';
 //  LIVE VIEW + SCOREBOARD + EVENTS
 // ══════════════════════════════════════════════
 
+class _TeamTrackData {
+  const _TeamTrackData({
+    required this.key,
+    required this.name,
+    required this.turn,
+    required this.seconds,
+    required this.color,
+  });
+
+  final String key;
+  final String name;
+  final int turn;
+  final List<int> seconds;
+  final Color color;
+}
+
 extension _LiveMatchLiveView on _LiveMatchScreenState {
   TextStyle get _displayLarge =>
       Theme.of(context).textTheme.displayLarge ?? const TextStyle();
@@ -456,10 +472,27 @@ extension _LiveMatchLiveView on _LiveMatchScreenState {
 
   Widget _buildMatchStateRow(Match match, String lang) {
     final activeTeam = match.currentTeam == 'away' ? 'away' : 'home';
+    final receivingTeam = _receivingTeam(match);
+    final halfStarter = _halfStarter(match);
+    final secondHalfStarter = _otherTeam(receivingTeam);
+    final homeTeam = _teamTrackData(
+      key: 'home',
+      name: match.home.teamName,
+      turn: match.homeTurn,
+      seconds: match.homeTurnSeconds,
+      color: AppColors.info,
+    );
+    final awayTeam = _teamTrackData(
+      key: 'away',
+      name: match.away.teamName,
+      turn: match.awayTurn,
+      seconds: match.awayTurnSeconds,
+      color: AppColors.error,
+    );
     final activeName =
         activeTeam == 'home' ? match.home.teamName : match.away.teamName;
     final activeTurn = activeTeam == 'home' ? match.homeTurn : match.awayTurn;
-    final canPass = !(activeTeam == 'away' && activeTurn >= 16);
+    final canPass = !(activeTeam != halfStarter && activeTurn >= 16);
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -516,6 +549,15 @@ extension _LiveMatchLiveView on _LiveMatchScreenState {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '1a parte: ${_teamName(match, receivingTeam)} · 2a parte: ${_teamName(match, secondHalfStarter)}',
+                      style: const TextStyle(
+                        color: AppColors.textMuted,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -538,24 +580,31 @@ extension _LiveMatchLiveView on _LiveMatchScreenState {
             ],
           ),
           const SizedBox(height: 16),
-          _turnTrack(
-            teamName: match.home.teamName,
-            teamKey: 'home',
-            currentTeam: activeTeam,
-            teamTurn: match.homeTurn,
-            seconds: match.homeTurnSeconds,
-            color: AppColors.info,
-          ),
-          const SizedBox(height: 10),
-          _halftimeRail(),
-          const SizedBox(height: 10),
-          _turnTrack(
-            teamName: match.away.teamName,
-            teamKey: 'away',
-            currentTeam: activeTeam,
-            teamTurn: match.awayTurn,
-            seconds: match.awayTurnSeconds,
-            color: AppColors.error,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _halfTurnPanel(
+                  title: '1a parte',
+                  startTurn: 1,
+                  endTurn: 8,
+                  currentTeam: activeTeam,
+                  topTeam: homeTeam,
+                  bottomTeam: awayTeam,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _halfTurnPanel(
+                  title: '2a parte',
+                  startTurn: 9,
+                  endTurn: 16,
+                  currentTeam: activeTeam,
+                  topTeam: awayTeam,
+                  bottomTeam: homeTeam,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 14),
           Row(
@@ -585,22 +634,32 @@ extension _LiveMatchLiveView on _LiveMatchScreenState {
   Future<void> _passTurn(Match match) async {
     final activeTeam = match.currentTeam == 'away' ? 'away' : 'home';
     final activeTurn = activeTeam == 'home' ? match.homeTurn : match.awayTurn;
-    if (activeTeam == 'away' && activeTurn >= 16) return;
+    final receivingTeam = _receivingTeam(match);
+    final halfStarter = _halfStarter(match, receivingTeam: receivingTeam);
+    if (activeTeam != halfStarter && activeTurn >= 16) return;
 
-    if (activeTeam == 'home') {
-      final awayTurn =
-          match.awayTurn < activeTurn ? activeTurn : match.awayTurn;
+    if (activeTeam == halfStarter) {
+      final nextTeam = _otherTeam(activeTeam);
+      final nextTurn = nextTeam == 'home'
+          ? (match.homeTurn < activeTurn ? activeTurn : match.homeTurn)
+          : (match.awayTurn < activeTurn ? activeTurn : match.awayTurn);
       await _updateState(
-        currentTeam: 'away',
-        awayTurn: awayTurn,
-        currentTurn: awayTurn,
-        currentHalf: awayTurn >= 9 ? 2 : 1,
+        currentTeam: nextTeam,
+        homeTurn: nextTeam == 'home' ? nextTurn : null,
+        awayTurn: nextTeam == 'away' ? nextTurn : null,
+        currentTurn: nextTurn,
+        currentHalf: nextTurn >= 9 ? 2 : 1,
       );
     } else {
       final nextTurn = (activeTurn + 1).clamp(1, 16).toInt();
+      final nextTeam = _halfStarterForTurn(
+        turnNumber: nextTurn,
+        receivingTeam: receivingTeam,
+      );
       await _updateState(
-        currentTeam: 'home',
-        homeTurn: nextTurn,
+        currentTeam: nextTeam,
+        homeTurn: nextTeam == 'home' ? nextTurn : null,
+        awayTurn: nextTeam == 'away' ? nextTurn : null,
         currentTurn: nextTurn,
         currentHalf: nextTurn >= 9 ? 2 : 1,
         rerollsUsedHome: nextTurn == 9 ? 0 : null,
@@ -609,74 +668,165 @@ extension _LiveMatchLiveView on _LiveMatchScreenState {
     }
   }
 
+  String _receivingTeam(Match match) {
+    for (final event in match.events.reversed) {
+      if (event.type != 'receiving_team_change') continue;
+      final detail = event.detail ?? '';
+      if (detail.contains('-> away')) return 'away';
+      if (detail.contains('-> home')) return 'home';
+    }
+
+    if (!match.isInProgress && !match.isPlayed) {
+      return match.currentTeam == 'away' ? 'away' : 'home';
+    }
+
+    return 'home';
+  }
+
+  String _halfStarter(Match match, {String? receivingTeam}) {
+    final firstHalfReceiver = receivingTeam ?? _receivingTeam(match);
+    if (match.currentHalf >= 2) return _otherTeam(firstHalfReceiver);
+    return firstHalfReceiver;
+  }
+
+  String _halfStarterForTurn({
+    required int turnNumber,
+    required String receivingTeam,
+  }) {
+    if (turnNumber >= 9) return _otherTeam(receivingTeam);
+    return receivingTeam;
+  }
+
+  String _otherTeam(String team) => team == 'away' ? 'home' : 'away';
+
+  String _teamName(Match match, String team) =>
+      team == 'away' ? match.away.teamName : match.home.teamName;
+
+  _TeamTrackData _teamTrackData({
+    required String key,
+    required String name,
+    required int turn,
+    required List<int> seconds,
+    required Color color,
+  }) {
+    return _TeamTrackData(
+      key: key,
+      name: name,
+      turn: turn,
+      seconds: seconds,
+      color: color,
+    );
+  }
+
   Duration _activeTurnElapsed(Match match) {
     final started = match.turnStartedAt;
     if (started == null) return Duration.zero;
     return DateTime.now().toUtc().difference(_toUtc(started));
   }
 
-  Widget _turnTrack({
-    required String teamName,
-    required String teamKey,
+  Widget _halfTurnPanel({
+    required String title,
+    required int startTurn,
+    required int endTurn,
     required String currentTeam,
-    required int teamTurn,
-    required List<int> seconds,
-    required Color color,
+    required _TeamTrackData topTeam,
+    required _TeamTrackData bottomTeam,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.surface.withValues(alpha: 0.42),
+        borderRadius: BorderRadius.circular(16),
+        border:
+            Border.all(color: AppColors.surfaceLight.withValues(alpha: 0.7)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title.toUpperCase(),
+            style: const TextStyle(
+              color: AppColors.textMuted,
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.8,
+            ),
+          ),
+          const SizedBox(height: 10),
+          _halfTeamTrack(
+            team: topTeam,
+            currentTeam: currentTeam,
+            startTurn: startTurn,
+            endTurn: endTurn,
+          ),
+          const SizedBox(height: 10),
+          _halfTeamTrack(
+            team: bottomTeam,
+            currentTeam: currentTeam,
+            startTurn: startTurn,
+            endTurn: endTurn,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _halfTeamTrack({
+    required _TeamTrackData team,
+    required String currentTeam,
+    required int startTurn,
+    required int endTurn,
   }) {
     return Row(
       children: [
         SizedBox(
-          width: 120,
+          width: 88,
           child: Text(
-            teamName,
-            maxLines: 1,
+            team.name,
+            maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              color: color,
+              color: team.color,
               fontSize: 12,
               fontWeight: FontWeight.w900,
             ),
           ),
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: 8),
         Expanded(
-          child: LayoutBuilder(builder: (context, constraints) {
-            const gapCount = 15;
-            const gapWidth = 4.0;
-            const dividerWidth = 10.0;
-            final squareSize =
-                ((constraints.maxWidth - (gapCount * gapWidth) - dividerWidth) /
-                        16)
-                    .clamp(18.0, 34.0);
-            final children = <Widget>[];
-            for (var turn = 1; turn <= 16; turn++) {
-              if (turn == 9) {
-                children.add(_halfDivider(height: squareSize));
-                children.add(const SizedBox(width: gapWidth));
-              }
-              final completed = seconds.length >= turn;
-              final active = currentTeam == teamKey && teamTurn == turn;
-              children.add(_turnSquare(
-                turn: turn,
-                completed: completed,
-                active: active,
-                seconds: completed ? seconds[turn - 1] : null,
-                color: color,
-                size: squareSize,
-              ));
-              if (turn != 16) children.add(const SizedBox(width: gapWidth));
-            }
-            return SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minWidth: constraints.maxWidth),
-                child: Center(
-                  child:
-                      Row(mainAxisSize: MainAxisSize.min, children: children),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              const gapWidth = 4.0;
+              final slots = endTurn - startTurn + 1;
+              final squareSize =
+                  ((constraints.maxWidth - ((slots - 1) * gapWidth)) / slots)
+                      .clamp(18.0, 32.0);
+              return SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minWidth: constraints.maxWidth),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (var turn = startTurn; turn <= endTurn; turn++) ...[
+                        _turnSquare(
+                          turn: turn,
+                          completed: team.seconds.length >= turn,
+                          active: currentTeam == team.key && team.turn == turn,
+                          seconds: team.seconds.length >= turn
+                              ? team.seconds[turn - 1]
+                              : null,
+                          color: team.color,
+                          size: squareSize,
+                        ),
+                        if (turn != endTurn) const SizedBox(width: gapWidth),
+                      ],
+                    ],
+                  ),
                 ),
-              ),
-            );
-          }),
+              );
+            },
+          ),
         ),
       ],
     );
@@ -731,26 +881,6 @@ extension _LiveMatchLiveView on _LiveMatchScreenState {
         message: 'Turno $turn · ${_fmtDuration(Duration(seconds: seconds))}',
         child: child);
   }
-
-  Widget _halfDivider({required double height}) => Container(
-        width: 6,
-        height: height,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(999),
-          color: AppColors.accent,
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.accent.withValues(alpha: 0.45),
-              blurRadius: 10,
-            ),
-          ],
-        ),
-      );
-
-  Widget _halftimeRail() => Divider(
-        color: AppColors.surfaceLight.withValues(alpha: 0.9),
-        height: 1,
-      );
 
   Widget _turnTimeSummary({
     required String label,
@@ -2714,6 +2844,17 @@ extension _LiveMatchLiveView on _LiveMatchScreenState {
                     child: Text(ev.playerName!,
                         style: const TextStyle(
                             color: AppColors.textSecondary, fontSize: 11)),
+                  ),
+                if (ev.victimName != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(
+                      'Objetivo: ${ev.victimName!}',
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 11,
+                      ),
+                    ),
                   ),
                 if (detail != null && detail.isNotEmpty)
                   Text(detail,

@@ -55,11 +55,20 @@ class LeagueOverviewScreen extends ConsumerStatefulWidget {
 class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  int? _selectedRound;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 5, vsync: this);
+  }
+
+  @override
+  void didUpdateWidget(covariant LeagueOverviewScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.leagueId != widget.leagueId) {
+      _selectedRound = null;
+    }
   }
 
   @override
@@ -70,9 +79,40 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
 
   bool get _isDebugLeague => widget.leagueId == debugLeagueId;
 
+  int _visibleRound(League league) {
+    final fallbackRound = league.currentRound ?? 1;
+    final maxRound = math.max(1, league.maxRounds);
+    final selectedRound = _selectedRound ?? fallbackRound;
+    return selectedRound.clamp(1, maxRound).toInt();
+  }
+
   void _openMatch(Match match) {
     if (_isDebugLeague) return;
     context.go('/league/${widget.leagueId}/match/${match.id}/live');
+  }
+
+  void _openAftermatchReport(Match match) {
+    if (_isDebugLeague) return;
+    context.go('/league/${widget.leagueId}/match/${match.id}/aftermatch');
+  }
+
+  Future<void> _handleRoundMatchTap(Match match) async {
+    if (_isDebugLeague) {
+      await _showMatchSummaryDialog(match);
+      return;
+    }
+
+    if (match.isPending || match.isInProgress) {
+      _openMatch(match);
+      return;
+    }
+
+    if (match.isPlayed) {
+      _openAftermatchReport(match);
+      return;
+    }
+
+    await _showMatchSummaryDialog(match);
   }
 
   Future<void> _showMatchSummaryDialog(Match match) async {
@@ -205,7 +245,7 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
               ),
             ),
             DropdownButton<int>(
-              value: leagueAsync.value!.currentRound ?? 1,
+              value: _visibleRound(leagueAsync.value!),
               underline: const SizedBox(),
               dropdownColor: AppColors.surface,
               items: List.generate(
@@ -217,7 +257,8 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
                 ),
               ),
               onChanged: (value) {
-                // TODO: Filter by round
+                if (value == null) return;
+                setState(() => _selectedRound = value);
               },
             ),
           ],
@@ -813,6 +854,7 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
   Widget _buildCurrentRoundOverview(League league) {
     final lang = ref.watch(localeProvider);
     final matchesAsync = ref.watch(matchesProvider(widget.leagueId));
+    final visibleRound = _visibleRound(league);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -823,8 +865,7 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
                 color: AppColors.primary, size: 20),
             const SizedBox(width: 8),
             Text(
-              trf(lang, 'leagueOverview.round',
-                  {'n': '${league.currentRound}'}),
+              trf(lang, 'leagueOverview.round', {'n': '$visibleRound'}),
               style: TextStyle(
                 fontFamily: AppTypography.displayFontFamily,
                 fontSize: 18,
@@ -846,10 +887,8 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (error, _) => Text(trf(lang, 'common.error', {'e': '$error'})),
           data: (matches) {
-            final currentRoundMatches = matches
-                .where((m) => m.round == league.currentRound)
-                .take(2)
-                .toList();
+            final currentRoundMatches =
+                matches.where((m) => m.round == visibleRound).take(2).toList();
 
             return Row(
               children: currentRoundMatches
@@ -863,8 +902,9 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
                           ),
                           child: MatchCard(
                             match: match,
-                            onTap:
-                                _isDebugLeague ? null : () => _openMatch(match),
+                            onTap: _isDebugLeague
+                                ? null
+                                : () => _handleRoundMatchTap(match),
                           ),
                         ),
                       ))
@@ -2603,6 +2643,7 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
   Widget _buildCurrentRoundTab(League league, bool isWideScreen) {
     final lang = ref.watch(localeProvider);
     final matchesAsync = ref.watch(matchesProvider(widget.leagueId));
+    final visibleRound = _visibleRound(league);
 
     return matchesAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -2610,7 +2651,7 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
           Center(child: Text(trf(lang, 'common.error', {'e': '$error'}))),
       data: (matches) {
         final currentRoundMatches =
-            matches.where((m) => m.round == league.currentRound).toList();
+            matches.where((m) => m.round == visibleRound).toList();
 
         return SingleChildScrollView(
           padding: EdgeInsets.all(isWideScreen ? 24 : 16),
@@ -2618,8 +2659,7 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                trf(lang, 'leagueOverview.round',
-                    {'n': '${league.currentRound}'}),
+                trf(lang, 'leagueOverview.round', {'n': '$visibleRound'}),
                 style: TextStyle(
                   fontFamily: AppTypography.displayFontFamily,
                   fontSize: 24,
@@ -2644,7 +2684,8 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
                     expanded: true,
                     onTap: _isDebugLeague
                         ? null
-                        : () => _openMatch(currentRoundMatches[index]),
+                        : () =>
+                            _handleRoundMatchTap(currentRoundMatches[index]),
                   );
                 },
               ),

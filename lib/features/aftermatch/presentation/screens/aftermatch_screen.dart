@@ -8,6 +8,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../core/l10n/locale_provider.dart';
 import '../../../../core/l10n/translations.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../auth/data/providers/auth_provider.dart';
 import '../../../league/domain/models/league.dart';
 import '../../../live_match/data/active_match_provider.dart';
 import '../../../my_teams/domain/models/user_team.dart';
@@ -15,6 +16,7 @@ import '../../../my_teams/presentation/screens/my_team_detail_screen.dart'
     show userTeamDetailProvider;
 import '../../../my_teams/presentation/screens/my_teams_screen.dart'
     show myUserTeamsProvider;
+import '../../../roster/domain/models/team.dart';
 import '../../../shared/data/repositories.dart';
 import '../../../shared/presentation/widgets/match_event_dialog.dart';
 
@@ -30,6 +32,12 @@ final _quickMatchDetailProvider =
     FutureProvider.autoDispose.family<Match, String>((ref, matchId) async {
   final repo = ref.read(quickMatchRepositoryProvider);
   return repo.getMatchDetail(matchId);
+});
+
+final _leagueProvider =
+    FutureProvider.autoDispose.family<League, String>((ref, leagueId) async {
+  final repo = ref.read(leagueRepositoryProvider);
+  return repo.getLeague(leagueId);
 });
 
 // ─── Helper classes ─────────────────────────────────────────
@@ -105,6 +113,37 @@ class _LeaguePointLine {
   final int points;
 
   const _LeaguePointLine(this.label, this.points);
+}
+
+class _PendingPlayerPurchase {
+  final String baseType;
+  final String positionName;
+  final String? name;
+  final int? number;
+  final int cost;
+
+  const _PendingPlayerPurchase({
+    required this.baseType,
+    required this.positionName,
+    required this.cost,
+    this.name,
+    this.number,
+  });
+}
+
+class _PendingTeamPurchases {
+  final List<_PendingPlayerPurchase> players = [];
+  int rerolls = 0;
+  int cheerleaders = 0;
+  int assistantCoaches = 0;
+  bool apothecary = false;
+
+  bool get isEmpty =>
+      players.isEmpty &&
+      rerolls == 0 &&
+      cheerleaders == 0 &&
+      assistantCoaches == 0 &&
+      !apothecary;
 }
 
 class _ScoreboardTeamSide extends StatelessWidget {
@@ -414,6 +453,10 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
 
   UserTeamDetail? _homeTeam;
   UserTeamDetail? _awayTeam;
+  BaseTeam? _homeBaseRoster;
+  BaseTeam? _awayBaseRoster;
+  final _homePendingPurchases = _PendingTeamPurchases();
+  final _awayPendingPurchases = _PendingTeamPurchases();
 
   int _scoreHome = 0;
   int _scoreAway = 0;
@@ -488,6 +531,124 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
         height: 0.95,
       );
 
+  String? _currentUserId() => ref.read(authStateProvider).valueOrNull?.user?.id;
+
+  bool _isMatchParticipant(Match match) {
+    final currentUserId = _currentUserId();
+    if (currentUserId == null) return false;
+    return match.home.userId == currentUserId ||
+        match.away.userId == currentUserId;
+  }
+
+  bool _isCommissioner(Match match, League? league) {
+    if (_isQM) return false;
+    final currentUserId = _currentUserId();
+    return currentUserId != null &&
+        league?.ownerId == currentUserId &&
+        !_isMatchParticipant(match);
+  }
+
+  bool _canManageSide(Match match, String side, League? league) {
+    if (_isCommissioner(match, league)) return true;
+    final currentUserId = _currentUserId();
+    if (currentUserId == null) return false;
+    return side == 'home'
+        ? match.home.userId == currentUserId
+        : match.away.userId == currentUserId;
+  }
+
+  Map<String, dynamic> _savedAftermatchReport(Match match, String side) {
+    return side == 'home'
+        ? match.aftermatchHomeReport
+        : match.aftermatchAwayReport;
+  }
+
+  void _applySavedAftermatchReport(String side, Map<String, dynamic> report) {
+    final purchases =
+        side == 'home' ? _homePendingPurchases : _awayPendingPurchases;
+    if (report.isEmpty) return;
+
+    final expensive =
+        (report['expensive_mistakes'] as Map?)?.cast<String, dynamic>() ??
+            const <String, dynamic>{};
+    final purchasesJson =
+        (report['purchases'] as Map?)?.cast<String, dynamic>() ??
+            const <String, dynamic>{};
+    final temporaryPlayers = (report['temporary_players'] as List?) ?? const [];
+
+    if (side == 'home') {
+      _mvpHomeId = (report['mvp'] as String?) ?? _mvpHomeId;
+      _homeStalling = (report['stalling'] as bool?) ?? _homeStalling;
+      _homeFanRoll =
+          (report['dedicated_fans_roll'] as num?)?.toInt() ?? _homeFanRoll;
+      _homeExpensiveRoll =
+          (expensive['roll'] as num?)?.toInt() ?? _homeExpensiveRoll;
+      _homeExpensiveD3 = (expensive['d3'] as num?)?.toInt() ?? _homeExpensiveD3;
+      _homeCatastropheD6A = (expensive['catastrophe_d6_a'] as num?)?.toInt() ??
+          _homeCatastropheD6A;
+      _homeCatastropheD6B = (expensive['catastrophe_d6_b'] as num?)?.toInt() ??
+          _homeCatastropheD6B;
+    } else {
+      _mvpAwayId = (report['mvp'] as String?) ?? _mvpAwayId;
+      _awayStalling = (report['stalling'] as bool?) ?? _awayStalling;
+      _awayFanRoll =
+          (report['dedicated_fans_roll'] as num?)?.toInt() ?? _awayFanRoll;
+      _awayExpensiveRoll =
+          (expensive['roll'] as num?)?.toInt() ?? _awayExpensiveRoll;
+      _awayExpensiveD3 = (expensive['d3'] as num?)?.toInt() ?? _awayExpensiveD3;
+      _awayCatastropheD6A = (expensive['catastrophe_d6_a'] as num?)?.toInt() ??
+          _awayCatastropheD6A;
+      _awayCatastropheD6B = (expensive['catastrophe_d6_b'] as num?)?.toInt() ??
+          _awayCatastropheD6B;
+    }
+
+    purchases.players.clear();
+    purchases.rerolls = (purchasesJson['rerolls'] as num?)?.toInt() ?? 0;
+    purchases.cheerleaders =
+        (purchasesJson['cheerleaders'] as num?)?.toInt() ?? 0;
+    purchases.assistantCoaches =
+        (purchasesJson['assistant_coaches'] as num?)?.toInt() ?? 0;
+    purchases.apothecary = purchasesJson['apothecary'] == true;
+
+    for (final entry in temporaryPlayers.whereType<Map>()) {
+      final decision = entry['decision'] as String?;
+      final playerId = entry['player_id'] as String?;
+      if (decision != null && playerId != null) {
+        _temporaryPlayerDecisions[playerId] = decision;
+      }
+    }
+  }
+
+  void _hydrateSavedPurchasesFromRoster(
+    String side,
+    Map<String, dynamic> report,
+    BaseTeam? roster,
+  ) {
+    final purchases =
+        side == 'home' ? _homePendingPurchases : _awayPendingPurchases;
+    purchases.players.clear();
+    final purchasesJson =
+        (report['purchases'] as Map?)?.cast<String, dynamic>() ??
+            const <String, dynamic>{};
+    final players = (purchasesJson['players'] as List?) ?? const [];
+
+    for (final entry in players.whereType<Map>()) {
+      final data = entry.cast<String, dynamic>();
+      final baseType = data['base_type'] as String? ?? '';
+      final position =
+          roster?.positions.where((p) => p.id == baseType).firstOrNull;
+      purchases.players.add(
+        _PendingPlayerPurchase(
+          baseType: baseType,
+          positionName: position?.name ?? baseType,
+          cost: position?.cost ?? 0,
+          name: data['name'] as String?,
+          number: (data['number'] as num?)?.toInt(),
+        ),
+      );
+    }
+  }
+
   void _initFromMatch(Match match) {
     if (_initialized) return;
     _initialized = true;
@@ -501,6 +662,9 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
     _rerollsAway = match.rerollsUsedAway;
     _mvpHomeId = match.mvpHome;
     _mvpAwayId = match.mvpAway;
+
+    _applySavedAftermatchReport('home', _savedAftermatchReport(match, 'home'));
+    _applySavedAftermatchReport('away', _savedAftermatchReport(match, 'away'));
 
     for (final e in match.events) {
       final isHome = e.team == 'home';
@@ -570,16 +734,38 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
   }
 
   Future<void> _loadTeams(Match match) async {
-    if (_homeTeam != null) return;
-    final results = await _loadVisibleMatchTeams();
+    if (_homeTeam != null &&
+        _awayTeam != null &&
+        _homeBaseRoster != null &&
+        _awayBaseRoster != null) {
+      return;
+    }
+    final visibleTeams = await _loadVisibleMatchTeams();
+    final repo = ref.read(teamRepositoryProvider);
+    final rosterResults = await Future.wait([
+      repo.getBaseTeamDetail(visibleTeams.home.baseRosterId),
+      repo.getBaseTeamDetail(visibleTeams.away.baseRosterId),
+    ]);
     if (!mounted) return;
     setState(() {
-      _homeTeam = results.home;
-      _awayTeam = results.away;
-      _homeFanFactor = results.home.dedicatedFans;
-      _awayFanFactor = results.away.dedicatedFans;
-      _homeDedicatedFans = results.home.dedicatedFans;
-      _awayDedicatedFans = results.away.dedicatedFans;
+      _homeTeam = visibleTeams.home;
+      _awayTeam = visibleTeams.away;
+      _homeBaseRoster = rosterResults[0];
+      _awayBaseRoster = rosterResults[1];
+      _homeFanFactor = visibleTeams.home.dedicatedFans;
+      _awayFanFactor = visibleTeams.away.dedicatedFans;
+      _homeDedicatedFans = visibleTeams.home.dedicatedFans;
+      _awayDedicatedFans = visibleTeams.away.dedicatedFans;
+      _hydrateSavedPurchasesFromRoster(
+        'home',
+        _savedAftermatchReport(match, 'home'),
+        rosterResults[0],
+      );
+      _hydrateSavedPurchasesFromRoster(
+        'away',
+        _savedAftermatchReport(match, 'away'),
+        rosterResults[1],
+      );
     });
   }
 
@@ -799,12 +985,102 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
         .toList();
   }
 
+  _PendingTeamPurchases _pendingPurchases(String teamSide) =>
+      teamSide == 'home' ? _homePendingPurchases : _awayPendingPurchases;
+
+  UserTeamDetail? _teamForSide(String teamSide) =>
+      teamSide == 'home' ? _homeTeam : _awayTeam;
+
+  BaseTeam? _rosterForSide(String teamSide) =>
+      teamSide == 'home' ? _homeBaseRoster : _awayBaseRoster;
+
+  int _baseTreasuryAfterWinnings(String teamSide, [WinningsRules? rules]) {
+    final team = _teamForSide(teamSide);
+    if (team == null) return 0;
+    final winnings = teamSide == 'home'
+        ? _currentHomeWinnings(rules)
+        : _currentAwayWinnings(rules);
+    return team.treasury + winnings;
+  }
+
+  int _temporaryKeepCost(String teamSide) {
+    final team = _teamForSide(teamSide);
+    if (team == null) return 0;
+    final decisions = _storedTemporaryPlayerDecisionsForSide(teamSide);
+    return team.players
+        .where((player) =>
+            player.temporaryForMatch && decisions[player.id] == 'keep')
+        .fold<int>(0, (sum, player) => sum + player.currentValue);
+  }
+
+  int _pendingPurchaseCost(String teamSide) {
+    final team = _teamForSide(teamSide);
+    final purchases = _pendingPurchases(teamSide);
+    if (team == null) return 0;
+    final staffCost = purchases.players.fold<int>(
+          0,
+          (sum, player) => sum + player.cost,
+        ) +
+        (purchases.rerolls * team.rerollCost * 2) +
+        (purchases.cheerleaders * 10000) +
+        (purchases.assistantCoaches * 10000) +
+        (purchases.apothecary ? 50000 : 0);
+    return staffCost;
+  }
+
+  int _treasuryBeforeExpensiveMistakes(String teamSide,
+      [WinningsRules? rules]) {
+    final remaining = _baseTreasuryAfterWinnings(teamSide, rules) -
+        _temporaryKeepCost(teamSide) -
+        _pendingPurchaseCost(teamSide);
+    return max(0, remaining);
+  }
+
+  Map<String, String> _storedTemporaryPlayerDecisionsForSide(String teamSide) {
+    final matchAsync = _isQM
+        ? ref.read(_quickMatchDetailProvider(matchId)).valueOrNull
+        : ref
+            .read(_matchDetailProvider((leagueId: leagueId, matchId: matchId)))
+            .valueOrNull;
+    if (matchAsync == null) return {};
+    final decisions = _storedTemporaryPlayerDecisions(matchAsync);
+    final team = _teamForSide(teamSide);
+    if (team == null) return {};
+    final filtered = <String, String>{};
+    for (final player in team.players) {
+      final decision = decisions[player.id];
+      if (decision != null) filtered[player.id] = decision;
+    }
+    return filtered;
+  }
+
+  Map<String, dynamic> _teamPurchasesPayload(String teamSide) {
+    final purchases = _pendingPurchases(teamSide);
+    return {
+      'players': purchases.players
+          .map((player) => {
+                'base_type': player.baseType,
+                if (player.name != null && player.name!.trim().isNotEmpty)
+                  'name': player.name!.trim(),
+                if (player.number != null) 'number': player.number,
+              })
+          .toList(),
+      if (purchases.rerolls > 0) 'rerolls': purchases.rerolls,
+      if (purchases.cheerleaders > 0) 'cheerleaders': purchases.cheerleaders,
+      if (purchases.assistantCoaches > 0)
+        'assistant_coaches': purchases.assistantCoaches,
+      if (purchases.apothecary) 'apothecary': true,
+    };
+  }
+
   Map<String, dynamic> _winningsPayload() {
     return {
       'home_touchdowns': _tdHome,
       'away_touchdowns': _tdAway,
       'home_stalling': _homeStalling,
       'away_stalling': _awayStalling,
+      'home_purchases': _teamPurchasesPayload('home'),
+      'away_purchases': _teamPurchasesPayload('away'),
       'home_expensive_mistakes': {
         if (_homeExpensiveRoll != null) 'roll': _homeExpensiveRoll,
         if (_homeExpensiveD3 != null) 'd3': _homeExpensiveD3,
@@ -831,11 +1107,12 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
     };
   }
 
-  List<Map<String, dynamic>> _temporaryPlayerPayloads(Match match) {
+  List<Map<String, dynamic>> _temporaryPlayerPayloads(
+      Match match, League? league) {
     final decisions = _storedTemporaryPlayerDecisions(match);
     final payloads = <Map<String, dynamic>>[];
     void collect(UserTeamDetail? team, String side) {
-      if (team == null) return;
+      if (team == null || !_canManageSide(match, side, league)) return;
       for (final player in team.players) {
         if (!player.temporaryForMatch) continue;
         final decision = decisions[player.id] ?? 'release';
@@ -869,87 +1146,66 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
     return decisions;
   }
 
-  List<UserPlayer> _visiblePendingTemporaryDecisions(Match match) {
-    final tempData = ref.read(tempHiredPlayersProvider);
-    final decisions = _storedTemporaryPlayerDecisions(match);
-    final pending = <UserPlayer>[];
-
-    void collect(UserTeamDetail? team, String teamId) {
-      if (team == null) return;
-      final providerIds = tempData.getForTeam(teamId);
-      for (final player in team.players) {
-        final isStarPlayer = player.baseType.startsWith('star_');
-        final isVisible = _isVisibleTemporaryPlayer(player, providerIds);
-        final requiresDecision =
-            isVisible && player.journeyman && !isStarPlayer;
-        if (requiresDecision && !decisions.containsKey(player.id)) {
-          pending.add(player);
-        }
-      }
-    }
-
-    collect(_homeTeam, match.home.teamId);
-    collect(_awayTeam, match.away.teamId);
-    return pending;
-  }
-
-  String? _reportBlockReason(Match match) {
+  String? _reportBlockReason(Match match, League? league) {
     if (_homeTeam == null || _awayTeam == null) {
       return 'Cargando plantillas del partido';
     }
-    final homeMvp = _mvpHomeId ?? match.mvpHome;
-    final awayMvp = _mvpAwayId ?? match.mvpAway;
-    if (homeMvp == null) return 'Falta seleccionar el MVP local';
-    if (awayMvp == null) return 'Falta seleccionar el MVP visitante';
-    final overflow = _rosterOverflowReason(match);
+    final requireHome = _canManageSide(match, 'home', league);
+    final requireAway = _canManageSide(match, 'away', league);
+    final homeMvp = _mvpHomeId ??
+        match.mvpHome ??
+        _savedAftermatchReport(match, 'home')['mvp'];
+    final awayMvp = _mvpAwayId ??
+        match.mvpAway ??
+        _savedAftermatchReport(match, 'away')['mvp'];
+    if (requireHome && homeMvp == null) return 'Falta seleccionar el MVP local';
+    if (requireAway && awayMvp == null) {
+      return 'Falta seleccionar el MVP visitante';
+    }
+    final overflow = _rosterOverflowReason(match, league);
     if (overflow != null) return overflow;
     return null;
   }
 
-  /// Blocks submission if keeping the selected temporary players would push a
-  /// roster above the 16-player maximum. The user must release (deselect)
-  /// enough temporaries before continuing.
-  String? _rosterOverflowReason(Match match) {
-    final decisions = _storedTemporaryPlayerDecisions(match);
-
-    String? check(UserTeamDetail? team) {
-      if (team == null) return null;
-      final permanent = team.players.where((p) => !p.temporaryForMatch).length;
-      final kept = team.players
-          .where((p) =>
-              p.temporaryForMatch && (decisions[p.id] ?? 'release') == 'keep')
-          .length;
-      if (permanent + kept > 16) {
-        final excess = permanent + kept - 16;
+  String? _rosterOverflowReason(Match match, League? league) {
+    String? check(UserTeamDetail? team, String side) {
+      if (team == null || !_canManageSide(match, side, league)) return null;
+      final totalPlayers = _effectiveRosterCount(side);
+      if (totalPlayers > 16) {
+        final excess = totalPlayers - 16;
         return '${team.name}: superas el máximo de 16 jugadores. '
-            'Libera $excess temporal${excess == 1 ? '' : 'es'} antes de enviar.';
+            'Libera temporales o cancela ${excess == 1 ? '1 alta' : '$excess altas'} antes de enviar.';
       }
       return null;
     }
 
-    return check(_homeTeam) ?? check(_awayTeam);
+    return check(_homeTeam, 'home') ?? check(_awayTeam, 'away');
   }
 
-  Future<bool> _confirmSubmitAftermatch(Match match) async {
-    final keepCount = _temporaryPlayerPayloads(match)
+  Future<bool> _confirmSubmitAftermatch(Match match, League? league) async {
+    final keepCount = _temporaryPlayerPayloads(match, league)
         .where((entry) => entry['decision'] == 'keep')
         .length;
-    final releaseCount = _temporaryPlayerPayloads(match)
+    final releaseCount = _temporaryPlayerPayloads(match, league)
         .where((entry) => entry['decision'] == 'release')
         .length;
+    final isCommissioner = _isCommissioner(match, league);
     final result = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surface,
-        title: const Text(
-          'Enviar informe final',
-          style: TextStyle(color: AppColors.textPrimary),
+        title: Text(
+          isCommissioner
+              ? 'Enviar informe final'
+              : 'Enviar mi parte del informe',
+          style: const TextStyle(color: AppColors.textPrimary),
         ),
         content: Text(
-          'Esto aplicara SPP, ganancias, lesiones y decisiones de temporales. '
-          'Despues no se podra cambiar el post-partido.\n\n'
-          'Sustitutos a conservar: $keepCount\n'
-          'Temporales a liberar: $releaseCount',
+          isCommissioner
+              ? 'Esto aplicara SPP, ganancias, lesiones y decisiones de temporales. Despues no se podra cambiar el post-partido.\n\n'
+              : 'Se guardara tu parte del informe en el servidor de forma independiente. El comisario podra revisar y enviar el informe completo despues.\n\n'
+                  'Sustitutos a conservar: $keepCount\n'
+                  'Temporales a liberar: $releaseCount',
           style: const TextStyle(color: AppColors.textSecondary),
         ),
         actions: [
@@ -980,29 +1236,6 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
         _mvpAwayId = playerId;
       }
     });
-    try {
-      final updated = await ref.read(leagueRepositoryProvider).updateMatchState(
-            leagueId,
-            matchId,
-            mvpHome: isHome ? playerId : null,
-            mvpAway: isHome ? null : playerId,
-          );
-      if (!mounted) return;
-      setState(() {
-        _mvpHomeId = updated.mvpHome ?? _mvpHomeId;
-        _mvpAwayId = updated.mvpAway ?? _mvpAwayId;
-      });
-      ref.invalidate(
-          _matchDetailProvider((leagueId: leagueId, matchId: matchId)));
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error guardando MVP: $e'),
-          backgroundColor: AppColors.error,
-        ),
-      );
-    }
   }
 
   void _addPostMatchEvent(MatchEventDraft draft) {
@@ -1024,20 +1257,38 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
     });
   }
 
-  Future<void> _submitAfterMatch(Match match) async {
-    final blockReason = _reportBlockReason(match);
+  Future<void> _submitAfterMatch(Match match, League? league) async {
+    final isCommissioner = _isCommissioner(match, league);
+    final mySideSubmitted = _canManageSide(match, 'home', league)
+        ? match.aftermatchHomeSubmittedAt != null
+        : _canManageSide(match, 'away', league)
+            ? match.aftermatchAwaySubmittedAt != null
+            : false;
+    if (!isCommissioner && mySideSubmitted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Tu parte del informe ya fue enviada'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
+    final blockReason = _reportBlockReason(match, league);
     if (blockReason != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(blockReason), backgroundColor: AppColors.error),
       );
       return;
     }
-    final confirmed = await _confirmSubmitAftermatch(match);
+    final confirmed = await _confirmSubmitAftermatch(match, league);
     if (!confirmed) return;
 
     setState(() => _submitting = true);
     try {
       final repo = ref.read(leagueRepositoryProvider);
+      final canManageHome = _canManageSide(match, 'home', league);
+      final canManageAway = _canManageSide(match, 'away', league);
       final rules = ref.read(expensiveMistakesRulesProvider).valueOrNull;
       if (rules == null) {
         throw Exception('Reglas de errores costosos no cargadas');
@@ -1049,47 +1300,52 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
       if (ref.read(dedicatedFansRulesProvider).valueOrNull == null) {
         throw Exception('Reglas de seguidores entregados no cargadas');
       }
-      if (_scoreHome != _scoreAway && _homeFanRoll == null) {
+      if (_scoreHome != _scoreAway && canManageHome && _homeFanRoll == null) {
         throw Exception('Completa la tirada de seguidores del equipo local');
       }
-      if (_scoreHome != _scoreAway && _awayFanRoll == null) {
+      if (_scoreHome != _scoreAway && canManageAway && _awayFanRoll == null) {
         throw Exception(
             'Completa la tirada de seguidores del equipo visitante');
       }
       final homeTreasury =
-          (_homeTeam?.treasury ?? 0) + _currentHomeWinnings(winningsRules);
+          _treasuryBeforeExpensiveMistakes('home', winningsRules);
       final awayTreasury =
-          (_awayTeam?.treasury ?? 0) + _currentAwayWinnings(winningsRules);
-      final homeFinalTreasury = _expensiveFinalTreasury(
-        rules: rules,
-        treasury: homeTreasury,
-        result: _homeExpensiveRoll == null
-            ? null
-            : rules.resultFor(homeTreasury, _homeExpensiveRoll!),
-        d3: _homeExpensiveD3,
-        d6A: _homeCatastropheD6A,
-        d6B: _homeCatastropheD6B,
-      );
-      final awayFinalTreasury = _expensiveFinalTreasury(
-        rules: rules,
-        treasury: awayTreasury,
-        result: _awayExpensiveRoll == null
-            ? null
-            : rules.resultFor(awayTreasury, _awayExpensiveRoll!),
-        d3: _awayExpensiveD3,
-        d6A: _awayCatastropheD6A,
-        d6B: _awayCatastropheD6B,
-      );
-      if (homeFinalTreasury == null || awayFinalTreasury == null) {
+          _treasuryBeforeExpensiveMistakes('away', winningsRules);
+      final homeFinalTreasury = canManageHome
+          ? _expensiveFinalTreasury(
+              rules: rules,
+              treasury: homeTreasury,
+              result: _homeExpensiveRoll == null
+                  ? null
+                  : rules.resultFor(homeTreasury, _homeExpensiveRoll!),
+              d3: _homeExpensiveD3,
+              d6A: _homeCatastropheD6A,
+              d6B: _homeCatastropheD6B,
+            )
+          : 0;
+      final awayFinalTreasury = canManageAway
+          ? _expensiveFinalTreasury(
+              rules: rules,
+              treasury: awayTreasury,
+              result: _awayExpensiveRoll == null
+                  ? null
+                  : rules.resultFor(awayTreasury, _awayExpensiveRoll!),
+              d3: _awayExpensiveD3,
+              d6A: _awayCatastropheD6A,
+              d6B: _awayCatastropheD6B,
+            )
+          : 0;
+      if ((canManageHome && homeFinalTreasury == null) ||
+          (canManageAway && awayFinalTreasury == null)) {
         throw Exception('Completa las tiradas de errores costosos');
       }
 
-      final temporaryPlayers = _temporaryPlayerPayloads(match);
-      await repo.applyAftermatch(
+      final temporaryPlayers = _temporaryPlayerPayloads(match, league);
+      final updated = await repo.applyAftermatch(
         leagueId: leagueId,
         matchId: matchId,
-        mvpHome: _mvpHomeId ?? match.mvpHome,
-        mvpAway: _mvpAwayId ?? match.mvpAway,
+        mvpHome: canManageHome ? (_mvpHomeId ?? match.mvpHome) : null,
+        mvpAway: canManageAway ? (_mvpAwayId ?? match.mvpAway) : null,
         gate: _gate,
         postMatchEvents: _postMatchEventPayloads(),
         injuries: _injuryPayloads(),
@@ -1097,18 +1353,25 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
         dedicatedFans: _dedicatedFansPayload(),
         temporaryPlayers: temporaryPlayers,
       );
-      await repo.finalizeAftermatchRosters(
-        leagueId: leagueId,
-        matchId: matchId,
-        temporaryPlayers: temporaryPlayers,
-      );
 
       if (!mounted) return;
-      ref.read(tempHiredPlayersProvider).clear();
-      ref.invalidate(myUserTeamsProvider);
-      ref.invalidate(userTeamDetailProvider(match.home.teamId));
-      ref.invalidate(userTeamDetailProvider(match.away.teamId));
-      context.go('/league/$leagueId');
+      ref.invalidate(
+          _matchDetailProvider((leagueId: leagueId, matchId: matchId)));
+      ref.invalidate(_leagueProvider(leagueId));
+      if (updated.aftermatchSppAppliedAt != null) {
+        ref.read(tempHiredPlayersProvider).clear();
+        ref.invalidate(myUserTeamsProvider);
+        ref.invalidate(userTeamDetailProvider(match.home.teamId));
+        ref.invalidate(userTeamDetailProvider(match.away.teamId));
+        context.go('/league/$leagueId');
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Tu parte del informe se ha guardado correctamente.'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1132,6 +1395,8 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
         ? ref.watch(_quickMatchDetailProvider(matchId))
         : ref.watch(
             _matchDetailProvider((leagueId: leagueId, matchId: matchId)));
+    final league =
+        _isQM ? null : ref.watch(_leagueProvider(leagueId)).valueOrNull;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -1165,13 +1430,13 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
                     tempData.getForTeam(match.away.teamId).isNotEmpty;
             if (hasTempPlayers) _loadTeams(match);
           }
-          return _buildBody(match);
+          return _buildBody(match, league);
         },
       ),
     );
   }
 
-  Widget _buildBody(Match match) {
+  Widget _buildBody(Match match, League? league) {
     final wide = MediaQuery.of(context).size.width >= 900;
 
     // Quick match: show only statistics + back button
@@ -1235,17 +1500,17 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
                 const SizedBox(height: 28),
                 _buildLeaguePointsSection(match),
                 const SizedBox(height: 28),
-                _buildWinningsSection(),
+                _buildWinningsSection(match, league),
                 const SizedBox(height: 28),
-                _buildDedicatedFansSection(),
+                _buildDedicatedFansSection(match, league),
                 const SizedBox(height: 28),
-                _buildMvpSection(match),
+                _buildMvpSection(match, league),
                 const SizedBox(height: 28),
-                _buildExpensiveMistakesSection(),
+                _buildRosterManagementSection(match, league),
                 const SizedBox(height: 28),
-                _buildTempHiredPlayersSection(match),
+                _buildExpensiveMistakesSection(match, league),
                 const SizedBox(height: 36),
-                _buildSubmitButton(match),
+                _buildSubmitButton(match, league),
                 const SizedBox(height: 40),
               ],
             ),
@@ -2037,11 +2302,15 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
   // SECTION 2: Winnings
   // ═══════════════════════════════════════════════════════════
 
-  Widget _buildWinningsSection() {
+  Widget _buildWinningsSection(Match match, League? league) {
     final rules = ref.watch(winningsRulesProvider).valueOrNull;
     final homeWinnings = _currentHomeWinnings(rules);
     final awayWinnings = _currentAwayWinnings(rules);
     final lang = ref.watch(localeProvider);
+    final showHome = _canManageSide(match, 'home', league);
+    final showAway = _canManageSide(match, 'away', league);
+
+    if (!showHome && !showAway) return const SizedBox.shrink();
 
     return _sectionCard(
       icon: PhosphorIcons.coins(PhosphorIconsStyle.fill),
@@ -2072,7 +2341,7 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
             color: AppColors.error,
           );
 
-          if (isCompact) {
+          if (showHome && showAway && isCompact) {
             return Column(
               children: [
                 home,
@@ -2084,13 +2353,17 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
             );
           }
 
-          return Row(
-            children: [
-              Expanded(child: home),
-              Container(width: 1, height: 120, color: AppColors.surfaceLight),
-              Expanded(child: away),
-            ],
-          );
+          if (showHome && showAway) {
+            return Row(
+              children: [
+                Expanded(child: home),
+                Container(width: 1, height: 120, color: AppColors.surfaceLight),
+                Expanded(child: away),
+              ],
+            );
+          }
+
+          return showHome ? home : away;
         },
       ),
     );
@@ -2374,9 +2647,13 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
   // SECTION 3: Dedicated Fans
   // ═══════════════════════════════════════════════════════════
 
-  Widget _buildDedicatedFansSection() {
+  Widget _buildDedicatedFansSection(Match match, League? league) {
     final lang = ref.watch(localeProvider);
     final rules = ref.watch(dedicatedFansRulesProvider).valueOrNull;
+    final showHome = _canManageSide(match, 'home', league);
+    final showAway = _canManageSide(match, 'away', league);
+
+    if (!showHome && !showAway) return const SizedBox.shrink();
 
     return _sectionCard(
       icon: PhosphorIcons.users(PhosphorIconsStyle.fill),
@@ -2409,7 +2686,7 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
             color: AppColors.error,
           );
 
-          if (isCompact) {
+          if (showHome && showAway && isCompact) {
             return Column(
               children: [
                 home,
@@ -2421,13 +2698,17 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
             );
           }
 
-          return Row(
-            children: [
-              Expanded(child: home),
-              Container(width: 1, height: 100, color: AppColors.surfaceLight),
-              Expanded(child: away),
-            ],
-          );
+          if (showHome && showAway) {
+            return Row(
+              children: [
+                Expanded(child: home),
+                Container(width: 1, height: 100, color: AppColors.surfaceLight),
+                Expanded(child: away),
+              ],
+            );
+          }
+
+          return showHome ? home : away;
         },
       ),
     );
@@ -2785,12 +3066,16 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
   // SECTION 4: MVP
   // ═══════════════════════════════════════════════════════════
 
-  Widget _buildMvpSection(Match match) {
+  Widget _buildMvpSection(Match match, League? league) {
     final lang = ref.watch(localeProvider);
     final sppMap = _buildSppTallies(match);
     final tempData = ref.watch(tempHiredPlayersProvider);
     final homeTempIds = tempData.getForTeam(match.home.teamId);
     final awayTempIds = tempData.getForTeam(match.away.teamId);
+    final showHome = _canManageSide(match, 'home', league);
+    final showAway = _canManageSide(match, 'away', league);
+
+    if (!showHome && !showAway) return const SizedBox.shrink();
 
     return _sectionCard(
       icon: PhosphorIcons.star(PhosphorIconsStyle.fill),
@@ -2827,7 +3112,7 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
             color: AppColors.error,
           );
 
-          if (isCompact) {
+          if (showHome && showAway && isCompact) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -2838,14 +3123,18 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
             );
           }
 
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(child: home),
-              const SizedBox(width: 12),
-              Expanded(child: away),
-            ],
-          );
+          if (showHome && showAway) {
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: home),
+                const SizedBox(width: 12),
+                Expanded(child: away),
+              ],
+            );
+          }
+
+          return showHome ? home : away;
         },
       ),
     );
@@ -3335,31 +3624,6 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
         .toList();
   }
 
-  Widget _mvpStarRibbon(bool selected) {
-    return Container(
-      width: 34,
-      height: 34,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: selected
-            ? AppColors.accent.withValues(alpha: 0.22)
-            : AppColors.surface.withValues(alpha: 0.65),
-        border: Border.all(
-          color: selected
-              ? AppColors.accent
-              : AppColors.surfaceLight.withValues(alpha: 0.65),
-        ),
-      ),
-      child: Icon(
-        PhosphorIcons.star(
-            selected ? PhosphorIconsStyle.fill : PhosphorIconsStyle.regular),
-        size: 18,
-        color: selected ? AppColors.accent : AppColors.textMuted,
-      ),
-    );
-  }
-
   Widget _sppBadge(int points, {required VoidCallback onTap}) {
     return InkWell(
       onTap: onTap,
@@ -3504,17 +3768,761 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
   }
 
   // ═══════════════════════════════════════════════════════════
+  // SECTION 7: Roster Management
+  // ═══════════════════════════════════════════════════════════
+
+  Widget _buildRosterManagementSection(Match match, League? league) {
+    final winningsRules = ref.watch(winningsRulesProvider).valueOrNull;
+    final canManageHome = _canManageSide(match, 'home', league);
+    final canManageAway = _canManageSide(match, 'away', league);
+    final tempContent = _buildTempHiredPlayersContent(match, league);
+
+    if (!canManageHome && !canManageAway && tempContent == null) {
+      return const SizedBox.shrink();
+    }
+
+    return _sectionCard(
+      icon: PhosphorIcons.userGear(PhosphorIconsStyle.fill),
+      title: 'GESTION DE PLANTILLA',
+      subtitle:
+          'Las compras y los temporales que conserves se descuentan antes de Errores costosos.',
+      color: AppColors.accent,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (canManageHome)
+            _buildTeamPurchasePanel(
+              teamSide: 'home',
+              teamName: _homeTeam?.name ?? match.home.teamName,
+              color: AppColors.info,
+              winningsRules: winningsRules,
+            ),
+          if (canManageHome && canManageAway) const SizedBox(height: 16),
+          if (canManageAway)
+            _buildTeamPurchasePanel(
+              teamSide: 'away',
+              teamName: _awayTeam?.name ?? match.away.teamName,
+              color: AppColors.error,
+              winningsRules: winningsRules,
+            ),
+          if (tempContent != null) ...[
+            if (canManageHome || canManageAway) const SizedBox(height: 20),
+            const Divider(height: 1, color: AppColors.surfaceLight),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Icon(PhosphorIcons.userSwitch(PhosphorIconsStyle.fill),
+                    size: 16, color: AppColors.accent),
+                const SizedBox(width: 8),
+                const Text(
+                  'SUSTITUTOS Y TEMPORALES',
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Decide que jugadores temporales se quedan en la plantilla antes de la tirada de tesoreria.',
+              style: TextStyle(
+                color: AppColors.textMuted,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 12),
+            tempContent,
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTeamPurchasePanel({
+    required String teamSide,
+    required String teamName,
+    required Color color,
+    required WinningsRules? winningsRules,
+  }) {
+    final team = _teamForSide(teamSide);
+    final roster = _rosterForSide(teamSide);
+    if (team == null || roster == null) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.surfaceLight),
+        ),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2, color: color),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Cargando datos de $teamName...',
+                style: const TextStyle(color: AppColors.textMuted),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final purchases = _pendingPurchases(teamSide);
+    final treasuryAfterWinnings =
+        _baseTreasuryAfterWinnings(teamSide, winningsRules);
+    final temporaryKeepCost = _temporaryKeepCost(teamSide);
+    final purchaseCost = _pendingPurchaseCost(teamSide);
+    final remainingTreasury =
+        _treasuryBeforeExpensiveMistakes(teamSide, winningsRules);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withValues(alpha: 0.24)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  teamName,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              _fansStatusPill(
+                label:
+                    'Tesoreria + ganancias: ${_fmtGold(treasuryAfterWinnings)}',
+                color: color,
+                icon: PhosphorIcons.coins(PhosphorIconsStyle.fill),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              _purchaseCounterChip(
+                label: 'Rerrolls',
+                subtitle: '${_fmtGold(team.rerollCost * 2)} GP',
+                count: purchases.rerolls,
+                color: color,
+                onAdd: team.rerolls + purchases.rerolls >= 8
+                    ? null
+                    : () => _incrementTeamPurchase(
+                          teamSide,
+                          purchaseType: 'reroll',
+                          cost: team.rerollCost * 2,
+                        ),
+                onRemove: purchases.rerolls == 0
+                    ? null
+                    : () => _decrementTeamPurchase(teamSide,
+                        purchaseType: 'reroll'),
+              ),
+              _purchaseCounterChip(
+                label: 'Ayudantes',
+                subtitle: '10,000 GP',
+                count: purchases.assistantCoaches,
+                color: color,
+                onAdd: team.assistantCoaches + purchases.assistantCoaches >= 6
+                    ? null
+                    : () => _incrementTeamPurchase(
+                          teamSide,
+                          purchaseType: 'assistant',
+                          cost: 10000,
+                        ),
+                onRemove: purchases.assistantCoaches == 0
+                    ? null
+                    : () => _decrementTeamPurchase(
+                          teamSide,
+                          purchaseType: 'assistant',
+                        ),
+              ),
+              _purchaseCounterChip(
+                label: 'Animadoras',
+                subtitle: '10,000 GP',
+                count: purchases.cheerleaders,
+                color: color,
+                onAdd: team.cheerleaders + purchases.cheerleaders >= 6
+                    ? null
+                    : () => _incrementTeamPurchase(
+                          teamSide,
+                          purchaseType: 'cheerleader',
+                          cost: 10000,
+                        ),
+                onRemove: purchases.cheerleaders == 0
+                    ? null
+                    : () => _decrementTeamPurchase(
+                          teamSide,
+                          purchaseType: 'cheerleader',
+                        ),
+              ),
+              _purchaseToggleChip(
+                label: 'Boticario',
+                subtitle: team.apothecary
+                    ? 'Ya disponible'
+                    : !team.apothecaryAllowed
+                        ? 'No permitido'
+                        : '50,000 GP',
+                selected: purchases.apothecary,
+                color: color,
+                enabled: !team.apothecary && team.apothecaryAllowed,
+                onTap: () => _toggleApothecaryPurchase(teamSide),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'Jugadores permanentes a precio normal del roster.',
+                  style: TextStyle(
+                    color: AppColors.textMuted,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              OutlinedButton.icon(
+                onPressed: () => _showPlayerPurchaseDialog(teamSide),
+                icon: Icon(PhosphorIcons.userPlus(PhosphorIconsStyle.bold),
+                    size: 16),
+                label: const Text('Comprar jugador'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: color,
+                  side: BorderSide(color: color.withValues(alpha: 0.4)),
+                ),
+              ),
+            ],
+          ),
+          if (purchases.players.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            ...List.generate(purchases.players.length, (index) {
+              final player = purchases.players[index];
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: color.withValues(alpha: 0.18)),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            player.name?.trim().isNotEmpty == true
+                                ? player.name!.trim()
+                                : player.positionName,
+                            style: const TextStyle(
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '${player.positionName} · ${player.number != null ? '#${player.number}' : 'Numero automatico'} · ${_fmtGold(player.cost)} GP',
+                            style: const TextStyle(
+                              color: AppColors.textMuted,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: 'Quitar',
+                      onPressed: () =>
+                          _removePendingPlayerPurchase(teamSide, index),
+                      icon: Icon(PhosphorIcons.x(PhosphorIconsStyle.bold),
+                          color: AppColors.error, size: 16),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 10,
+            runSpacing: 8,
+            children: [
+              _fansStatusPill(
+                label: 'Temporales conservados: ${_fmtGold(temporaryKeepCost)}',
+                color: AppColors.warning,
+                icon: PhosphorIcons.userCheck(PhosphorIconsStyle.fill),
+              ),
+              _fansStatusPill(
+                label: 'Compras: ${_fmtGold(purchaseCost)}',
+                color: AppColors.primary,
+                icon: PhosphorIcons.shoppingCart(PhosphorIconsStyle.fill),
+              ),
+              _fansStatusPill(
+                label:
+                    'Antes de errores costosos: ${_fmtGold(remainingTreasury)}',
+                color: AppColors.accent,
+                icon: PhosphorIcons.coins(PhosphorIconsStyle.fill),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _purchaseCounterChip({
+    required String label,
+    required String subtitle,
+    required int count,
+    required Color color,
+    required VoidCallback? onAdd,
+    required VoidCallback? onRemove,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.18)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label,
+                  style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800)),
+              Text(subtitle,
+                  style: const TextStyle(
+                      color: AppColors.textMuted,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600)),
+            ],
+          ),
+          const SizedBox(width: 10),
+          IconButton(
+            visualDensity: VisualDensity.compact,
+            onPressed: onRemove,
+            icon: Icon(PhosphorIcons.minus(PhosphorIconsStyle.bold), size: 14),
+            color: color,
+          ),
+          Text('$count',
+              style: TextStyle(
+                  color: color, fontWeight: FontWeight.w900, fontSize: 13)),
+          IconButton(
+            visualDensity: VisualDensity.compact,
+            onPressed: onAdd,
+            icon: Icon(PhosphorIcons.plus(PhosphorIconsStyle.bold), size: 14),
+            color: color,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _purchaseToggleChip({
+    required String label,
+    required String subtitle,
+    required bool selected,
+    required bool enabled,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: enabled ? onTap : null,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: selected
+              ? color.withValues(alpha: 0.16)
+              : AppColors.surfaceLight.withValues(alpha: 0.28),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: enabled
+                ? color.withValues(alpha: selected ? 0.5 : 0.22)
+                : AppColors.surfaceLight,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label,
+                    style: TextStyle(
+                        color: enabled
+                            ? AppColors.textPrimary
+                            : AppColors.textMuted,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800)),
+                Text(subtitle,
+                    style: const TextStyle(
+                        color: AppColors.textMuted,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600)),
+              ],
+            ),
+            const SizedBox(width: 10),
+            Icon(
+              selected
+                  ? PhosphorIcons.checkCircle(PhosphorIconsStyle.fill)
+                  : PhosphorIcons.plusCircle(PhosphorIconsStyle.bold),
+              size: 16,
+              color: enabled ? color : AppColors.textMuted,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _incrementTeamPurchase(
+    String teamSide, {
+    required String purchaseType,
+    required int cost,
+  }) {
+    final remaining = _treasuryBeforeExpensiveMistakes(
+      teamSide,
+      ref.read(winningsRulesProvider).valueOrNull,
+    );
+    if (remaining < cost) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No hay tesoreria suficiente para esa compra'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+    final purchases = _pendingPurchases(teamSide);
+    setState(() {
+      switch (purchaseType) {
+        case 'reroll':
+          purchases.rerolls++;
+        case 'assistant':
+          purchases.assistantCoaches++;
+        case 'cheerleader':
+          purchases.cheerleaders++;
+      }
+    });
+  }
+
+  void _decrementTeamPurchase(String teamSide, {required String purchaseType}) {
+    final purchases = _pendingPurchases(teamSide);
+    setState(() {
+      switch (purchaseType) {
+        case 'reroll':
+          if (purchases.rerolls > 0) purchases.rerolls--;
+        case 'assistant':
+          if (purchases.assistantCoaches > 0) purchases.assistantCoaches--;
+        case 'cheerleader':
+          if (purchases.cheerleaders > 0) purchases.cheerleaders--;
+      }
+    });
+  }
+
+  void _toggleApothecaryPurchase(String teamSide) {
+    final remaining = _treasuryBeforeExpensiveMistakes(
+      teamSide,
+      ref.read(winningsRulesProvider).valueOrNull,
+    );
+    final purchases = _pendingPurchases(teamSide);
+    if (!purchases.apothecary && remaining < 50000) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No hay tesoreria suficiente para comprar boticario'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+    setState(() {
+      purchases.apothecary = !purchases.apothecary;
+    });
+  }
+
+  int _effectiveRosterCount(String teamSide) {
+    final team = _teamForSide(teamSide);
+    if (team == null) return 0;
+    final decisions = _storedTemporaryPlayerDecisionsForSide(teamSide);
+    final permanent =
+        team.players.where((player) => !player.temporaryForMatch).length;
+    final keptTemporary = team.players
+        .where((player) =>
+            player.temporaryForMatch && decisions[player.id] == 'keep')
+        .length;
+    return permanent +
+        keptTemporary +
+        _pendingPurchases(teamSide).players.length;
+  }
+
+  int _effectiveCountForBaseType(String teamSide, String baseType) {
+    final team = _teamForSide(teamSide);
+    if (team == null) return 0;
+    final decisions = _storedTemporaryPlayerDecisionsForSide(teamSide);
+    final existing = team.players.where((player) {
+      if (player.baseType != baseType) return false;
+      if (!player.temporaryForMatch) return true;
+      return decisions[player.id] == 'keep';
+    }).length;
+    final pending = _pendingPurchases(teamSide)
+        .players
+        .where((player) => player.baseType == baseType)
+        .length;
+    return existing + pending;
+  }
+
+  int _nextAvailablePlannedNumber(String teamSide) {
+    final team = _teamForSide(teamSide);
+    if (team == null) return 1;
+    final decisions = _storedTemporaryPlayerDecisionsForSide(teamSide);
+    final used = <int>{
+      for (final player in team.players)
+        if (!player.temporaryForMatch || decisions[player.id] == 'keep')
+          player.number,
+      for (final player in _pendingPurchases(teamSide).players)
+        if (player.number != null) player.number!,
+    };
+    for (var number = 1; number <= 99; number++) {
+      if (!used.contains(number)) return number;
+    }
+    return 99;
+  }
+
+  Future<void> _showPlayerPurchaseDialog(String teamSide) async {
+    final roster = _rosterForSide(teamSide);
+    final team = _teamForSide(teamSide);
+    if (roster == null || team == null) return;
+    final winningsRules = ref.read(winningsRulesProvider).valueOrNull;
+    final remaining = _treasuryBeforeExpensiveMistakes(teamSide, winningsRules);
+    final rosterCount = _effectiveRosterCount(teamSide);
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: Text('Comprar jugador para ${team.name}'),
+        content: SizedBox(
+          width: 720,
+          child: rosterCount >= 16
+              ? const Text(
+                  'La plantilla ya alcanzaria 16 jugadores con las compras planificadas.',
+                  style: TextStyle(color: AppColors.textMuted),
+                )
+              : ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: roster.positions.length,
+                  separatorBuilder: (_, __) => const Divider(
+                    height: 1,
+                    color: AppColors.surfaceLight,
+                  ),
+                  itemBuilder: (_, index) {
+                    final position = roster.positions[index];
+                    final count =
+                        _effectiveCountForBaseType(teamSide, position.id);
+                    final canBuy = count < position.maxQuantity &&
+                        remaining >= position.cost;
+                    return ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(position.name),
+                      subtitle: Text(
+                        '$count/${position.maxQuantity} · ${_fmtGold(position.cost)} GP',
+                        style: const TextStyle(color: AppColors.textMuted),
+                      ),
+                      trailing: ElevatedButton(
+                        onPressed: canBuy
+                            ? () async {
+                                Navigator.of(dialogContext).pop();
+                                await _showPlayerPurchaseDetailsDialog(
+                                  teamSide,
+                                  position,
+                                );
+                              }
+                            : null,
+                        child: const Text('Elegir'),
+                      ),
+                    );
+                  },
+                ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showPlayerPurchaseDetailsDialog(
+    String teamSide,
+    BasePosition position,
+  ) async {
+    final nameCtrl = TextEditingController();
+    final numberCtrl =
+        TextEditingController(text: '${_nextAvailablePlannedNumber(teamSide)}');
+    try {
+      final confirmed = await showDialog<bool>(
+            context: context,
+            builder: (dialogContext) => AlertDialog(
+              backgroundColor: AppColors.surface,
+              title: Text('Fichar ${position.name}'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: nameCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Nombre (opcional)',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: numberCtrl,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Numero',
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Coste: ${_fmtGold(position.cost)} GP',
+                      style: const TextStyle(
+                        color: AppColors.textMuted,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(false),
+                  child: const Text('Cancelar'),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(true),
+                  child: const Text('Anadir'),
+                ),
+              ],
+            ),
+          ) ??
+          false;
+
+      if (!confirmed) return;
+
+      final remaining = _treasuryBeforeExpensiveMistakes(
+        teamSide,
+        ref.read(winningsRulesProvider).valueOrNull,
+      );
+      if (_effectiveRosterCount(teamSide) >= 16) {
+        throw Exception('La plantilla ya alcanzaria 16 jugadores');
+      }
+      if (_effectiveCountForBaseType(teamSide, position.id) >=
+          position.maxQuantity) {
+        throw Exception('Ya has alcanzado el maximo para esa posicion');
+      }
+      if (remaining < position.cost) {
+        throw Exception('No hay tesoreria suficiente para esta compra');
+      }
+
+      final parsedNumber = int.tryParse(numberCtrl.text.trim());
+      if (parsedNumber == null || parsedNumber < 1 || parsedNumber > 99) {
+        throw Exception('El numero debe estar entre 1 y 99');
+      }
+      final decisions = _storedTemporaryPlayerDecisionsForSide(teamSide);
+      final usedNumber = _pendingPurchases(teamSide).players.any(
+                (player) => player.number == parsedNumber,
+              ) ||
+          (_teamForSide(teamSide)?.players.any(
+                    (player) =>
+                        player.number == parsedNumber &&
+                        !player.isDead &&
+                        (!player.temporaryForMatch ||
+                            decisions[player.id] == 'keep'),
+                  ) ??
+              false);
+      if (usedNumber) {
+        throw Exception('Ese numero ya esta ocupado');
+      }
+
+      setState(() {
+        _pendingPurchases(teamSide).players.add(
+              _PendingPlayerPurchase(
+                baseType: position.id,
+                positionName: position.name,
+                name:
+                    nameCtrl.text.trim().isEmpty ? null : nameCtrl.text.trim(),
+                number: parsedNumber,
+                cost: position.cost,
+              ),
+            );
+      });
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('$e'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    } finally {
+      nameCtrl.dispose();
+      numberCtrl.dispose();
+    }
+  }
+
+  void _removePendingPlayerPurchase(String teamSide, int index) {
+    setState(() {
+      final players = _pendingPurchases(teamSide).players;
+      if (index >= 0 && index < players.length) {
+        players.removeAt(index);
+      }
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════════
   // SECTION 7: Expensive Mistakes
   // ═══════════════════════════════════════════════════════════
 
-  Widget _buildExpensiveMistakesSection() {
+  Widget _buildExpensiveMistakesSection(Match match, League? league) {
     final lang = ref.watch(localeProvider);
     final rulesAsync = ref.watch(expensiveMistakesRulesProvider);
     final winningsRules = ref.watch(winningsRulesProvider).valueOrNull;
     final homeTreasury =
-        (_homeTeam?.treasury ?? 0) + _currentHomeWinnings(winningsRules);
+        _treasuryBeforeExpensiveMistakes('home', winningsRules);
     final awayTreasury =
-        (_awayTeam?.treasury ?? 0) + _currentAwayWinnings(winningsRules);
+        _treasuryBeforeExpensiveMistakes('away', winningsRules);
+    final showHome = _canManageSide(match, 'home', league);
+    final showAway = _canManageSide(match, 'away', league);
+
+    if (!showHome && !showAway) return const SizedBox.shrink();
 
     return _sectionCard(
       icon: PhosphorIcons.warning(PhosphorIconsStyle.fill),
@@ -3585,7 +4593,7 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
               color: AppColors.error,
             );
 
-            if (isCompact) {
+            if (showHome && showAway && isCompact) {
               return Column(
                 children: [
                   home,
@@ -3597,13 +4605,18 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
               );
             }
 
-            return Row(
-              children: [
-                Expanded(child: home),
-                Container(width: 1, height: 170, color: AppColors.surfaceLight),
-                Expanded(child: away),
-              ],
-            );
+            if (showHome && showAway) {
+              return Row(
+                children: [
+                  Expanded(child: home),
+                  Container(
+                      width: 1, height: 170, color: AppColors.surfaceLight),
+                  Expanded(child: away),
+                ],
+              );
+            }
+
+            return showHome ? home : away;
           },
         ),
       ),
@@ -3829,28 +4842,80 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
   // Temporary Hired Players
   // ═══════════════════════════════════════════════════════════
 
-  Widget _buildTempHiredPlayersSection(Match match) {
+  Widget? _buildTempHiredPlayersContent(Match match, League? league) {
     final sppMap = _buildSppTallies(match);
     final tempData = ref.read(tempHiredPlayersProvider);
     final homeId = match.home.teamId;
     final awayId = match.away.teamId;
     final homeTempIds = tempData.getForTeam(homeId);
     final awayTempIds = tempData.getForTeam(awayId);
+    final showHomeTempPlayers = _canManageSide(match, 'home', league);
+    final showAwayTempPlayers = _canManageSide(match, 'away', league);
 
     List<UserPlayer> homeTempPlayers = [];
     List<UserPlayer> awayTempPlayers = [];
-    if (_homeTeam != null) {
+    if (_homeTeam != null && showHomeTempPlayers) {
       homeTempPlayers = _homeTeam!.players
           .where((p) => _isVisibleTemporaryPlayer(p, homeTempIds))
           .toList();
     }
-    if (_awayTeam != null) {
+    if (_awayTeam != null && showAwayTempPlayers) {
       awayTempPlayers = _awayTeam!.players
           .where((p) => _isVisibleTemporaryPlayer(p, awayTempIds))
           .toList();
     }
 
     if (homeTempPlayers.isEmpty && awayTempPlayers.isEmpty) {
+      return null;
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (homeTempPlayers.isNotEmpty) ...[
+          Text(
+            _homeTeam?.name ?? match.home.teamName,
+            style: const TextStyle(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.bold,
+                fontSize: 13),
+          ),
+          const SizedBox(height: 8),
+          ...homeTempPlayers.map((p) => _buildTempPlayerRow(
+                p,
+                match,
+                homeId,
+                'home',
+                spp: sppMap['home:${p.id}']?.total ?? 0,
+                isStarPlayer: p.baseType.startsWith('star_'),
+              )),
+          const SizedBox(height: 16),
+        ],
+        if (awayTempPlayers.isNotEmpty) ...[
+          Text(
+            _awayTeam?.name ?? match.away.teamName,
+            style: const TextStyle(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.bold,
+                fontSize: 13),
+          ),
+          const SizedBox(height: 8),
+          ...awayTempPlayers.map((p) => _buildTempPlayerRow(
+                p,
+                match,
+                awayId,
+                'away',
+                spp: sppMap['away:${p.id}']?.total ?? 0,
+                isStarPlayer: p.baseType.startsWith('star_'),
+              )),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildTempHiredPlayersSection(Match match) {
+    final content = _buildTempHiredPlayersContent(match, null);
+    if (content == null) {
       return const SizedBox.shrink();
     }
 
@@ -3859,48 +4924,7 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
       title: 'SUSTITUTOS Y TEMPORALES',
       subtitle: 'Ficha los temporales que quieras conservar.',
       color: AppColors.accent,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (homeTempPlayers.isNotEmpty) ...[
-            Text(
-              _homeTeam?.name ?? match.home.teamName,
-              style: const TextStyle(
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13),
-            ),
-            const SizedBox(height: 8),
-            ...homeTempPlayers.map((p) => _buildTempPlayerRow(
-                  p,
-                  match,
-                  homeId,
-                  'home',
-                  spp: sppMap['home:${p.id}']?.total ?? 0,
-                  isStarPlayer: p.baseType.startsWith('star_'),
-                )),
-            const SizedBox(height: 16),
-          ],
-          if (awayTempPlayers.isNotEmpty) ...[
-            Text(
-              _awayTeam?.name ?? match.away.teamName,
-              style: const TextStyle(
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13),
-            ),
-            const SizedBox(height: 8),
-            ...awayTempPlayers.map((p) => _buildTempPlayerRow(
-                  p,
-                  match,
-                  awayId,
-                  'away',
-                  spp: sppMap['away:${p.id}']?.total ?? 0,
-                  isStarPlayer: p.baseType.startsWith('star_'),
-                )),
-          ],
-        ],
-      ),
+      child: content,
     );
   }
 
@@ -4060,7 +5084,6 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
     setState(() {
       _temporaryPlayerDecisions[player.id] = 'keep';
     });
-    await _persistTemporaryPlayerDecision(player, teamSide, 'keep');
   }
 
   Future<void> _releaseTempPlayer(
@@ -4069,7 +5092,6 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
       setState(() {
         _temporaryPlayerDecisions[player.id] = 'release';
       });
-      await _persistTemporaryPlayerDecision(player, teamSide, 'release');
       return;
     }
 
@@ -4105,43 +5127,19 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
     }
   }
 
-  Future<void> _persistTemporaryPlayerDecision(
-    UserPlayer player,
-    String teamSide,
-    String decision,
-  ) async {
-    try {
-      final updated = await ref.read(leagueRepositoryProvider).addMatchEvent(
-            leagueId,
-            matchId,
-            type: 'temporary_player_decision',
-            team: teamSide,
-            playerId: player.id,
-            playerName: player.name,
-            detail: 'decision=$decision',
-          );
-      if (!mounted) return;
-      _mvpHomeId = updated.mvpHome ?? _mvpHomeId;
-      _mvpAwayId = updated.mvpAway ?? _mvpAwayId;
-      ref.invalidate(
-          _matchDetailProvider((leagueId: leagueId, matchId: matchId)));
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error guardando decision: $e'),
-          backgroundColor: AppColors.error,
-        ),
-      );
-    }
-  }
-
   // ═══════════════════════════════════════════════════════════
   // Submit
   // ═══════════════════════════════════════════════════════════
 
-  Widget _buildSubmitButton(Match match) {
-    final blockReason = _reportBlockReason(match);
+  Widget _buildSubmitButton(Match match, League? league) {
+    final blockReason = _reportBlockReason(match, league);
+    final isCommissioner = _isCommissioner(match, league);
+    final mySideSubmitted = _canManageSide(match, 'home', league)
+        ? match.aftermatchHomeSubmittedAt != null
+        : _canManageSide(match, 'away', league)
+            ? match.aftermatchAwaySubmittedAt != null
+            : false;
+    final isLocked = !isCommissioner && mySideSubmitted;
     return SizedBox(
       width: double.infinity,
       height: 52,
@@ -4157,7 +5155,12 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
         label: Text(
           _submitting
               ? 'SUBMITTING...'
-              : blockReason ?? 'SUBMIT POST-MATCH REPORT',
+              : isLocked
+                  ? 'INFORME ENVIADO'
+                  : blockReason ??
+                      (isCommissioner
+                          ? 'ENVIAR INFORME FINAL'
+                          : 'ENVIAR MI INFORME'),
           style: TextStyle(
               fontFamily: AppTypography.displayFontFamily,
               fontSize: blockReason == null ? 16 : 13,
@@ -4165,13 +5168,16 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
               letterSpacing: 0),
         ),
         style: ElevatedButton.styleFrom(
-          backgroundColor:
-              blockReason == null ? AppColors.primary : AppColors.surfaceLight,
+          backgroundColor: blockReason == null && !isLocked
+              ? AppColors.primary
+              : AppColors.surfaceLight,
           foregroundColor: Colors.white,
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         ),
-        onPressed: _submitting ? null : () => _submitAfterMatch(match),
+        onPressed: _submitting || isLocked
+            ? null
+            : () => _submitAfterMatch(match, league),
       ),
     );
   }
@@ -4259,33 +5265,6 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
           child,
         ],
       ),
-    );
-  }
-
-  Widget _numField(int value, ValueChanged<int> onChanged, {int max = 999999}) {
-    return TextField(
-      controller: TextEditingController(text: '$value'),
-      keyboardType: TextInputType.number,
-      textAlign: TextAlign.center,
-      style: const TextStyle(
-          color: AppColors.textPrimary,
-          fontSize: 17,
-          fontWeight: FontWeight.w700),
-      decoration: InputDecoration(
-        isDense: true,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-        border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: AppColors.surfaceLight)),
-        enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: AppColors.surfaceLight)),
-      ),
-      onSubmitted: (v) {
-        final parsed = int.tryParse(v);
-        if (parsed != null) onChanged(parsed.clamp(0, max));
-      },
     );
   }
 
