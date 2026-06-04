@@ -350,7 +350,10 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
   Widget _buildDraftView(League league, bool isWideScreen) {
     final lang = ref.watch(localeProvider);
     final currentUserId = ref.watch(authStateProvider).valueOrNull?.user?.id;
-    final isOwner = currentUserId != null && league.ownerId == currentUserId;
+    final isOwner = currentUserId != null && league.isCommissioner;
+    final commissionerLabel = league.commissionerUsernames.isNotEmpty
+        ? league.commissionerUsernames.join(', ')
+        : league.ownerUsername;
 
     return SingleChildScrollView(
       padding: EdgeInsets.all(isWideScreen ? 24 : 16),
@@ -514,7 +517,7 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
                   _buildInfoRow(tr(lang, 'createLeague.description'),
                       league.description!),
                 _buildInfoRow(
-                    tr(lang, 'league.commissioner'), league.ownerUsername),
+                    tr(lang, 'league.commissioner'), commissionerLabel),
                 _buildInfoRow(
                     tr(lang, 'createLeague.maxTeams'), '${league.maxTeams}'),
                 if (league.rules != null) ...[
@@ -1262,7 +1265,7 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
     final currentUserId = ref.watch(authStateProvider).valueOrNull?.user?.id;
     final canEditCalendar = !_isDebugLeague &&
         currentUserId != null &&
-        league.ownerId == currentUserId &&
+        league.isCommissioner &&
         league.status == LeagueStatus.active;
 
     return matchesAsync.when(

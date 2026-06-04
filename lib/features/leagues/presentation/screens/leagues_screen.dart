@@ -299,7 +299,7 @@ class _LeaguesScreenState extends ConsumerState<LeaguesScreen> {
       List<LeagueSummaryModel> leagues, bool isCompact, String lang) {
     final activeCount = leagues.where((league) => league.isActive).length;
     final draftCount = leagues.where((league) => league.isDraft).length;
-    final ownedCount = leagues.where((league) => league.isOwner).length;
+    final ownedCount = leagues.where((league) => league.isCommissioner).length;
     final totalTeams = leagues.fold<int>(
       0,
       (sum, league) => sum + league.teamCount,
@@ -508,7 +508,7 @@ class _LeaguesScreenState extends ConsumerState<LeaguesScreen> {
                     child: _DashboardLeagueCard(
                       league: l,
                       lang: lang,
-                      onManage: l.isOwner
+                      onManage: l.isCommissioner
                           ? () => _showManageDialog(context, l)
                           : null,
                     ),
@@ -529,8 +529,9 @@ class _LeaguesScreenState extends ConsumerState<LeaguesScreen> {
                   league: l,
                   lang: lang,
                   isListView: true,
-                  onManage:
-                      l.isOwner ? () => _showManageDialog(context, l) : null,
+                  onManage: l.isCommissioner
+                      ? () => _showManageDialog(context, l)
+                      : null,
                 ),
               ))
           .toList(),
@@ -547,12 +548,17 @@ class _LeaguesScreenState extends ConsumerState<LeaguesScreen> {
 
     if (action == null || !mounted) return;
 
+    if (action == 'backoffice') {
+      this.context.push('/league/${league.id}/backoffice');
+      return;
+    }
+
     try {
       if (action == 'archive') {
         await ref.read(leagueRepositoryProvider).archiveLeague(league.id);
         ref.invalidate(myLeaguesSummaryProvider);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          ScaffoldMessenger.of(this.context).showSnackBar(
             SnackBar(
               content:
                   Text(trf(lang, 'leagues.archived', {'name': league.name})),
@@ -564,7 +570,7 @@ class _LeaguesScreenState extends ConsumerState<LeaguesScreen> {
         await ref.read(leagueRepositoryProvider).deleteLeague(league.id);
         ref.invalidate(myLeaguesSummaryProvider);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          ScaffoldMessenger.of(this.context).showSnackBar(
             SnackBar(
               content:
                   Text(trf(lang, 'leagues.deleted', {'name': league.name})),
@@ -575,7 +581,7 @@ class _LeaguesScreenState extends ConsumerState<LeaguesScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(this.context).showSnackBar(
           SnackBar(
             content: Text(trf(lang, 'common.error', {'e': e.toString()})),
             backgroundColor: AppColors.error,
@@ -985,7 +991,7 @@ class _DashboardLeagueCard extends StatelessWidget {
                       Expanded(
                         child: _buildCta(context),
                       ),
-                      if (league.isOwner) ...[
+                      if (league.isCommissioner) ...[
                         const SizedBox(width: 10),
                         OutlinedButton.icon(
                           onPressed: onManage,
@@ -1085,7 +1091,7 @@ class _DashboardLeagueCard extends StatelessWidget {
                               ),
                             ),
                           ),
-                          if (league.isOwner) ...[
+                          if (league.isCommissioner) ...[
                             const SizedBox(width: 6),
                             Container(
                               padding: const EdgeInsets.symmetric(
@@ -1384,6 +1390,16 @@ class _ManageLeagueDialog extends StatelessWidget {
                     const TextStyle(fontSize: 13, color: AppColors.textMuted),
               ),
               const SizedBox(height: 20),
+              _ManageOption(
+                icon: PhosphorIcons.buildings(PhosphorIconsStyle.fill),
+                color: AppColors.info,
+                title: 'Backoffice de liga',
+                description:
+                    'Abre un panel unico para retocar datos de la liga y editar manualmente tesoreria, rerolls, factor de hinchas y otros parametros de los equipos inscritos.',
+                enabled: true,
+                onTap: () => Navigator.of(context).pop('backoffice'),
+              ),
+              const SizedBox(height: 12),
               // Archive option
               _ManageOption(
                 icon: PhosphorIcons.trophy(PhosphorIconsStyle.fill),

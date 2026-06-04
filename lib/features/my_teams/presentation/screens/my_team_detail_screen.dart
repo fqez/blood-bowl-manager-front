@@ -1,4 +1,6 @@
 // GENERATED: full rewrite to match roster management UI
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
@@ -11,6 +13,7 @@ import '../../../../core/l10n/translations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/theme_context.dart';
 import '../../../auth/data/providers/auth_provider.dart';
+import '../../../league/domain/models/league.dart';
 import '../../../roster/domain/models/team.dart';
 import '../../../shared/data/repositories.dart';
 import '../../../shared/presentation/widgets/skill_popup.dart';
@@ -25,7 +28,22 @@ final userTeamDetailProvider =
   if (key.startsWith('share:')) {
     return repository.getUserTeamByShareCode(key.substring(6));
   }
+  if (key.startsWith('league|')) {
+    final payload = key.substring(7);
+    final splitAt = payload.indexOf('|');
+    if (splitAt <= 0 || splitAt >= payload.length - 1) {
+      throw StateError('Invalid league team detail key: $key');
+    }
+    final leagueId = payload.substring(0, splitAt);
+    final teamId = payload.substring(splitAt + 1);
+    return repository.getUserTeamDetail(teamId, leagueId: leagueId);
+  }
   return repository.getUserTeamDetail(key);
+});
+
+final _leagueContextProvider =
+    FutureProvider.autoDispose.family<League, String>((ref, leagueId) async {
+  return ref.watch(leagueRepositoryProvider).getLeague(leagueId);
 });
 
 final _baseRosterDetailProvider =
@@ -62,6 +80,13 @@ class MyTeamDetailScreen extends ConsumerStatefulWidget {
 
 class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
   static final _goldFmt = NumberFormat('#,###');
+  static const double _columnResizeHandleWidth = 12;
+  static const double _defaultNameColumnWidth = 190;
+  static const double _defaultPositionColumnWidth = 132;
+  static const double _minNameColumnWidth = 150;
+  static const double _maxNameColumnWidth = 320;
+  static const double _minPositionColumnWidth = 96;
+  static const double _maxPositionColumnWidth = 240;
   String _fmtGold(int amount) => _goldFmt.format(amount);
 
   final _searchController = TextEditingController();
@@ -75,9 +100,13 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
   bool _isMutating = false;
   _TeamRosterSortColumn _rosterSortColumn = _TeamRosterSortColumn.number;
   bool _rosterSortAscending = true;
+  double _nameColumnWidth = _defaultNameColumnWidth;
+  double _positionColumnWidth = _defaultPositionColumnWidth;
 
   String get _detailKey => widget.shareCode == null
-      ? widget.teamId
+      ? (widget.leagueId == null
+          ? widget.teamId
+          : 'league|${widget.leagueId}|${widget.teamId}')
       : 'share:${widget.shareCode!.trim()}';
 
   @override
@@ -103,6 +132,12 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
     if (_isMutating) return false;
     setState(() => _isMutating = true);
     try {
+      final isCommissioner = widget.leagueId != null &&
+          (ref
+                  .read(_leagueContextProvider(widget.leagueId!))
+                  .valueOrNull
+                  ?.isCommissioner ??
+              false);
       await ref.read(teamRepositoryProvider).patchTeamStaff(
             widget.teamId,
             name: name,
@@ -114,6 +149,8 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
             apothecary: apothecary,
             notes: notes,
             favouredOf: favouredOf,
+            leagueId: widget.leagueId,
+            commissionerEdit: isCommissioner,
           );
       ref.invalidate(userTeamDetailProvider(_detailKey));
       return true;
@@ -190,7 +227,7 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
     try {
       await ref
           .read(teamRepositoryProvider)
-          .fireUserPlayer(widget.teamId, player.id);
+          .fireUserPlayer(widget.teamId, player.id, leagueId: widget.leagueId);
       _refresh();
     } catch (e) {
       if (mounted) {
@@ -206,6 +243,9 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
     final teamAsync = ref.watch(userTeamDetailProvider(_detailKey));
     final isWide = MediaQuery.of(context).size.width >= 800;
     final currentUserId = ref.watch(authStateProvider).valueOrNull?.user?.id;
+    final league = widget.leagueId == null
+        ? null
+        : ref.watch(_leagueContextProvider(widget.leagueId!)).valueOrNull;
     return Scaffold(
       backgroundColor: AppColors.background,
       body: teamAsync.when(
@@ -213,8 +253,10 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
         error: (err, _) => _buildError(err, lang),
         data: (team) {
           _syncTeamNotes(team.notes);
-          final isOwner = currentUserId != null && team.userId == currentUserId;
-          final canManageRoster = isOwner && team.canManageRoster;
+          final isOwner = currentUserId != null &&
+              (team.userId == currentUserId || league?.isCommissioner == true);
+          final canManageRoster = isOwner &&
+              (team.canManageRoster || league?.isCommissioner == true);
           final canHirePlayers = isOwner;
           return Column(children: [
             _buildTopBar(team, isWide, isOwner, canManageRoster, lang),
@@ -960,57 +1002,47 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
           isWide: isWide,
         ),
         const SizedBox(height: 12),
-        if (isWide) ...[
-          _buildTableHeader(isWide, lang),
-          const Divider(height: 1),
-          if (filtered.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 32),
-              child: Center(
-                child: Column(children: [
-                  Icon(PhosphorIcons.usersThree(PhosphorIconsStyle.light),
-                      size: 40, color: AppColors.textMuted),
-                  const SizedBox(height: 8),
-                  const Text('Sin jugadores que mostrar',
-                      style: TextStyle(color: AppColors.textMuted)),
-                ]),
-              ),
-            )
-          else
-            ...filtered.map(
-                (p) => _buildPlayerRow(p, team, isWide, isOwner, baseRoster)),
-        ] else
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: SizedBox(
-              width: 880,
-              child: Column(
-                children: [
-                  _buildTableHeader(isWide, lang),
-                  const Divider(height: 1),
-                  if (filtered.isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 32),
-                      child: Center(
-                        child: Column(children: [
-                          Icon(
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final tableWidth = math.max(
+              constraints.maxWidth,
+              _minimumRosterTableWidth(isWide),
+            );
+
+            return SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: SizedBox(
+                width: tableWidth,
+                child: Column(
+                  children: [
+                    _buildTableHeader(isWide, lang),
+                    const Divider(height: 1),
+                    if (filtered.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 32),
+                        child: Center(
+                          child: Column(children: [
+                            Icon(
                               PhosphorIcons.usersThree(
                                   PhosphorIconsStyle.light),
                               size: 40,
-                              color: AppColors.textMuted),
-                          const SizedBox(height: 8),
-                          const Text('Sin jugadores que mostrar',
-                              style: TextStyle(color: AppColors.textMuted)),
-                        ]),
-                      ),
-                    )
-                  else
-                    ...filtered.map((p) =>
-                        _buildPlayerRow(p, team, isWide, isOwner, baseRoster)),
-                ],
+                              color: AppColors.textMuted,
+                            ),
+                            const SizedBox(height: 8),
+                            const Text('Sin jugadores que mostrar',
+                                style: TextStyle(color: AppColors.textMuted)),
+                          ]),
+                        ),
+                      )
+                    else
+                      ...filtered.map((p) => _buildPlayerRow(
+                          p, team, isWide, isOwner, baseRoster)),
+                  ],
+                ),
               ),
-            ),
-          ),
+            );
+          },
+        ),
         if (rosterPlayers.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 8),
@@ -1532,6 +1564,67 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
     });
   }
 
+  double _minimumRosterTableWidth(bool isWide) {
+    const fixedStatsWidth = 38.0 * 5;
+    const skillsMinWidth = 220.0;
+    const sppWidth = 44.0;
+    const statusWidth = 80.0;
+    const costWidth = 60.0;
+    const actionsWidth = 40.0;
+    const gapBeforeSkills = 10.0;
+    const numberWidth = 52.0;
+
+    return numberWidth +
+        _nameColumnWidth +
+        _columnResizeHandleWidth +
+        (isWide
+            ? _positionColumnWidth + _columnResizeHandleWidth + costWidth
+            : 0) +
+        fixedStatsWidth +
+        gapBeforeSkills +
+        skillsMinWidth +
+        sppWidth +
+        statusWidth +
+        actionsWidth;
+  }
+
+  void _resizeNameColumn(double delta) {
+    setState(() {
+      _nameColumnWidth = (_nameColumnWidth + delta)
+          .clamp(_minNameColumnWidth, _maxNameColumnWidth);
+    });
+  }
+
+  void _resizePositionColumn(double delta) {
+    setState(() {
+      _positionColumnWidth = (_positionColumnWidth + delta)
+          .clamp(_minPositionColumnWidth, _maxPositionColumnWidth);
+    });
+  }
+
+  Widget _columnResizeHandle(ValueChanged<double> onDelta) {
+    return SizedBox(
+      width: _columnResizeHandleWidth,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.resizeColumn,
+        child: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onHorizontalDragUpdate: (details) => onDelta(details.delta.dx),
+          child: Center(
+            child: Container(
+              width: 2,
+              height: 24,
+              decoration: BoxDecoration(
+                color: AppColors.surfaceLight,
+                borderRadius: BorderRadius.circular(999),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildTableHeader(bool isWide, String lang) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -1541,15 +1634,15 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
               width: 52,
               child: Center(child: _th('#', _TeamRosterSortColumn.number))),
           SizedBox(
-              width: 130, child: _th('NOMBRE', _TeamRosterSortColumn.name)),
+              width: _nameColumnWidth,
+              child: _th('NOMBRE', _TeamRosterSortColumn.name)),
+          _columnResizeHandle(_resizeNameColumn),
           if (isWide)
             SizedBox(
-              width: 116,
-              child: Padding(
-                padding: const EdgeInsets.only(left: 12),
-                child: _th('POSICIÓN', _TeamRosterSortColumn.position),
-              ),
+              width: _positionColumnWidth,
+              child: _th('POSICIÓN', _TeamRosterSortColumn.position),
             ),
+          if (isWide) _columnResizeHandle(_resizePositionColumn),
           _attributeHeader(
               'MA', _attributeTooltip('MA', lang), _TeamRosterSortColumn.ma),
           _attributeHeader(
@@ -1729,7 +1822,7 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
             ),
             // Name
             SizedBox(
-              width: 130,
+              width: _nameColumnWidth,
               child: Text(
                 player.name,
                 style: TextStyle(
@@ -1742,19 +1835,18 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
+            const SizedBox(width: _columnResizeHandleWidth),
             // Position
             if (isWide)
               SizedBox(
-                width: 116,
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 12),
-                  child: Text(positionLabel,
-                      style: const TextStyle(
-                          fontSize: 12, color: AppColors.textSecondary),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis),
-                ),
+                width: _positionColumnWidth,
+                child: Text(positionLabel,
+                    style: const TextStyle(
+                        fontSize: 12, color: AppColors.textSecondary),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis),
               ),
+            if (isWide) const SizedBox(width: _columnResizeHandleWidth),
             // Stats
             _statCell('${player.stats.ma}',
                 color: userPlayerStatColor(
@@ -2116,7 +2208,13 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
     final teamAsync = ref.read(userTeamDetailProvider(_detailKey));
     final team = teamAsync.valueOrNull;
     final currentUserId = ref.read(authStateProvider).valueOrNull?.user?.id;
-    if (team == null || currentUserId == null || team.userId != currentUserId) {
+    final league = widget.leagueId == null
+        ? null
+        : ref.read(_leagueContextProvider(widget.leagueId!)).valueOrNull;
+    final canManage = currentUserId != null &&
+        team != null &&
+        (team.userId == currentUserId || league?.isCommissioner == true);
+    if (!canManage) {
       return;
     }
 
@@ -2128,6 +2226,7 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
         currentPlayers:
             team.players.where((player) => !player.temporaryForMatch).toList(),
         treasury: team.treasury,
+        leagueId: widget.leagueId,
         onHired: () {
           _refresh();
           Navigator.of(ctx).pop();
@@ -2137,7 +2236,10 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
   }
 
   Future<void> _showEditTeamNameDialog(UserTeamDetail team) async {
-    if (!team.canManageRoster) return;
+    final league = widget.leagueId == null
+        ? null
+        : ref.read(_leagueContextProvider(widget.leagueId!)).valueOrNull;
+    if (!team.canManageRoster && league?.isCommissioner != true) return;
     final lang = ref.watch(localeProvider);
     final controller = TextEditingController(text: team.name);
     final formKey = GlobalKey<FormState>();
@@ -2461,6 +2563,7 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
             player.id,
             name: nameChanged ? newName : null,
             number: numberChanged ? newNumber : null,
+            leagueId: widget.leagueId,
           );
       _refresh();
       if (mounted) {
@@ -2490,6 +2593,7 @@ class _HirePlayerDialog extends ConsumerStatefulWidget {
   final String baseRosterId;
   final List<UserPlayer> currentPlayers;
   final int treasury;
+  final String? leagueId;
   final VoidCallback onHired;
 
   const _HirePlayerDialog({
@@ -2497,6 +2601,7 @@ class _HirePlayerDialog extends ConsumerStatefulWidget {
     required this.baseRosterId,
     required this.currentPlayers,
     required this.treasury,
+    this.leagueId,
     required this.onHired,
   });
 
@@ -2527,6 +2632,7 @@ class _HirePlayerDialogState extends ConsumerState<_HirePlayerDialog> {
         widget.teamId,
         baseType: pos.id,
         number: _nextAvailableNumber(),
+        leagueId: widget.leagueId,
       );
       widget.onHired();
     } catch (e) {

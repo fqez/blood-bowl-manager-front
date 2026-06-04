@@ -5,6 +5,7 @@ class LeagueSummaryModel {
   final String id;
   final String name;
   final String ownerUsername;
+  final List<String> commissionerUsernames;
   final String status;
   final String format;
   final int teamCount;
@@ -14,6 +15,7 @@ class LeagueSummaryModel {
   final DateTime createdAt;
   // User-specific fields
   final bool isOwner;
+  final bool isCommissioner;
   final String? userTeamName;
   final int? currentRound;
 
@@ -21,6 +23,7 @@ class LeagueSummaryModel {
     required this.id,
     required this.name,
     required this.ownerUsername,
+    this.commissionerUsernames = const [],
     required this.status,
     required this.format,
     required this.teamCount,
@@ -29,6 +32,7 @@ class LeagueSummaryModel {
     this.inviteCode,
     required this.createdAt,
     this.isOwner = false,
+    this.isCommissioner = false,
     this.userTeamName,
     this.currentRound,
   });
@@ -38,6 +42,10 @@ class LeagueSummaryModel {
         id: json['id'] as String,
         name: json['name'] as String,
         ownerUsername: json['owner_username'] as String? ?? '',
+        commissionerUsernames:
+            ((json['commissioner_usernames'] as List?) ?? const [])
+                .whereType<String>()
+                .toList(),
         status: json['status'] as String? ?? 'draft',
         format: json['format'] as String? ?? 'round_robin',
         teamCount: (json['team_count'] as num?)?.toInt() ?? 0,
@@ -48,6 +56,8 @@ class LeagueSummaryModel {
             ? DateTime.parse(json['created_at'] as String)
             : DateTime.now(),
         isOwner: json['is_owner'] as bool? ?? false,
+        isCommissioner: json['is_commissioner'] as bool? ??
+            (json['is_owner'] as bool? ?? false),
         userTeamName: json['user_team_name'] as String?,
         currentRound: (json['current_round'] as num?)?.toInt(),
       );

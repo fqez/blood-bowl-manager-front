@@ -1491,7 +1491,8 @@ const _t = <String, Map<String, String>>{
     'en': 'SPP available',
   },
   'player.tapSkillForDetails': {
-    'es': 'Toca la habilidad para ver el detalle y usa el selector para marcarla.',
+    'es':
+        'Toca la habilidad para ver el detalle y usa el selector para marcarla.',
     'en': 'Tap a skill to view its details and use the selector to mark it.',
   },
   'player.confirmAdvancement': {

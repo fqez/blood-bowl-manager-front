@@ -19,6 +19,7 @@ import '../../../my_teams/presentation/screens/my_teams_screen.dart'
 import '../../../roster/domain/models/team.dart';
 import '../../../shared/data/repositories.dart';
 import '../../../shared/presentation/widgets/match_event_dialog.dart';
+import '../../../shared/utils/team_special_rules.dart';
 
 // ─── Provider ───────────────────────────────────────────────
 
@@ -54,14 +55,6 @@ class _SppTally {
   bool mvp = false;
 
   _SppTally(this.playerId, this.playerName, this.team);
-
-  int get total =>
-      completions * 1 +
-      interceptions * 2 +
-      casualties * 2 +
-      touchdowns * 3 +
-      throwTeammate +
-      (mvp ? 4 : 0);
 }
 
 class _InjuryEntry {
@@ -101,7 +94,6 @@ class _InjuryEntry {
 }
 
 enum _AftermatchRosterSortColumn {
-  candidate,
   number,
   name,
   kind,
@@ -121,6 +113,7 @@ class _PendingPlayerPurchase {
   final String? name;
   final int? number;
   final int cost;
+  final bool free;
 
   const _PendingPlayerPurchase({
     required this.baseType,
@@ -128,6 +121,7 @@ class _PendingPlayerPurchase {
     required this.cost,
     this.name,
     this.number,
+    this.free = false,
   });
 }
 
@@ -493,8 +487,6 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
   // ── Section 4: MVP ──
   String? _mvpHomeId;
   String? _mvpAwayId;
-  final Set<String> _mvpHomeCandidateIds = {};
-  final Set<String> _mvpAwayCandidateIds = {};
   _AftermatchRosterSortColumn _homeMvpRosterSortColumn =
       _AftermatchRosterSortColumn.number;
   _AftermatchRosterSortColumn _awayMvpRosterSortColumn =
@@ -544,7 +536,7 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
     if (_isQM) return false;
     final currentUserId = _currentUserId();
     return currentUserId != null &&
-        league?.ownerId == currentUserId &&
+        league?.isCommissioner == true &&
         !_isMatchParticipant(match);
   }
 
@@ -641,9 +633,10 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
         _PendingPlayerPurchase(
           baseType: baseType,
           positionName: position?.name ?? baseType,
-          cost: position?.cost ?? 0,
+          cost: data['free'] == true ? 0 : position?.cost ?? 0,
           name: data['name'] as String?,
           number: (data['number'] as num?)?.toInt(),
+          free: data['free'] == true,
         ),
       );
     }
@@ -1028,6 +1021,106 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
     return staffCost;
   }
 
+  bool _hasMastersOfUndeath(String teamSide) {
+    return hasMastersOfUndeathRule(_specialRulesForTeamSide(teamSide));
+  }
+
+  bool _isLinemanPosition(BasePosition position) {
+    return isLinemanMarker([position.position, position.name, position.id]);
+  }
+
+  bool _canKeepTemporaryPlayer(UserPlayer player,
+      {required bool isStarPlayer}) {
+    return player.temporaryForMatch && player.journeyman && !isStarPlayer;
+  }
+
+  bool _eventInjuryMeansDead(String? injury) {
+    final normalized = (injury ?? '').trim().toLowerCase();
+    return normalized == 'dead' ||
+        normalized == 'muerto' ||
+        normalized == 'rip';
+  }
+
+  bool _isAccidentalOrSelfInflicted(MatchEvent event) {
+    final detail = (event.detail ?? '').toLowerCase();
+    return detail.contains('bbm_accidental:1') ||
+        detail.contains('bbm_self_inflicted:1');
+  }
+
+  int _countRaiseDeadKillsFromEvents(
+      String teamSide, Iterable<MatchEvent> events) {
+    final opponentSide = teamSide == 'home' ? 'away' : 'home';
+    return events.where((event) {
+      final eventType = event.type.toLowerCase();
+      if (eventType == 'casualty') {
+        return event.team == teamSide &&
+            _eventInjuryMeansDead(event.injury) &&
+            !_isAccidentalOrSelfInflicted(event);
+      }
+      if (eventType == 'dead') {
+        return event.team == opponentSide;
+      }
+      return false;
+    }).length;
+  }
+
+  int _persistedDeadInjuries(String teamSide, Match match) {
+    return _countRaiseDeadKillsFromEvents(teamSide, match.events);
+  }
+
+  int _draftDeadCasualtyEvents(String teamSide) {
+    return _countRaiseDeadKillsFromEvents(teamSide, _postMatchEvents);
+  }
+
+  int _draftDeadInjuries(String teamSide, [InjuryRules? rules]) {
+    final opponentSide = teamSide == 'home' ? 'away' : 'home';
+    if (!_hasMastersOfUndeath(teamSide) || rules == null) return 0;
+    return _injuries.where((injury) {
+      if (injury.team != opponentSide) return false;
+      return rules.casualtyResultFor(injury.casualtyRoll)?.code == 'dead';
+    }).length;
+  }
+
+  int _totalFreeRaiseDeadSlots(
+    String teamSide,
+    Match match, [
+    InjuryRules? rules,
+  ]) {
+    if (!_hasMastersOfUndeath(teamSide)) return 0;
+    return _persistedDeadInjuries(teamSide, match) +
+        _draftDeadCasualtyEvents(teamSide) +
+        _draftDeadInjuries(teamSide, rules);
+  }
+
+  int _usedFreeRaiseDeadSlots(String teamSide) {
+    return _pendingPurchases(teamSide)
+        .players
+        .where((player) => player.free)
+        .length;
+  }
+
+  bool _canUseFreeRaiseDeadPurchase(
+    String teamSide,
+    Match match,
+    BasePosition position, [
+    InjuryRules? rules,
+  ]) {
+    return _remainingFreeRaiseDeadSlotsForMatch(teamSide, match, rules) > 0 &&
+        _isLinemanPosition(position);
+  }
+
+  int _remainingFreeRaiseDeadSlotsForMatch(
+    String teamSide,
+    Match match, [
+    InjuryRules? rules,
+  ]) {
+    return max(
+      0,
+      _totalFreeRaiseDeadSlots(teamSide, match, rules) -
+          _usedFreeRaiseDeadSlots(teamSide),
+    );
+  }
+
   int _treasuryBeforeExpensiveMistakes(String teamSide,
       [WinningsRules? rules]) {
     final remaining = _baseTreasuryAfterWinnings(teamSide, rules) -
@@ -1063,6 +1156,7 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
                 if (player.name != null && player.name!.trim().isNotEmpty)
                   'name': player.name!.trim(),
                 if (player.number != null) 'number': player.number,
+                if (player.free) 'free': true,
               })
           .toList(),
       if (purchases.rerolls > 0) 'rerolls': purchases.rerolls,
@@ -3046,6 +3140,47 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
     return sppMap;
   }
 
+  Iterable<String> _specialRulesForTeamSide(String teamSide) {
+    final roster = teamSide == 'home' ? _homeBaseRoster : _awayBaseRoster;
+    return roster?.specialRules ?? const <String>[];
+  }
+
+  int _sppRewardForTeamEvent(String teamSide, String eventType) {
+    switch (eventType) {
+      case 'completion':
+        return 1;
+      case 'interception':
+        return 2;
+      case 'casualty':
+        return adjustedSppForSpecialRules(
+          specialRules: _specialRulesForTeamSide(teamSide),
+          eventType: eventType,
+          defaultSpp: 2,
+        );
+      case 'touchdown':
+        return adjustedSppForSpecialRules(
+          specialRules: _specialRulesForTeamSide(teamSide),
+          eventType: eventType,
+          defaultSpp: 3,
+        );
+      case 'throw_teammate':
+        return 1;
+      case 'mvp':
+        return 4;
+      default:
+        return 0;
+    }
+  }
+
+  int _tallyTotal(_SppTally tally) =>
+      tally.completions * _sppRewardForTeamEvent(tally.team, 'completion') +
+      tally.interceptions * _sppRewardForTeamEvent(tally.team, 'interception') +
+      tally.casualties * _sppRewardForTeamEvent(tally.team, 'casualty') +
+      tally.touchdowns * _sppRewardForTeamEvent(tally.team, 'touchdown') +
+      tally.throwTeammate *
+          _sppRewardForTeamEvent(tally.team, 'throw_teammate') +
+      (tally.mvp ? _sppRewardForTeamEvent(tally.team, 'mvp') : 0);
+
   bool _throwTeammateLanded(String? detail) {
     final d = detail?.toLowerCase() ?? '';
     return d.contains('cae de pie: sí') ||
@@ -3094,7 +3229,6 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
             tempPlayerIds: homeTempIds,
             sppMap: sppMap,
             selectedId: _mvpHomeId,
-            candidateIds: _mvpHomeCandidateIds,
             onChanged: (v) => _setMvpSelection(isHome: true, playerId: v),
             color: AppColors.info,
           );
@@ -3107,7 +3241,6 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
             tempPlayerIds: awayTempIds,
             sppMap: sppMap,
             selectedId: _mvpAwayId,
-            candidateIds: _mvpAwayCandidateIds,
             onChanged: (v) => _setMvpSelection(isHome: false, playerId: v),
             color: AppColors.error,
           );
@@ -3148,29 +3281,16 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
     required Set<String> tempPlayerIds,
     required Map<String, _SppTally> sppMap,
     required String? selectedId,
-    required Set<String> candidateIds,
     required ValueChanged<String?> onChanged,
     required Color color,
   }) {
-    final lang = ref.watch(localeProvider);
     final activePlayers = players.where((p) => p.status != 'dead').toList();
-    final mvpEligiblePlayers =
-        activePlayers.where((p) => !p.baseType.startsWith('star_')).toList();
-    final requiredCandidateCount = min(6, mvpEligiblePlayers.length);
-    final validCandidateIds = mvpEligiblePlayers.map((p) => p.id).toSet();
-    candidateIds.removeWhere((id) => !validCandidateIds.contains(id));
-    final randomCandidates = mvpEligiblePlayers
-        .where((player) => candidateIds.contains(player.id))
-        .toList();
-    final canRandom = requiredCandidateCount > 0 &&
-        randomCandidates.length == requiredCandidateCount;
     final sortColumn =
         isHome ? _homeMvpRosterSortColumn : _awayMvpRosterSortColumn;
     final sortAscending =
         isHome ? _homeMvpRosterSortAscending : _awayMvpRosterSortAscending;
     final sortedActivePlayers = _sortAftermatchRosterPlayers(
       activePlayers,
-      candidateIds,
       tempPlayerIds,
       sortColumn,
       sortAscending,
@@ -3191,42 +3311,6 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-              margin: const EdgeInsets.only(right: 8),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(999),
-                border: Border.all(color: color.withValues(alpha: 0.34)),
-              ),
-              child: Text(
-                '${randomCandidates.length}/$requiredCandidateCount',
-                style: TextStyle(
-                  color: color,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ),
-            OutlinedButton.icon(
-              icon: Icon(PhosphorIcons.shuffle(PhosphorIconsStyle.bold),
-                  size: 17, color: color),
-              label: Text(tr(lang, 'aftermatch.randomMvp'),
-                  style: TextStyle(
-                      color: color, fontSize: 14, fontWeight: FontWeight.w800)),
-              style: OutlinedButton.styleFrom(
-                side: BorderSide(color: color.withValues(alpha: 0.4)),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-                minimumSize: Size.zero,
-              ),
-              onPressed: !canRandom
-                  ? null
-                  : () {
-                      final shuffled = List.of(randomCandidates)..shuffle();
-                      onChanged(shuffled.first.id);
-                    },
-            ),
           ],
         ),
         const SizedBox(height: 12),
@@ -3238,105 +3322,75 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
           final isTemp = tempPlayerIds.contains(p.id) || p.temporaryForMatch;
           final isJourneyman = p.journeyman;
           final isEligibleForMvp = !isStarPlayer;
-          final isCandidate = candidateIds.contains(p.id);
           final tally =
               sppMap['$teamKey:${p.id}'] ?? _SppTally(p.id, p.name, teamKey);
-          return InkWell(
-            onTap: isEligibleForMvp
-                ? () => _toggleMvpCandidate(
-                      candidateIds: candidateIds,
-                      playerId: p.id,
-                      maxCandidates: requiredCandidateCount,
-                    )
-                : null,
-            borderRadius: BorderRadius.circular(12),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              margin: const EdgeInsets.only(bottom: 7),
-              decoration: BoxDecoration(
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            margin: const EdgeInsets.only(bottom: 7),
+            decoration: BoxDecoration(
+              color: selected
+                  ? AppColors.accent.withValues(alpha: 0.14)
+                  : AppColors.surface.withValues(alpha: 0.45),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
                 color: selected
-                    ? AppColors.accent.withValues(alpha: 0.14)
-                    : AppColors.surface.withValues(alpha: 0.45),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: selected
-                      ? AppColors.accent.withValues(alpha: 0.52)
-                      : AppColors.surfaceLight.withValues(alpha: 0.55),
+                    ? AppColors.accent.withValues(alpha: 0.52)
+                    : AppColors.surfaceLight.withValues(alpha: 0.55),
+              ),
+            ),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 48,
+                  child: Text('#${p.number}',
+                      style: const TextStyle(
+                          color: AppColors.textMuted,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold)),
                 ),
-              ),
-              child: Row(
-                children: [
-                  Checkbox(
-                    value: isCandidate,
-                    onChanged: isEligibleForMvp
-                        ? (_) => _toggleMvpCandidate(
-                              candidateIds: candidateIds,
-                              playerId: p.id,
-                              maxCandidates: requiredCandidateCount,
-                            )
-                        : null,
-                    activeColor: color,
-                    checkColor: Colors.black,
-                    side: BorderSide(
-                      color: isEligibleForMvp
-                          ? color.withValues(alpha: 0.66)
-                          : AppColors.surfaceLight,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  SizedBox(
-                    width: 42,
-                    child: Text('#${p.number}',
-                        style: const TextStyle(
-                            color: AppColors.textMuted,
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold)),
-                  ),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(p.name,
-                            style: TextStyle(
-                                color:
-                                    selected ? color : AppColors.textSecondary,
-                                fontSize: 17,
-                                fontWeight: selected
-                                    ? FontWeight.bold
-                                    : FontWeight.normal),
-                            overflow: TextOverflow.ellipsis),
-                        if (isTemp) ...[
-                          const SizedBox(height: 5),
-                          _tempPlayerSppBadge(
-                            isStarPlayer: isStarPlayer,
-                            isJourneyman: isJourneyman,
-                          ),
-                        ] else if (isStarPlayer) ...[
-                          const SizedBox(height: 5),
-                          _tempPlayerSppBadge(
-                            isStarPlayer: true,
-                            isJourneyman: false,
-                          ),
-                        ],
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(p.name,
+                          style: TextStyle(
+                              color: selected ? color : AppColors.textSecondary,
+                              fontSize: 17,
+                              fontWeight: selected
+                                  ? FontWeight.bold
+                                  : FontWeight.normal),
+                          overflow: TextOverflow.ellipsis),
+                      if (isTemp) ...[
+                        const SizedBox(height: 5),
+                        _tempPlayerSppBadge(
+                          isStarPlayer: isStarPlayer,
+                          isJourneyman: isJourneyman,
+                        ),
+                      ] else if (isStarPlayer) ...[
+                        const SizedBox(height: 5),
+                        _tempPlayerSppBadge(
+                          isStarPlayer: true,
+                          isJourneyman: false,
+                        ),
                       ],
-                    ),
+                    ],
                   ),
-                  const SizedBox(width: 10),
-                  _manualMvpButton(
-                    selected: selected,
-                    enabled: isEligibleForMvp,
-                    color: color,
-                    onPressed: () => onChanged(p.id),
+                ),
+                const SizedBox(width: 10),
+                _manualMvpButton(
+                  selected: selected,
+                  enabled: isEligibleForMvp,
+                  color: color,
+                  onPressed: () => onChanged(p.id),
+                ),
+                if (_tallyTotal(tally) > 0) ...[
+                  const SizedBox(width: 8),
+                  _sppBadge(
+                    _tallyTotal(tally),
+                    onTap: () => _showPlayerSppDialog(p, teamKey, tally),
                   ),
-                  if (tally.total > 0) ...[
-                    const SizedBox(width: 8),
-                    _sppBadge(
-                      tally.total,
-                      onTap: () => _showPlayerSppDialog(p, teamKey, tally),
-                    ),
-                  ],
                 ],
-              ),
+              ],
             ),
           );
         }),
@@ -3360,18 +3414,6 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
         children: [
           SizedBox(
             width: 48,
-            child: _mvpRosterHeaderCell(
-              'CAND',
-              _AftermatchRosterSortColumn.candidate,
-              activeColumn,
-              ascending,
-              isHome,
-              color,
-            ),
-          ),
-          const SizedBox(width: 10),
-          SizedBox(
-            width: 42,
             child: _mvpRosterHeaderCell(
               '#',
               _AftermatchRosterSortColumn.number,
@@ -3464,7 +3506,6 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
 
   List<UserPlayer> _sortAftermatchRosterPlayers(
     List<UserPlayer> players,
-    Set<String> candidateIds,
     Set<String> tempPlayerIds,
     _AftermatchRosterSortColumn column,
     bool ascending,
@@ -3473,9 +3514,6 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
     sorted.sort((a, b) {
       int result;
       switch (column) {
-        case _AftermatchRosterSortColumn.candidate:
-          result = (candidateIds.contains(a.id) ? 1 : 0)
-              .compareTo(candidateIds.contains(b.id) ? 1 : 0);
         case _AftermatchRosterSortColumn.number:
           result = a.number.compareTo(b.number);
         case _AftermatchRosterSortColumn.name:
@@ -3523,20 +3561,6 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
     });
   }
 
-  void _toggleMvpCandidate({
-    required Set<String> candidateIds,
-    required String playerId,
-    required int maxCandidates,
-  }) {
-    setState(() {
-      if (candidateIds.contains(playerId)) {
-        candidateIds.remove(playerId);
-      } else if (candidateIds.length < maxCandidates) {
-        candidateIds.add(playerId);
-      }
-    });
-  }
-
   Widget _manualMvpButton({
     required bool selected,
     required bool enabled,
@@ -3544,7 +3568,7 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
     required VoidCallback onPressed,
   }) {
     return Tooltip(
-      message: 'MVP manual',
+      message: 'MVP',
       child: TextButton.icon(
         onPressed: enabled ? onPressed : null,
         icon: Icon(
@@ -3553,7 +3577,7 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
           ),
           size: 18,
         ),
-        label: Text(selected ? 'MVP' : 'Manual'),
+        label: const Text('MVP'),
         style: TextButton.styleFrom(
           backgroundColor: selected
               ? AppColors.accent.withValues(alpha: 0.24)
@@ -3682,7 +3706,7 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              '${tally.total} SPP',
+              '${_tallyTotal(tally)} SPP',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: AppColors.accent,
@@ -3792,6 +3816,7 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
         children: [
           if (canManageHome)
             _buildTeamPurchasePanel(
+              match: match,
               teamSide: 'home',
               teamName: _homeTeam?.name ?? match.home.teamName,
               color: AppColors.info,
@@ -3800,6 +3825,7 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
           if (canManageHome && canManageAway) const SizedBox(height: 16),
           if (canManageAway)
             _buildTeamPurchasePanel(
+              match: match,
               teamSide: 'away',
               teamName: _awayTeam?.name ?? match.away.teamName,
               color: AppColors.error,
@@ -3842,6 +3868,7 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
   }
 
   Widget _buildTeamPurchasePanel({
+    required Match match,
     required String teamSide,
     required String teamName,
     required Color color,
@@ -3877,12 +3904,173 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
     }
 
     final purchases = _pendingPurchases(teamSide);
+    final injuryRules = ref.watch(injuryRulesProvider).valueOrNull;
     final treasuryAfterWinnings =
         _baseTreasuryAfterWinnings(teamSide, winningsRules);
     final temporaryKeepCost = _temporaryKeepCost(teamSide);
     final purchaseCost = _pendingPurchaseCost(teamSide);
     final remainingTreasury =
         _treasuryBeforeExpensiveMistakes(teamSide, winningsRules);
+    final freeRaiseDeadSlots =
+        _remainingFreeRaiseDeadSlotsForMatch(teamSide, match, injuryRules);
+    final purchaseControls = Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      children: [
+        _purchaseCounterChip(
+          label: 'Rerrolls',
+          subtitle: '${_fmtGold(team.rerollCost * 2)} GP',
+          count: purchases.rerolls,
+          color: color,
+          onAdd: team.rerolls + purchases.rerolls >= 8
+              ? null
+              : () => _incrementTeamPurchase(
+                    teamSide,
+                    purchaseType: 'reroll',
+                    cost: team.rerollCost * 2,
+                  ),
+          onRemove: purchases.rerolls == 0
+              ? null
+              : () => _decrementTeamPurchase(teamSide, purchaseType: 'reroll'),
+        ),
+        _purchaseCounterChip(
+          label: 'Ayudantes',
+          subtitle: '10,000 GP',
+          count: purchases.assistantCoaches,
+          color: color,
+          onAdd: team.assistantCoaches + purchases.assistantCoaches >= 6
+              ? null
+              : () => _incrementTeamPurchase(
+                    teamSide,
+                    purchaseType: 'assistant',
+                    cost: 10000,
+                  ),
+          onRemove: purchases.assistantCoaches == 0
+              ? null
+              : () => _decrementTeamPurchase(
+                    teamSide,
+                    purchaseType: 'assistant',
+                  ),
+        ),
+        _purchaseCounterChip(
+          label: 'Animadoras',
+          subtitle: '10,000 GP',
+          count: purchases.cheerleaders,
+          color: color,
+          onAdd: team.cheerleaders + purchases.cheerleaders >= 6
+              ? null
+              : () => _incrementTeamPurchase(
+                    teamSide,
+                    purchaseType: 'cheerleader',
+                    cost: 10000,
+                  ),
+          onRemove: purchases.cheerleaders == 0
+              ? null
+              : () => _decrementTeamPurchase(
+                    teamSide,
+                    purchaseType: 'cheerleader',
+                  ),
+        ),
+        _purchaseToggleChip(
+          label: 'Boticario',
+          subtitle: team.apothecary
+              ? 'Ya disponible'
+              : !team.apothecaryAllowed
+                  ? 'No permitido'
+                  : '50,000 GP',
+          selected: purchases.apothecary,
+          color: color,
+          enabled: !team.apothecary && team.apothecaryAllowed,
+          onTap: () => _toggleApothecaryPurchase(teamSide),
+        ),
+      ],
+    );
+    final purchasePlayerAction = ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 360),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (freeRaiseDeadSlots > 0) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    AppColors.success.withValues(alpha: 0.2),
+                    AppColors.success.withValues(alpha: 0.06),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: AppColors.success.withValues(alpha: 0.34),
+                ),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 26,
+                    height: 26,
+                    decoration: BoxDecoration(
+                      color: AppColors.success.withValues(alpha: 0.18),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      PhosphorIcons.sparkle(PhosphorIconsStyle.fill),
+                      size: 15,
+                      color: AppColors.success,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          freeRaiseDeadSlots == 1
+                              ? '1 linea gratis disponible'
+                              : '$freeRaiseDeadSlots lineas gratis disponibles',
+                          style: const TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        const Text(
+                          'Masters of Undeath: ficha lineas a coste 0 en este post-partido.',
+                          style: TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+          ],
+          Align(
+            alignment: Alignment.centerRight,
+            child: OutlinedButton.icon(
+              onPressed: () => _showPlayerPurchaseDialog(teamSide, match),
+              icon: Icon(PhosphorIcons.userPlus(PhosphorIconsStyle.bold),
+                  size: 16),
+              label: const Text('Comprar jugador'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: color,
+                side: BorderSide(color: color.withValues(alpha: 0.4)),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -3915,104 +4103,30 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
             ],
           ),
           const SizedBox(height: 10),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              _purchaseCounterChip(
-                label: 'Rerrolls',
-                subtitle: '${_fmtGold(team.rerollCost * 2)} GP',
-                count: purchases.rerolls,
-                color: color,
-                onAdd: team.rerolls + purchases.rerolls >= 8
-                    ? null
-                    : () => _incrementTeamPurchase(
-                          teamSide,
-                          purchaseType: 'reroll',
-                          cost: team.rerollCost * 2,
-                        ),
-                onRemove: purchases.rerolls == 0
-                    ? null
-                    : () => _decrementTeamPurchase(teamSide,
-                        purchaseType: 'reroll'),
-              ),
-              _purchaseCounterChip(
-                label: 'Ayudantes',
-                subtitle: '10,000 GP',
-                count: purchases.assistantCoaches,
-                color: color,
-                onAdd: team.assistantCoaches + purchases.assistantCoaches >= 6
-                    ? null
-                    : () => _incrementTeamPurchase(
-                          teamSide,
-                          purchaseType: 'assistant',
-                          cost: 10000,
-                        ),
-                onRemove: purchases.assistantCoaches == 0
-                    ? null
-                    : () => _decrementTeamPurchase(
-                          teamSide,
-                          purchaseType: 'assistant',
-                        ),
-              ),
-              _purchaseCounterChip(
-                label: 'Animadoras',
-                subtitle: '10,000 GP',
-                count: purchases.cheerleaders,
-                color: color,
-                onAdd: team.cheerleaders + purchases.cheerleaders >= 6
-                    ? null
-                    : () => _incrementTeamPurchase(
-                          teamSide,
-                          purchaseType: 'cheerleader',
-                          cost: 10000,
-                        ),
-                onRemove: purchases.cheerleaders == 0
-                    ? null
-                    : () => _decrementTeamPurchase(
-                          teamSide,
-                          purchaseType: 'cheerleader',
-                        ),
-              ),
-              _purchaseToggleChip(
-                label: 'Boticario',
-                subtitle: team.apothecary
-                    ? 'Ya disponible'
-                    : !team.apothecaryAllowed
-                        ? 'No permitido'
-                        : '50,000 GP',
-                selected: purchases.apothecary,
-                color: color,
-                enabled: !team.apothecary && team.apothecaryAllowed,
-                onTap: () => _toggleApothecaryPurchase(teamSide),
-              ),
-            ],
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final useCompactRow = constraints.maxWidth >= 980;
+              if (!useCompactRow) {
+                return purchaseControls;
+              }
+
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: purchaseControls),
+                  const SizedBox(width: 16),
+                  SizedBox(width: 360, child: purchasePlayerAction),
+                ],
+              );
+            },
           ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              const Expanded(
-                child: Text(
-                  'Jugadores permanentes a precio normal del roster.',
-                  style: TextStyle(
-                    color: AppColors.textMuted,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              OutlinedButton.icon(
-                onPressed: () => _showPlayerPurchaseDialog(teamSide),
-                icon: Icon(PhosphorIcons.userPlus(PhosphorIconsStyle.bold),
-                    size: 16),
-                label: const Text('Comprar jugador'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: color,
-                  side: BorderSide(color: color.withValues(alpha: 0.4)),
-                ),
-              ),
-            ],
-          ),
+          if (MediaQuery.sizeOf(context).width < 980) ...[
+            const SizedBox(height: 14),
+            Align(
+              alignment: Alignment.centerRight,
+              child: purchasePlayerAction,
+            ),
+          ],
           if (purchases.players.isNotEmpty) ...[
             const SizedBox(height: 10),
             ...List.generate(purchases.players.length, (index) {
@@ -4043,7 +4157,9 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            '${player.positionName} · ${player.number != null ? '#${player.number}' : 'Numero automatico'} · ${_fmtGold(player.cost)} GP',
+                            player.free
+                                ? '${player.positionName} · ${player.number != null ? '#${player.number}' : 'Numero automatico'} · Gratis (Masters of Undeath)'
+                                : '${player.positionName} · ${player.number != null ? '#${player.number}' : 'Numero automatico'} · ${_fmtGold(player.cost)} GP',
                             style: const TextStyle(
                               color: AppColors.textMuted,
                               fontSize: 12,
@@ -4066,25 +4182,39 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
             }),
           ],
           const SizedBox(height: 10),
-          Wrap(
-            spacing: 10,
-            runSpacing: 8,
+          Row(
             children: [
-              _fansStatusPill(
-                label: 'Temporales conservados: ${_fmtGold(temporaryKeepCost)}',
-                color: AppColors.warning,
-                icon: PhosphorIcons.userCheck(PhosphorIconsStyle.fill),
+              Expanded(
+                child: Text(
+                  'Temporales conservados: ${_fmtGold(temporaryKeepCost)}',
+                  style: const TextStyle(
+                    color: AppColors.textMuted,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
-              _fansStatusPill(
-                label: 'Compras: ${_fmtGold(purchaseCost)}',
-                color: AppColors.primary,
-                icon: PhosphorIcons.shoppingCart(PhosphorIconsStyle.fill),
+              Expanded(
+                child: Text(
+                  'Compras: ${_fmtGold(purchaseCost)}',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: AppColors.textMuted,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
-              _fansStatusPill(
-                label:
-                    'Antes de errores costosos: ${_fmtGold(remainingTreasury)}',
-                color: AppColors.accent,
-                icon: PhosphorIcons.coins(PhosphorIconsStyle.fill),
+              Expanded(
+                child: Text(
+                  'Antes de errores costosos: ${_fmtGold(remainingTreasury)}',
+                  textAlign: TextAlign.right,
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
               ),
             ],
           ),
@@ -4318,13 +4448,16 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
     return 99;
   }
 
-  Future<void> _showPlayerPurchaseDialog(String teamSide) async {
+  Future<void> _showPlayerPurchaseDialog(String teamSide, Match match) async {
     final roster = _rosterForSide(teamSide);
     final team = _teamForSide(teamSide);
     if (roster == null || team == null) return;
     final winningsRules = ref.read(winningsRulesProvider).valueOrNull;
+    final injuryRules = ref.read(injuryRulesProvider).valueOrNull;
     final remaining = _treasuryBeforeExpensiveMistakes(teamSide, winningsRules);
     final rosterCount = _effectiveRosterCount(teamSide);
+    final freeRaiseDeadSlots =
+        _remainingFreeRaiseDeadSlotsForMatch(teamSide, match, injuryRules);
 
     await showDialog<void>(
       context: context,
@@ -4338,40 +4471,84 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
                   'La plantilla ya alcanzaria 16 jugadores con las compras planificadas.',
                   style: TextStyle(color: AppColors.textMuted),
                 )
-              : ListView.separated(
-                  shrinkWrap: true,
-                  itemCount: roster.positions.length,
-                  separatorBuilder: (_, __) => const Divider(
-                    height: 1,
-                    color: AppColors.surfaceLight,
-                  ),
-                  itemBuilder: (_, index) {
-                    final position = roster.positions[index];
-                    final count =
-                        _effectiveCountForBaseType(teamSide, position.id);
-                    final canBuy = count < position.maxQuantity &&
-                        remaining >= position.cost;
-                    return ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(position.name),
-                      subtitle: Text(
-                        '$count/${position.maxQuantity} · ${_fmtGold(position.cost)} GP',
-                        style: const TextStyle(color: AppColors.textMuted),
+              : Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (freeRaiseDeadSlots > 0) ...[
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.success.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: AppColors.success.withValues(alpha: 0.24),
+                          ),
+                        ),
+                        child: Text(
+                          freeRaiseDeadSlots == 1
+                              ? 'Hay 1 linea gratis disponible por Masters of Undeath.'
+                              : 'Hay $freeRaiseDeadSlots lineas gratis disponibles por Masters of Undeath.',
+                          style: const TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                       ),
-                      trailing: ElevatedButton(
-                        onPressed: canBuy
-                            ? () async {
-                                Navigator.of(dialogContext).pop();
-                                await _showPlayerPurchaseDetailsDialog(
-                                  teamSide,
-                                  position,
-                                );
-                              }
-                            : null,
-                        child: const Text('Elegir'),
+                      const SizedBox(height: 12),
+                    ],
+                    SizedBox(
+                      height: 360,
+                      child: ListView.separated(
+                        shrinkWrap: true,
+                        itemCount: roster.positions.length,
+                        separatorBuilder: (_, __) => const Divider(
+                          height: 1,
+                          color: AppColors.surfaceLight,
+                        ),
+                        itemBuilder: (_, index) {
+                          final position = roster.positions[index];
+                          final isFreeRaiseDead = _canUseFreeRaiseDeadPurchase(
+                            teamSide,
+                            match,
+                            position,
+                            injuryRules,
+                          );
+                          final displayedCost =
+                              isFreeRaiseDead ? 0 : position.cost;
+                          final count =
+                              _effectiveCountForBaseType(teamSide, position.id);
+                          final canBuy = count < position.maxQuantity &&
+                              (isFreeRaiseDead || remaining >= position.cost);
+                          return ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: Text(position.name),
+                            subtitle: Text(
+                              isFreeRaiseDead
+                                  ? '$count/${position.maxQuantity} · Gratis (Masters of Undeath)'
+                                  : '$count/${position.maxQuantity} · ${_fmtGold(displayedCost)} GP',
+                              style:
+                                  const TextStyle(color: AppColors.textMuted),
+                            ),
+                            trailing: ElevatedButton(
+                              onPressed: canBuy
+                                  ? () async {
+                                      Navigator.of(dialogContext).pop();
+                                      await _showPlayerPurchaseDetailsDialog(
+                                        teamSide,
+                                        match,
+                                        position,
+                                      );
+                                    }
+                                  : null,
+                              child: const Text('Elegir'),
+                            ),
+                          );
+                        },
                       ),
-                    );
-                  },
+                    ),
+                  ],
                 ),
         ),
       ),
@@ -4380,8 +4557,13 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
 
   Future<void> _showPlayerPurchaseDetailsDialog(
     String teamSide,
+    Match match,
     BasePosition position,
   ) async {
+    final injuryRules = ref.read(injuryRulesProvider).valueOrNull;
+    final isFreeRaiseDead =
+        _canUseFreeRaiseDeadPurchase(teamSide, match, position, injuryRules);
+    final purchaseCost = isFreeRaiseDead ? 0 : position.cost;
     final nameCtrl = TextEditingController();
     final numberCtrl =
         TextEditingController(text: '${_nextAvailablePlannedNumber(teamSide)}');
@@ -4412,7 +4594,9 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
                   Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      'Coste: ${_fmtGold(position.cost)} GP',
+                      isFreeRaiseDead
+                          ? 'Coste: Gratis (Masters of Undeath)'
+                          : 'Coste: ${_fmtGold(position.cost)} GP',
                       style: const TextStyle(
                         color: AppColors.textMuted,
                         fontWeight: FontWeight.w700,
@@ -4448,7 +4632,7 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
           position.maxQuantity) {
         throw Exception('Ya has alcanzado el maximo para esa posicion');
       }
-      if (remaining < position.cost) {
+      if (!isFreeRaiseDead && remaining < position.cost) {
         throw Exception('No hay tesoreria suficiente para esta compra');
       }
 
@@ -4480,7 +4664,8 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
                 name:
                     nameCtrl.text.trim().isEmpty ? null : nameCtrl.text.trim(),
                 number: parsedNumber,
-                cost: position.cost,
+                cost: purchaseCost,
+                free: isFreeRaiseDead,
               ),
             );
       });
@@ -4886,7 +5071,9 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
                 match,
                 homeId,
                 'home',
-                spp: sppMap['home:${p.id}']?.total ?? 0,
+                spp: sppMap['home:${p.id}'] == null
+                    ? 0
+                    : _tallyTotal(sppMap['home:${p.id}']!),
                 isStarPlayer: p.baseType.startsWith('star_'),
               )),
           const SizedBox(height: 16),
@@ -4905,7 +5092,9 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
                 match,
                 awayId,
                 'away',
-                spp: sppMap['away:${p.id}']?.total ?? 0,
+                spp: sppMap['away:${p.id}'] == null
+                    ? 0
+                    : _tallyTotal(sppMap['away:${p.id}']!),
                 isStarPlayer: p.baseType.startsWith('star_'),
               )),
         ],
@@ -4936,11 +5125,13 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
     required int spp,
     required bool isStarPlayer,
   }) {
-    final decision =
+    final storedDecision =
         _storedTemporaryPlayerDecisions(match)[player.id] ?? 'release';
     final isJourneyman = player.journeyman;
     final isMercenary =
         player.temporaryForMatch && !isStarPlayer && !isJourneyman;
+    final canKeep = _canKeepTemporaryPlayer(player, isStarPlayer: isStarPlayer);
+    final decision = canKeep ? storedDecision : 'release';
     final decisionLabel = decision == 'keep'
         ? 'Keep'
         : decision == 'release'
@@ -5015,9 +5206,11 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
             color: AppColors.success,
             icon: PhosphorIcons.userPlus(PhosphorIconsStyle.bold),
             selected: decision == 'keep',
-            onPressed: () {
-              _keepTempPlayer(player, teamId, teamSide);
-            },
+            onPressed: canKeep
+                ? () {
+                    _keepTempPlayer(player, teamId, teamSide);
+                  }
+                : null,
           ),
           const SizedBox(width: 8),
           _tempActionButton(
@@ -5038,7 +5231,7 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
     required String label,
     required Color color,
     required IconData icon,
-    required VoidCallback onPressed,
+    required VoidCallback? onPressed,
     bool selected = false,
   }) {
     return SizedBox(

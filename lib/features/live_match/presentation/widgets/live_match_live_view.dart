@@ -2571,9 +2571,35 @@ extension _LiveMatchLiveView on _LiveMatchScreenState {
   }
 
   Widget _buildQuickActions(Match match, String lang) {
+    final currentUserId = ref.watch(authStateProvider).valueOrNull?.user?.id;
+    final preferredTeam = currentUserId == null
+        ? null
+        : match.home.userId == currentUserId
+            ? 'home'
+            : match.away.userId == currentUserId
+                ? 'away'
+                : null;
+
+    String sppLabelForEvent(String eventType, int defaultSpp) {
+      final homeSpp = adjustedSppForSpecialRules(
+        specialRules: _homeBaseRoster?.specialRules ?? const <String>[],
+        eventType: eventType,
+        defaultSpp: defaultSpp,
+      );
+      final awaySpp = adjustedSppForSpecialRules(
+        specialRules: _awayBaseRoster?.specialRules ?? const <String>[],
+        eventType: eventType,
+        defaultSpp: defaultSpp,
+      );
+      if (preferredTeam == 'home') return '$homeSpp SPP';
+      if (preferredTeam == 'away') return '$awaySpp SPP';
+      if (homeSpp == awaySpp) return '$homeSpp SPP';
+      return '$defaultSpp SPP';
+    }
+
     final actions = [
       _QA('TD', PhosphorIcons.trophy(PhosphorIconsStyle.fill), AppColors.accent,
-          'touchdown', '3 SPP'),
+          'touchdown', sppLabelForEvent('touchdown', 3)),
       _QA(
           tr(lang, 'liveMatch.completion'),
           PhosphorIcons.arrowBendUpRight(PhosphorIconsStyle.fill),
@@ -2595,7 +2621,7 @@ extension _LiveMatchLiveView on _LiveMatchScreenState {
           PhosphorIcons.skull(PhosphorIconsStyle.fill),
           AppColors.error,
           'casualty',
-          '2 SPP'),
+          sppLabelForEvent('casualty', 2)),
       _QA('Foul', PhosphorIcons.prohibit(PhosphorIconsStyle.fill),
           AppColors.primaryLight, 'foul', null),
     ];

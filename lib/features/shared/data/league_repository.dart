@@ -243,12 +243,15 @@ class LeagueRepository {
     String? name,
     String? description,
     int? maxTeams,
+    List<String>? commissionerUsernames,
   }) async {
     try {
       final response = await _dio.patch('/leagues/$leagueId', data: {
         if (name != null) 'name': name,
         if (description != null) 'description': description,
         if (maxTeams != null) 'max_teams': maxTeams,
+        if (commissionerUsernames != null)
+          'commissioner_usernames': commissionerUsernames,
       });
       return LeagueSummaryModel.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {

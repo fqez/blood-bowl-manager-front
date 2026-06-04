@@ -892,6 +892,7 @@ class TeamRepository {
     String? temporaryMatchId,
     bool mercenary = false,
     bool riotousRookie = false,
+    String? leagueId,
   }) async {
     try {
       await _dio.post('/user-teams/$teamId/players', data: {
@@ -902,6 +903,7 @@ class TeamRepository {
         if (temporaryMatchId != null) 'temporary_match_id': temporaryMatchId,
         if (mercenary) 'mercenary': true,
         if (riotousRookie) 'riotous_rookie': true,
+        if (leagueId != null) 'league_id': leagueId,
       });
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
@@ -915,6 +917,7 @@ class TeamRepository {
     int? number,
     bool temporaryForMatch = false,
     String? temporaryMatchId,
+    String? leagueId,
   }) async {
     try {
       await _dio.post('/user-teams/$teamId/players/star', data: {
@@ -923,6 +926,7 @@ class TeamRepository {
         if (number != null) 'number': number,
         if (temporaryForMatch) 'temporary_for_match': true,
         if (temporaryMatchId != null) 'temporary_match_id': temporaryMatchId,
+        if (leagueId != null) 'league_id': leagueId,
       });
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
@@ -941,6 +945,8 @@ class TeamRepository {
     int? treasury,
     String? notes,
     String? favouredOf,
+    String? leagueId,
+    bool commissionerEdit = false,
   }) async {
     try {
       final response = await _dio.patch('/user-teams/$teamId', data: {
@@ -954,6 +960,8 @@ class TeamRepository {
         if (treasury != null) 'treasury': treasury,
         if (notes != null) 'notes': notes,
         if (favouredOf != null) 'favoured_of': favouredOf,
+        if (leagueId != null) 'league_id': leagueId,
+        if (commissionerEdit) 'commissioner_edit': true,
       });
       return UserTeamDetail.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
@@ -1033,9 +1041,18 @@ class TeamRepository {
     }
   }
 
-  Future<void> fireUserPlayer(String teamId, String playerId) async {
+  Future<void> fireUserPlayer(
+    String teamId,
+    String playerId, {
+    String? leagueId,
+  }) async {
     try {
-      await _dio.delete('/user-teams/$teamId/players/$playerId');
+      await _dio.delete(
+        '/user-teams/$teamId/players/$playerId',
+        queryParameters: {
+          if (leagueId != null) 'league_id': leagueId,
+        },
+      );
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }
@@ -1089,9 +1106,15 @@ class TeamRepository {
     }
   }
 
-  Future<UserTeamDetail> getUserTeamDetail(String teamId) async {
+  Future<UserTeamDetail> getUserTeamDetail(String teamId,
+      {String? leagueId}) async {
     try {
-      final response = await _dio.get('/user-teams/$teamId');
+      final response = await _dio.get(
+        '/user-teams/$teamId',
+        queryParameters: {
+          if (leagueId != null) 'league_id': leagueId,
+        },
+      );
       return UserTeamDetail.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
@@ -1344,6 +1367,7 @@ class TeamRepository {
     required String perkId,
     required String perkName,
     String? category,
+    String? leagueId,
   }) async {
     try {
       final response = await _dio.post(
@@ -1352,6 +1376,7 @@ class TeamRepository {
           'perk_id': perkId,
           'perk_name': perkName,
           if (category != null) 'category': category,
+          if (leagueId != null) 'league_id': leagueId,
         },
       );
       return UserTeamDetail.fromJson(response.data as Map<String, dynamic>);
@@ -1367,6 +1392,7 @@ class TeamRepository {
     String? perkId,
     String? characteristic,
     int? characteristicRoll,
+    String? leagueId,
   }) async {
     try {
       final response = await _dio.post(
@@ -1377,6 +1403,7 @@ class TeamRepository {
           if (characteristic != null) 'characteristic': characteristic,
           if (characteristicRoll != null)
             'characteristic_roll': characteristicRoll,
+          if (leagueId != null) 'league_id': leagueId,
         },
       );
       return UserTeamDetail.fromJson(response.data as Map<String, dynamic>);

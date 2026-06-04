@@ -6,6 +6,7 @@ import '../../features/auth/presentation/screens/register_screen.dart';
 import '../../features/dashboard/presentation/screens/dashboard_screen.dart';
 import '../../features/debug/data/debug_league_data.dart';
 import '../../features/debug/presentation/screens/debug_league_aftermatch_launcher.dart';
+import '../../features/league/presentation/screens/league_backoffice_screen.dart';
 import '../../features/league/presentation/screens/league_overview_screen.dart';
 import '../../features/my_teams/presentation/screens/my_team_detail_screen.dart';
 import '../../features/roster/presentation/screens/player_card_screen.dart';
@@ -97,6 +98,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: '/leagues/join',
             name: 'join-league',
             builder: (context, state) => const JoinLeagueScreen(),
+          ),
+          GoRoute(
+            path: '/league/:leagueId/backoffice',
+            name: 'league-backoffice',
+            builder: (context, state) {
+              final leagueId = state.pathParameters['leagueId']!;
+              return LeagueBackofficeScreen(leagueId: leagueId);
+            },
           ),
           GoRoute(
             path: '/league/:leagueId',

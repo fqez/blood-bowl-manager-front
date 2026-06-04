@@ -122,6 +122,18 @@ const _teamSpecialRuleInfos = <_TeamSpecialRuleInfo>[
   ),
 ];
 
+const _brawlinBrutesAliases = <String>[
+  'brawlin brutes',
+  'brutos peleones',
+  'brutos de rina',
+  'brutos de trifulca',
+];
+
+const _mastersOfUndeathAliases = <String>[
+  'masters of undeath',
+  'maestros de la no muerte',
+];
+
 String _normalizeSpecialRule(String value) {
   final lower = value
       .toLowerCase()
@@ -148,7 +160,52 @@ String _normalizeSpecialRule(String value) {
   return buffer.toString().replaceAll(RegExp(r'\s+'), ' ').trim();
 }
 
-_TeamSpecialRuleInfo? teamSpecialRuleInfo(String rule) {
+bool hasBrawlinBrutesRule(Iterable<String> specialRules) {
+  for (final rule in specialRules) {
+    final normalizedRule = _normalizeSpecialRule(rule);
+    for (final alias in _brawlinBrutesAliases) {
+      if (normalizedRule.contains(alias)) return true;
+    }
+  }
+  return false;
+}
+
+bool hasMastersOfUndeathRule(Iterable<String> specialRules) {
+  for (final rule in specialRules) {
+    final normalizedRule = _normalizeSpecialRule(rule);
+    for (final alias in _mastersOfUndeathAliases) {
+      if (normalizedRule.contains(alias)) return true;
+    }
+  }
+  return false;
+}
+
+bool isLinemanMarker(Iterable<String?> values) {
+  final normalized = values
+      .whereType<String>()
+      .map(_normalizeSpecialRule)
+      .where((value) => value.isNotEmpty)
+      .join(' ');
+  return normalized.contains('lineman') || normalized.contains('linea');
+}
+
+int adjustedSppForSpecialRules({
+  required Iterable<String> specialRules,
+  required String eventType,
+  required int defaultSpp,
+}) {
+  if (!hasBrawlinBrutesRule(specialRules)) return defaultSpp;
+  switch (eventType) {
+    case 'casualty':
+      return 3;
+    case 'touchdown':
+      return 2;
+    default:
+      return defaultSpp;
+  }
+}
+
+_TeamSpecialRuleInfo? _teamSpecialRuleInfo(String rule) {
   final normalizedRule = _normalizeSpecialRule(rule);
   for (final info in _teamSpecialRuleInfos) {
     for (final alias in info.aliases) {
@@ -163,7 +220,7 @@ Future<void> showTeamSpecialRuleDialog(
   required String rule,
   required String lang,
 }) async {
-  final info = teamSpecialRuleInfo(rule);
+  final info = _teamSpecialRuleInfo(rule);
   if (info == null) return;
 
   final description = lang == 'es' ? info.descriptionEs : info.descriptionEn;
