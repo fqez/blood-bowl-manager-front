@@ -126,10 +126,10 @@ class AdvancementRules {
             .map((e) => SkillCategoryRule.fromJson(e as Map<String, dynamic>))
             .toList(),
         randomPrimarySkillTable:
-          (json['random_primary_skill_table'] as List<dynamic>? ?? [])
-            .map((e) =>
-              RandomPrimarySkillTableEntry.fromJson(e as Map<String, dynamic>))
-            .toList(),
+            (json['random_primary_skill_table'] as List<dynamic>? ?? [])
+                .map((e) => RandomPrimarySkillTableEntry.fromJson(
+                    e as Map<String, dynamic>))
+                .toList(),
         randomSkillRolls: (json['random_skill_rolls'] as num?)?.toInt() ?? 2,
         randomSkillDice: json['random_skill_dice'] as String? ?? '2D6',
         description: ExpensiveMistakeEffect._localized(json['description']),
@@ -269,8 +269,9 @@ class RandomPrimarySkillTableEntry {
         firstD6Min: (json['first_d6_min'] as num?)?.toInt() ?? 1,
         firstD6Max: (json['first_d6_max'] as num?)?.toInt() ?? 1,
         secondD6: (json['second_d6'] as num?)?.toInt() ?? 1,
-        perkIds:
-            (json['perk_ids'] as List<dynamic>? ?? []).map((e) => '$e').toList(),
+        perkIds: (json['perk_ids'] as List<dynamic>? ?? [])
+            .map((e) => '$e')
+            .toList(),
       );
 
   bool matchesRoll(int firstDie, int secondDie) =>

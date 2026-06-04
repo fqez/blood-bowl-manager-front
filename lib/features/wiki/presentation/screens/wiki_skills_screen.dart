@@ -595,7 +595,14 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
         }
 
         final familyOrder = advancementRules == null
-            ? ['general', 'agility', 'devious', 'strength', 'passing', 'mutation']
+            ? [
+                'general',
+                'agility',
+                'devious',
+                'strength',
+                'passing',
+                'mutation'
+              ]
             : advancementRules.skillCategories
                 .map((category) => category.family)
                 .toList();

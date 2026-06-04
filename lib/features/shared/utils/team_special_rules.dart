@@ -264,6 +264,29 @@ bool rosterCanChooseFavoured(String? rosterId) =>
 
 String? favouredLabel(String? favouredOf) => chaosFavouredLabels[favouredOf];
 
+String? starPlayerFavouredRequirement(Map<String, dynamic> starPlayer) {
+  final starId =
+      starPlayer['id'] as String? ?? starPlayer['_id'] as String? ?? '';
+  return _favouredStarRequirements[starId];
+}
+
+bool starPlayerAvailableForRosterAnyFavoured(
+  Map<String, dynamic> starPlayer, {
+  required String rosterId,
+}) {
+  if (!rosterCanChooseFavoured(rosterId)) {
+    return starPlayerAvailableForRoster(starPlayer, rosterId: rosterId);
+  }
+
+  return chaosFavouredLabels.keys.any(
+    (favouredOf) => starPlayerAvailableForRoster(
+      starPlayer,
+      rosterId: rosterId,
+      favouredOf: favouredOf,
+    ),
+  );
+}
+
 bool starPlayerAvailableForRoster(
   Map<String, dynamic> starPlayer, {
   required String rosterId,

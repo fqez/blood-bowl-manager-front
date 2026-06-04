@@ -1212,12 +1212,21 @@ const _t = <String, Map<String, String>>{
     'es': 'Buscar jugador estrella...',
     'en': 'Search star player...',
   },
+  'wikiStars.teamFilter': {'es': 'Equipo', 'en': 'Team'},
   'wikiStars.all': {'es': 'Todos', 'en': 'All'},
   'wikiStars.errorLoading': {
     'es': 'Error al cargar jugadores estrella',
     'en': 'Error loading star players',
   },
   'wikiStars.playsFor': {'es': 'Juega para:', 'en': 'Plays for:'},
+  'wikiStars.favouredTag': {
+    'es': 'Favorito de {god}',
+    'en': 'Favoured of {god}',
+  },
+  'wikiStars.favouredTeamHint': {
+    'es': 'Se muestran todas las opciones del roster. Algunas requieren un dios concreto.',
+    'en': 'All roster options are shown here. Some require a specific god.',
+  },
 
   // ── Wiki Injuries ───────────────────────────────────────────────────────
   'wikiInjuries.title': {'es': 'TABLA DE LESIONES', 'en': 'INJURY TABLE'},

@@ -6,8 +6,9 @@ import '../../../../core/l10n/locale_provider.dart';
 import '../../../../core/l10n/translations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../shared/data/repositories.dart';
-import '../../../shared/presentation/widgets/skill_popup.dart';
 import '../../../shared/presentation/widgets/star_player_popup.dart';
+import '../../../shared/utils/team_special_rules.dart';
+import '../../../roster/domain/models/team.dart';
 import '../widgets/wiki_page_chrome.dart';
 
 // ignore_for_file: deprecated_member_use
@@ -17,6 +18,11 @@ final _allStarPlayerDetailsProvider =
     FutureProvider<List<Map<String, dynamic>>>((ref) async {
   final repo = ref.watch(teamRepositoryProvider);
   return repo.getAllStarPlayerDetails();
+});
+
+final _wikiStarTeamsProvider = FutureProvider<List<BaseTeam>>((ref) async {
+  final repo = ref.watch(teamRepositoryProvider);
+  return repo.getBaseTeams();
 });
 
 class WikiStarPlayersScreen extends ConsumerStatefulWidget {
@@ -29,7 +35,7 @@ class WikiStarPlayersScreen extends ConsumerStatefulWidget {
 
 class _WikiStarPlayersScreenState extends ConsumerState<WikiStarPlayersScreen> {
   String _search = '';
-  String? _typeFilter;
+  String? _teamFilter;
   final _scrollController = ScrollController();
   final Map<String, GlobalKey> _letterKeys = {};
 
@@ -43,6 +49,7 @@ class _WikiStarPlayersScreenState extends ConsumerState<WikiStarPlayersScreen> {
   Widget build(BuildContext context) {
     final lang = ref.watch(localeProvider);
     final detailsAsync = ref.watch(_allStarPlayerDetailsProvider);
+    final teamsAsync = ref.watch(_wikiStarTeamsProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -57,8 +64,17 @@ class _WikiStarPlayersScreenState extends ConsumerState<WikiStarPlayersScreen> {
                     trf(lang, 'wikiStars.errorLoading', {'err': '$err'}),
                     style: const TextStyle(color: AppColors.error)),
               ),
-              data: (allPlayers) => WikiContentScale(
-                child: _buildBody(allPlayers, lang),
+              data: (allPlayers) => teamsAsync.when(
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (err, _) => Center(
+                  child: Text(
+                    trf(lang, 'wikiStars.errorLoading', {'err': '$err'}),
+                    style: const TextStyle(color: AppColors.error),
+                  ),
+                ),
+                data: (teams) => WikiContentScale(
+                  child: _buildBody(allPlayers, teams, lang),
+                ),
               ),
             ),
           ),
@@ -73,33 +89,30 @@ class _WikiStarPlayersScreenState extends ConsumerState<WikiStarPlayersScreen> {
     return WikiPageTopBar(title: tr(lang, 'wikiStars.title'));
   }
 
-  Widget _buildHeader(String lang) {
-    return WikiPageHeroHeader(
-      icon: PhosphorIcons.star(PhosphorIconsStyle.fill),
-      title: tr(lang, 'wikiStars.title'),
-      subtitle: tr(lang, 'wikiStars.subtitle'),
-      accentColor: const Color(0xFFCE93D8),
-      gradientColor: const Color(0xFF4A148C),
-    );
-  }
-
   // ── Body ────────────────────────────────────────────────────────────────────
 
-  Widget _buildBody(List<Map<String, dynamic>> allPlayers, String lang) {
+  Widget _buildBody(
+    List<Map<String, dynamic>> allPlayers,
+    List<BaseTeam> teams,
+    String lang,
+  ) {
     final isCompact = MediaQuery.of(context).size.width < 700;
-
-    // Collect unique types
-    final allTypes = <String>{};
-    for (final sp in allPlayers) {
-      final types = sp['player_types'] as List? ?? [];
-      for (final t in types) {
-        allTypes.add(t.toString());
-      }
-    }
-    final sortedTypes = allTypes.toList()..sort();
+    final isTeamFiltered = _teamFilter != null;
+    final sortedTeams = List<BaseTeam>.from(teams)
+      ..sort((a, b) => a.name.compareTo(b.name));
 
     // Filter
     var filtered = allPlayers;
+    if (_teamFilter != null) {
+      filtered = filtered
+          .where(
+            (sp) => starPlayerAvailableForRosterAnyFavoured(
+              sp,
+              rosterId: _teamFilter!,
+            ),
+          )
+          .toList();
+    }
     if (_search.isNotEmpty) {
       final q = _search.toLowerCase();
       filtered = filtered
@@ -107,12 +120,6 @@ class _WikiStarPlayersScreenState extends ConsumerState<WikiStarPlayersScreen> {
               (sp['name'] as String? ?? '').toLowerCase().contains(q) ||
               ((sp['skills'] as List?) ?? [])
                   .any((s) => s.toString().toLowerCase().contains(q)))
-          .toList();
-    }
-    if (_typeFilter != null) {
-      filtered = filtered
-          .where(
-              (sp) => (sp['player_types'] as List? ?? []).contains(_typeFilter))
           .toList();
     }
 
@@ -136,21 +143,19 @@ class _WikiStarPlayersScreenState extends ConsumerState<WikiStarPlayersScreen> {
       children: [
         Padding(
           padding: EdgeInsets.fromLTRB(
-            isCompact ? 16 : 24,
-            isCompact ? 12 : 16,
-            isCompact ? 16 : 24,
+            isCompact ? 14 : 24,
+            isCompact ? 8 : 16,
+            isCompact ? 14 : 24,
             0,
           ),
           child: Column(
             children: [
-              _buildHeader(lang),
-              SizedBox(height: isCompact ? 10 : 16),
               if (isCompact)
                 Column(
                   children: [
                     _buildSearchField(lang, compact: true),
                     const SizedBox(height: 8),
-                    _buildTypeFilter(sortedTypes, lang, compact: true),
+                    _buildTeamFilter(sortedTeams, lang, compact: true),
                   ],
                 )
               else
@@ -158,11 +163,17 @@ class _WikiStarPlayersScreenState extends ConsumerState<WikiStarPlayersScreen> {
                   children: [
                     Expanded(child: _buildSearchField(lang)),
                     const SizedBox(width: 12),
-                    _buildTypeFilter(sortedTypes, lang),
+                    _buildTeamFilter(sortedTeams, lang),
                   ],
                 ),
-              SizedBox(height: isCompact ? 8 : 10),
-              _buildAlphabetIndex(sortedLetters),
+              if (_teamFilter != null && rosterCanChooseFavoured(_teamFilter)) ...[
+                const SizedBox(height: 10),
+                _buildFavouredTeamHint(lang),
+              ],
+              if (!isTeamFiltered) ...[
+                SizedBox(height: isCompact ? 6 : 10),
+                _buildAlphabetIndex(sortedLetters),
+              ],
             ],
           ),
         ),
@@ -192,7 +203,8 @@ class _WikiStarPlayersScreenState extends ConsumerState<WikiStarPlayersScreen> {
                     lang == 'es'
                         ? 'No se encontraron jugadores estrella'
                         : 'No star players found',
-                    style: TextStyle(color: AppColors.textMuted, fontSize: 18),
+                    style:
+                        const TextStyle(color: AppColors.textMuted, fontSize: 18),
                   ),
                 )
               : SingleChildScrollView(
@@ -205,43 +217,57 @@ class _WikiStarPlayersScreenState extends ConsumerState<WikiStarPlayersScreen> {
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: sortedLetters.map((letter) {
-                      return Column(
-                        key: _letterKeys[letter],
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const SizedBox(height: 16),
-                          _buildLetterHeader(letter),
-                          const SizedBox(height: 8),
-                          LayoutBuilder(
-                            builder: (ctx, constraints) {
-                              final crossCount = constraints.maxWidth > 900
-                                  ? 3
-                                  : constraints.maxWidth > 550
-                                      ? 2
-                                      : 1;
-                              final cardW = (constraints.maxWidth -
-                                      (crossCount - 1) * 12) /
-                                  crossCount;
-                              return Wrap(
-                                spacing: 12,
-                                runSpacing: 12,
-                                children: grouped[letter]!.map((sp) {
-                                  return SizedBox(
-                                    width: cardW,
-                                    child: _buildStarPlayerCard(sp, lang),
-                                  );
-                                }).toList(),
-                              );
-                            },
-                          ),
-                        ],
-                      );
-                    }).toList(),
+                    children: [
+                      if (isTeamFiltered)
+                        _buildStarPlayerGrid(filtered, lang)
+                      else
+                        ...sortedLetters.map((letter) {
+                          return Column(
+                            key: _letterKeys[letter],
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const SizedBox(height: 16),
+                              _buildLetterHeader(letter),
+                              const SizedBox(height: 8),
+                              _buildStarPlayerGrid(grouped[letter]!, lang),
+                            ],
+                          );
+                        }),
+                    ],
                   ),
                 ),
         ),
       ],
+    );
+  }
+
+  Widget _buildStarPlayerGrid(List<Map<String, dynamic>> players, String lang) {
+    return LayoutBuilder(
+      builder: (ctx, constraints) {
+        final crossCount = constraints.maxWidth > 1200
+            ? 5
+            : constraints.maxWidth > 900
+                ? 4
+                : constraints.maxWidth > 640
+                    ? 3
+                    : constraints.maxWidth > 420
+                        ? 2
+                        : 1;
+        final spacing = constraints.maxWidth > 640 ? 12.0 : 10.0;
+        final cardWidth =
+            (constraints.maxWidth - (crossCount - 1) * spacing) / crossCount;
+
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: players.map((sp) {
+            return SizedBox(
+              width: cardWidth,
+              child: _buildStarPlayerCard(sp, lang),
+            );
+          }).toList(),
+        );
+      },
     );
   }
 
@@ -286,14 +312,47 @@ class _WikiStarPlayersScreenState extends ConsumerState<WikiStarPlayersScreen> {
     );
   }
 
-  Widget _buildTypeFilter(
-    List<String> sortedTypes,
+  Widget _buildFavouredTeamHint(String lang) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.accent.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.accent.withOpacity(0.18)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            PhosphorIcons.info(PhosphorIconsStyle.fill),
+            size: 16,
+            color: AppColors.accent,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              tr(lang, 'wikiStars.favouredTeamHint'),
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppColors.textSecondary,
+                height: 1.3,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTeamFilter(
+    List<BaseTeam> teams,
     String lang, {
     bool compact = false,
   }) {
     return Container(
       height: compact ? 48 : null,
-      width: compact ? double.infinity : null,
+      width: compact ? double.infinity : 280,
       padding: EdgeInsets.symmetric(horizontal: compact ? 12 : 16),
       decoration: BoxDecoration(
         color: AppColors.card,
@@ -302,10 +361,10 @@ class _WikiStarPlayersScreenState extends ConsumerState<WikiStarPlayersScreen> {
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String?>(
-          isExpanded: compact,
-          value: _typeFilter,
+          isExpanded: true,
+          value: _teamFilter,
           hint: Text(
-            lang == 'es' ? 'Tipo' : 'Type',
+            tr(lang, 'wikiStars.teamFilter'),
             style: TextStyle(
               color: AppColors.textMuted,
               fontSize: compact ? 16 : 19,
@@ -321,14 +380,40 @@ class _WikiStarPlayersScreenState extends ConsumerState<WikiStarPlayersScreen> {
               value: null,
               child: Text(lang == 'es' ? 'Todos' : 'All'),
             ),
-            ...sortedTypes.map(
-              (type) => DropdownMenuItem<String?>(
-                value: type,
-                child: Text(type, overflow: TextOverflow.ellipsis),
+            ...teams.map(
+              (team) => DropdownMenuItem<String?>(
+                value: team.id,
+                child: SizedBox(
+                  width: compact ? 240 : 200,
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: Image.asset(
+                          'assets/teams/${team.id}/logo.webp',
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, __, ___) => Icon(
+                            PhosphorIcons.shield(PhosphorIconsStyle.fill),
+                            size: 16,
+                            color: AppColors.textMuted,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          team.name,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ],
-          onChanged: (value) => setState(() => _typeFilter = value),
+          onChanged: (value) => setState(() => _teamFilter = value),
         ),
       ),
     );
@@ -388,7 +473,8 @@ class _WikiStarPlayersScreenState extends ConsumerState<WikiStarPlayersScreen> {
           colors: [AppColors.primary.withOpacity(0.2), Colors.transparent],
         ),
         borderRadius: BorderRadius.circular(10),
-        border: Border(left: BorderSide(color: AppColors.primary, width: 4)),
+        border:
+            const Border(left: BorderSide(color: AppColors.primary, width: 4)),
       ),
       child: Text(
         letter,
@@ -411,14 +497,13 @@ class _WikiStarPlayersScreenState extends ConsumerState<WikiStarPlayersScreen> {
     final cost = sp['cost'] as int? ?? 0;
     final stats = sp['stats'] as Map<String, dynamic>? ?? {};
     final skills = (sp['skills'] as List?)?.cast<String>() ?? [];
-    final types = (sp['player_types'] as List?)?.cast<String>() ?? [];
-    final ability = sp['special_ability'] as Map<String, dynamic>?;
-    final playsFor = (sp['plays_for'] as List?)?.cast<String>() ?? [];
+    final previewSkills = skills.take(6).toList();
 
-    final isCompact = MediaQuery.of(context).size.width < 520;
-    final imageSize = isCompact ? 220.0 : 380.0;
-    final imageOverlap = isCompact ? 110.0 : 190.0;
-    final bodyTopPadding = isCompact ? 126.0 : 208.0;
+    final width = MediaQuery.of(context).size.width;
+    final isCompact = width < 520;
+    final imageSize = isCompact ? 176.0 : 238.0;
+    final imageOverlap = isCompact ? 88.0 : 118.0;
+    final bodyTopPadding = isCompact ? 100.0 : 130.0;
 
     return GestureDetector(
       onTap: () => showStarPlayerPopup(
@@ -433,193 +518,98 @@ class _WikiStarPlayersScreenState extends ConsumerState<WikiStarPlayersScreen> {
         child: Stack(
           clipBehavior: Clip.none,
           children: [
-            // ── Card body ──
             Container(
               width: double.infinity,
-              padding: EdgeInsets.fromLTRB(18, bodyTopPadding, 18, 18),
+              constraints: BoxConstraints(
+                minHeight: isCompact ? 318 : 348,
+              ),
+              padding: EdgeInsets.fromLTRB(
+                isCompact ? 14 : 16,
+                bodyTopPadding,
+                isCompact ? 14 : 16,
+                isCompact ? 14 : 16,
+              ),
               decoration: BoxDecoration(
                 color: AppColors.card,
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: AppColors.surfaceLight),
               ),
               child: Column(
                 children: [
-                  // Name
                   Text(
                     name.toUpperCase(),
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontFamily: AppTypography.displayFontFamily,
-                      fontSize: isCompact ? 24 : 28,
+                      fontSize: isCompact ? 17 : 19,
                       fontWeight: FontWeight.bold,
                       color: AppColors.textPrimary,
-                      letterSpacing: 0.8,
+                      letterSpacing: 0.5,
+                      height: 1,
                     ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 8),
-                  // Cost + types
-                  Wrap(
-                    alignment: WrapAlignment.center,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    spacing: 8,
-                    runSpacing: 6,
-                    children: [
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(PhosphorIcons.coins(PhosphorIconsStyle.fill),
-                              size: 20, color: AppColors.accent),
-                          const SizedBox(width: 6),
-                          Text(
-                            '${(cost ~/ 1000)}K',
-                            style: TextStyle(
-                              fontFamily: AppTypography.displayFontFamily,
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.accent,
-                            ),
-                          ),
-                        ],
-                      ),
-                      ...types.map((t) => Container(
+                  SizedBox(height: isCompact ? 10 : 12),
+                  _buildStatsRow(stats),
+                  SizedBox(height: isCompact ? 8 : 10),
+                  SizedBox(
+                    height: isCompact ? 84 : 72,
+                    child: Align(
+                      alignment: Alignment.topCenter,
+                      child: Wrap(
+                        alignment: WrapAlignment.center,
+                        spacing: 5,
+                        runSpacing: 5,
+                        children: previewSkills.map((skill) {
+                          return Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 4),
+                              horizontal: 7,
+                              vertical: 3,
+                            ),
                             decoration: BoxDecoration(
-                              color: AppColors.primary.withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(6),
+                              color: AppColors.surface,
+                              borderRadius: BorderRadius.circular(999),
+                              border: Border.all(color: AppColors.surfaceLight),
                             ),
                             child: Text(
-                              t,
+                              skill,
                               style: const TextStyle(
-                                  fontSize: 14,
-                                  color: AppColors.primary,
-                                  fontWeight: FontWeight.w600),
+                                fontSize: 10,
+                                color: AppColors.textSecondary,
+                                height: 1,
+                              ),
                             ),
-                          )),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: isCompact ? 8 : 10),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        PhosphorIcons.coins(PhosphorIconsStyle.fill),
+                        size: isCompact ? 14 : 16,
+                        color: AppColors.accent,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '${cost ~/ 1000}K',
+                        style: TextStyle(
+                          fontFamily: AppTypography.displayFontFamily,
+                          fontSize: isCompact ? 16 : 18,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.accent,
+                        ),
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  // Stats – centered, large
-                  _buildStatsRow(stats),
-                  const SizedBox(height: 10),
-                  // Skills – clickable, compact
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    alignment: WrapAlignment.center,
-                    children: skills.map((s) {
-                      return InkWell(
-                        borderRadius: BorderRadius.circular(6),
-                        onTap: () => showSkillPopup(context, ref, skillName: s),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 5),
-                          decoration: BoxDecoration(
-                            color: AppColors.surfaceLight.withOpacity(0.5),
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(
-                                color: AppColors.accent.withOpacity(0.15)),
-                          ),
-                          child: Text(
-                            s,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: AppColors.textSecondary,
-                              decoration: TextDecoration.underline,
-                              decorationColor:
-                                  AppColors.textSecondary.withOpacity(0.3),
-                              decorationStyle: TextDecorationStyle.dotted,
-                            ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                  // Special ability
-                  if (ability != null) ...[
-                    const SizedBox(height: 10),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: AppColors.accent.withOpacity(0.08),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                            color: AppColors.accent.withOpacity(0.2)),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(
-                                  PhosphorIcons.lightning(
-                                      PhosphorIconsStyle.fill),
-                                  size: 18,
-                                  color: AppColors.accent),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  (ability['name'] as String? ?? '')
-                                      .toUpperCase(),
-                                  style: TextStyle(
-                                    fontFamily: AppTypography.displayFontFamily,
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.accent,
-                                    letterSpacing: 0.5,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            ability['description'] as String? ?? '',
-                            style: const TextStyle(
-                                fontSize: 11,
-                                color: AppColors.textSecondary,
-                                height: 1.3),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                  // Plays for
-                  if (playsFor.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(PhosphorIcons.shield(PhosphorIconsStyle.fill),
-                            size: 12, color: AppColors.textMuted),
-                        const SizedBox(width: 5),
-                        Text(
-                          '${tr(lang, 'wikiStars.playsFor')} ',
-                          style: const TextStyle(
-                              fontSize: 10,
-                              color: AppColors.textMuted,
-                              fontWeight: FontWeight.w600),
-                        ),
-                        Expanded(
-                          child: Text(
-                            playsFor
-                                .map((t) => t.replaceAll('_', ' '))
-                                .map((t) => t[0].toUpperCase() + t.substring(1))
-                                .join(', '),
-                            style: const TextStyle(
-                                fontSize: 10,
-                                color: AppColors.textMuted,
-                                height: 1.3),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
                 ],
               ),
             ),
-            // ── Floating image on top ──
             Positioned(
               top: -imageOverlap,
               left: 0,
@@ -632,7 +622,7 @@ class _WikiStarPlayersScreenState extends ConsumerState<WikiStarPlayersScreen> {
                     'assets/images/star_players/$id.png',
                     fit: BoxFit.contain,
                     errorBuilder: (_, __, ___) => Container(
-                      decoration: BoxDecoration(
+                      decoration: const BoxDecoration(
                         shape: BoxShape.circle,
                         color: AppColors.surface,
                       ),
@@ -661,9 +651,9 @@ class _WikiStarPlayersScreenState extends ConsumerState<WikiStarPlayersScreen> {
       children: entries.map((key) {
         final val = stats[key]?.toString() ?? '-';
         return Container(
-          margin: const EdgeInsets.symmetric(horizontal: 3),
-          width: 42,
-          padding: const EdgeInsets.symmetric(vertical: 5),
+          margin: const EdgeInsets.symmetric(horizontal: 2),
+          width: 34,
+          padding: const EdgeInsets.symmetric(vertical: 4),
           decoration: BoxDecoration(
             color: AppColors.surface,
             borderRadius: BorderRadius.circular(6),
@@ -674,7 +664,7 @@ class _WikiStarPlayersScreenState extends ConsumerState<WikiStarPlayersScreen> {
               Text(
                 key,
                 style: TextStyle(
-                  fontSize: 10,
+                  fontSize: 8,
                   fontWeight: FontWeight.bold,
                   color: AppColors.accent.withOpacity(0.7),
                 ),
@@ -682,7 +672,7 @@ class _WikiStarPlayersScreenState extends ConsumerState<WikiStarPlayersScreen> {
               Text(
                 val,
                 style: const TextStyle(
-                  fontSize: 16,
+                  fontSize: 13,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textPrimary,
                 ),

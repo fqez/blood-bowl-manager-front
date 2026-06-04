@@ -336,7 +336,8 @@ String _perkLookupValue(String value) =>
     _stripPerkParameter(_englishHalf(value)).toLowerCase().trim();
 
 String _normalizePerkLookupId(String value) {
-  var normalized = _stripPerkParameter(_englishHalf(value)).toLowerCase().trim();
+  var normalized =
+      _stripPerkParameter(_englishHalf(value)).toLowerCase().trim();
   if (normalized.isEmpty) return '';
 
   normalized = normalized.replaceAll('_', '-');

@@ -572,7 +572,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
           final randomRollOptions =
               selectedMode == 'random_primary_skill' && selectedAccess != null
                   ? _buildRandomSkillRollOptions(
-                  rules: rules,
+                      rules: rules,
                       perks: perks,
                       lang: lang,
                       categorySymbol: selectedAccess.symbol,
@@ -933,33 +933,33 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                                                   ? () {
                                                       final perk =
                                                           selectedPerk!;
-                                                        _RandomSkillRollOption?
+                                                      _RandomSkillRollOption?
                                                           selectedOption;
-                                                        for (final option
+                                                      for (final option
                                                           in randomRollOptions) {
                                                         if (option.perkId ==
-                                                          perkIdFromJson(
-                                                            perk)) {
+                                                            perkIdFromJson(
+                                                                perk)) {
                                                           selectedOption =
-                                                            option;
+                                                              option;
                                                           break;
                                                         }
-                                                        }
-                                                        final appliedRoll =
+                                                      }
+                                                      final appliedRoll =
                                                           selectedOption ==
-                                                                null ||
-                                                              selectedOption
-                                                                .rollValues
-                                                                .isEmpty
-                                                            ? null
-                                                            : selectedOption
-                                                              .rollValues
-                                                              .first;
-                                                    if (selectedAccess ==
-                                                        null ||
-                                                      appliedRoll == null) {
-                                                    return;
-                                                    }
+                                                                      null ||
+                                                                  selectedOption
+                                                                      .rollValues
+                                                                      .isEmpty
+                                                              ? null
+                                                              : selectedOption
+                                                                  .rollValues
+                                                                  .first;
+                                                      if (selectedAccess ==
+                                                              null ||
+                                                          appliedRoll == null) {
+                                                        return;
+                                                      }
                                                       final nameMap =
                                                           perk['name']
                                                                   as Map? ??
@@ -1251,10 +1251,10 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
 
     final chosenPerk = selectedChoice.perk;
     final perkId = selectedChoice.advancementType == 'random_primary_skill'
-      ? null
-      : chosenPerk == null
         ? null
-        : perkIdFromJson(chosenPerk);
+        : chosenPerk == null
+            ? null
+            : perkIdFromJson(chosenPerk);
     final resultName = selectedChoice.resultLabel ?? '';
 
     try {
@@ -1264,9 +1264,9 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
             playerId,
             advancementType: selectedChoice.advancementType,
             perkId: perkId,
-        skillCategory: selectedChoice.skillCategory,
-        randomSkillFirstD6: selectedChoice.randomSkillFirstD6,
-        randomSkillSecondD6: selectedChoice.randomSkillSecondD6,
+            skillCategory: selectedChoice.skillCategory,
+            randomSkillFirstD6: selectedChoice.randomSkillFirstD6,
+            randomSkillSecondD6: selectedChoice.randomSkillSecondD6,
             characteristic: selectedChoice.characteristic,
             characteristicRoll: selectedChoice.characteristicRoll,
             leagueId: leagueId.isEmpty ? null : leagueId,
@@ -1869,7 +1869,8 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
 
       final perk = findPerkDefinition(perks, perkId);
       final resolvedPerkId = perkIdFromJson(perk);
-      final key = _skillKey(resolvedPerkId.isNotEmpty ? resolvedPerkId : perkId);
+      final key =
+          _skillKey(resolvedPerkId.isNotEmpty ? resolvedPerkId : perkId);
       final rollValue =
           _RandomSkillRollValue(firstDie: firstDie, secondDie: secondDie);
       final existing = options[key];
@@ -1888,8 +1889,8 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
         displayName: localizedPerkName(perks, perkId, lang),
         rollLabels: [rollValue.label],
         rollValues: [rollValue],
-        isOwned:
-            resolvedPerkId.isNotEmpty && ownedIds.contains(_skillKey(resolvedPerkId)),
+        isOwned: resolvedPerkId.isNotEmpty &&
+            ownedIds.contains(_skillKey(resolvedPerkId)),
       );
     }
 
@@ -1905,12 +1906,17 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
     int firstDie,
     int secondDie,
   ) {
-    if (rules == null || firstDie < 1 || firstDie > 6 || secondDie < 1 || secondDie > 6) {
+    if (rules == null ||
+        firstDie < 1 ||
+        firstDie > 6 ||
+        secondDie < 1 ||
+        secondDie > 6) {
       return null;
     }
 
     final categoryIndex = rules.skillCategories.indexWhere(
-      (category) => category.symbol.toUpperCase() == categorySymbol.toUpperCase(),
+      (category) =>
+          category.symbol.toUpperCase() == categorySymbol.toUpperCase(),
     );
     if (categoryIndex < 0) return null;
 

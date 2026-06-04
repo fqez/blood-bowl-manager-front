@@ -5,6 +5,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../core/l10n/translations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../data/repositories.dart';
+import '../../utils/team_special_rules.dart';
 import 'skill_popup.dart';
 
 final starPlayerDetailProvider =
@@ -19,6 +20,10 @@ void showStarPlayerPopup(
   required String lang,
   Map<String, dynamic>? initialStarPlayer,
 }) {
+  final isCompact = MediaQuery.of(context).size.width < 520;
+  final popupImageSize = isCompact ? 340.0 : 540.0;
+  final popupImageOverlap = isCompact ? 176.0 : 310.0;
+
   showDialog(
     context: context,
     builder: (ctx) => Consumer(
@@ -30,47 +35,87 @@ void showStarPlayerPopup(
 
         return Dialog(
           backgroundColor: Colors.transparent,
-          insetPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+          insetPadding: EdgeInsets.symmetric(
+            horizontal: isCompact ? 12 : 16,
+            vertical: isCompact ? 12 : 20,
+          ),
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 560, maxHeight: 820),
+            constraints: BoxConstraints(
+              maxWidth: isCompact ? 600 : 640,
+              maxHeight: MediaQuery.of(context).size.height * 0.76,
+            ),
             child: Container(
               decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: AppColors.surfaceLight),
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFF3A3120),
+                    Color(0xFF201B16),
+                    Color(0xFF151515),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(color: const Color(0xFF8E6F2F), width: 1.6),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.45),
+                    blurRadius: 28,
+                    offset: const Offset(0, 18),
+                  ),
+                ],
               ),
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 10, 10, 0),
+                    padding: const EdgeInsets.fromLTRB(14, 12, 10, 4),
                     child: Row(
                       children: [
-                        Icon(PhosphorIcons.star(PhosphorIconsStyle.fill),
-                            size: 18, color: AppColors.accent),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            tr(lang, 'wikiStars.title'),
-                            style: TextStyle(
-                              fontFamily: AppTypography.displayFontFamily,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.textPrimary,
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF2A241A),
+                            borderRadius: BorderRadius.circular(999),
+                            border: Border.all(
+                              color: const Color(0xFFD6B35A).withValues(alpha: 0.4),
                             ),
                           ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(PhosphorIcons.star(PhosphorIconsStyle.fill),
+                                  size: 16, color: const Color(0xFFD6B35A)),
+                              const SizedBox(width: 8),
+                              Text(
+                                tr(lang, 'wikiStars.title'),
+                                style: TextStyle(
+                                  fontFamily: AppTypography.displayFontFamily,
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFFF6E3A1),
+                                  letterSpacing: 0.6,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
+                        const Spacer(),
                         IconButton(
                           onPressed: () => Navigator.of(ctx).pop(),
                           icon: Icon(PhosphorIcons.x(PhosphorIconsStyle.bold),
                               size: 18),
-                          color: AppColors.textMuted,
+                          color: const Color(0xFFD8C8A1),
                           tooltip: tr(lang, 'common.close'),
                         ),
                       ],
                     ),
                   ),
-                  Expanded(
+                  Flexible(
+                    fit: FlexFit.loose,
                     child: isLoading
                         ? const Center(child: CircularProgressIndicator())
                         : detailsAsync.hasError && detail == null
@@ -88,13 +133,17 @@ void showStarPlayerPopup(
                                 ),
                               )
                             : SingleChildScrollView(
-                                padding:
-                                    const EdgeInsets.fromLTRB(18, 190, 18, 18),
+                                padding: EdgeInsets.fromLTRB(
+                                  18,
+                                  popupImageOverlap - 2,
+                                  18,
+                                  14,
+                                ),
                                 child: StarPlayerDetailCard(
                                   starPlayer: detail!,
                                   lang: lang,
-                                  imageSize: 340,
-                                  imageOverlap: 170,
+                                  imageSize: popupImageSize,
+                                  imageOverlap: popupImageOverlap,
                                 ),
                               ),
                   ),
@@ -132,129 +181,18 @@ class StarPlayerDetailCard extends ConsumerWidget {
     final types = (starPlayer['player_types'] as List?)?.cast<String>() ?? [];
     final ability = starPlayer['special_ability'] as Map<String, dynamic>?;
     final playsFor = (starPlayer['plays_for'] as List?)?.cast<String>() ?? [];
+    final favouredRequirement = starPlayerFavouredRequirement(starPlayer);
 
     final isCompact = MediaQuery.of(context).size.width < 520;
-    final resolvedImageSize = imageSize ?? (isCompact ? 220.0 : 380.0);
-    final resolvedImageOverlap = imageOverlap ?? (isCompact ? 110.0 : 190.0);
-    final bodyTopPadding = resolvedImageOverlap + 18;
+    final resolvedImageSize = imageSize ?? (isCompact ? 240.0 : 400.0);
+    final resolvedImageOverlap = imageOverlap ?? (isCompact ? 120.0 : 170.0);
+    final bodyTopPadding =
+      ((resolvedImageSize - resolvedImageOverlap) * 0.72) +
+        (isCompact ? 14 : 20);
 
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        Container(
-          width: double.infinity,
-          padding: EdgeInsets.fromLTRB(18, bodyTopPadding, 18, 18),
-          decoration: BoxDecoration(
-            color: AppColors.card,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: AppColors.surfaceLight),
-          ),
-          child: Column(
-            children: [
-              Text(
-                name.toUpperCase(),
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: AppTypography.displayFontFamily,
-                  fontSize: isCompact ? 24 : 28,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                  letterSpacing: 0.8,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                alignment: WrapAlignment.center,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                spacing: 8,
-                runSpacing: 6,
-                children: [
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(PhosphorIcons.coins(PhosphorIconsStyle.fill),
-                          size: 20, color: AppColors.accent),
-                      const SizedBox(width: 6),
-                      Text(
-                        '${cost ~/ 1000}K',
-                        style: TextStyle(
-                          fontFamily: AppTypography.displayFontFamily,
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.accent,
-                        ),
-                      ),
-                    ],
-                  ),
-                  ...types.map(
-                    (type) => Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        type,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              _StarPlayerStatsRow(stats: stats),
-              if (skills.isNotEmpty) ...[
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  alignment: WrapAlignment.center,
-                  children: skills.map((skill) {
-                    return InkWell(
-                      borderRadius: BorderRadius.circular(6),
-                      onTap: () =>
-                          showSkillPopup(context, ref, skillName: skill),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: AppColors.surfaceLight.withOpacity(0.5),
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(
-                              color: AppColors.accent.withOpacity(0.15)),
-                        ),
-                        child: Text(
-                          skill,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: AppColors.textSecondary,
-                            decoration: TextDecoration.underline,
-                            decorationColor:
-                                AppColors.textSecondary.withOpacity(0.3),
-                            decorationStyle: TextDecorationStyle.dotted,
-                          ),
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ],
-              if (ability != null) ...[
-                const SizedBox(height: 10),
-                _StarPlayerAbilityBox(ability: ability),
-              ],
-              if (playsFor.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                _StarPlayerPlaysFor(lang: lang, playsFor: playsFor),
-              ],
-            ],
-          ),
-        ),
         Positioned(
           top: -resolvedImageOverlap,
           left: 0,
@@ -275,12 +213,139 @@ class StarPlayerDetailCard extends ConsumerWidget {
                     child: Icon(
                       PhosphorIcons.star(PhosphorIconsStyle.fill),
                       size: 40,
-                      color: AppColors.accent.withOpacity(0.3),
+                      color: AppColors.accent.withValues(alpha: 0.3),
                     ),
                   ),
                 ),
               ),
             ),
+          ),
+        ),
+        Container(
+          width: double.infinity,
+          padding: EdgeInsets.fromLTRB(16, bodyTopPadding, 16, 14),
+          child: Column(
+            children: [
+              Text(
+                name.toUpperCase(),
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: AppTypography.displayFontFamily,
+                  fontSize: isCompact ? 28 : 34,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFFF7F0D7),
+                  letterSpacing: 0.8,
+                  height: 0.96,
+                  shadows: const [
+                    Shadow(
+                      color: Color(0xCC000000),
+                      blurRadius: 10,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
+              ),
+              if (favouredRequirement != null) ...[
+                const SizedBox(height: 6),
+                _StarPlayerFavouredTag(
+                  lang: lang,
+                  requirement: favouredRequirement,
+                ),
+              ],
+              const SizedBox(height: 6),
+              Wrap(
+                alignment: WrapAlignment.center,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
+                runSpacing: 6,
+                children: [
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(PhosphorIcons.coins(PhosphorIconsStyle.fill),
+                          size: 20, color: const Color(0xFFD6B35A)),
+                      const SizedBox(width: 6),
+                      Text(
+                        '${cost ~/ 1000}K',
+                        style: TextStyle(
+                          fontFamily: AppTypography.displayFontFamily,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFFF0CB66),
+                        ),
+                      ),
+                    ],
+                  ),
+                  ...types.map(
+                    (type) => Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF4B1E22),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: const Color(0xFFD06A72).withValues(alpha: 0.4),
+                        ),
+                      ),
+                      child: Text(
+                        type,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFFFF6D7A),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              _StarPlayerStatsRow(stats: stats),
+              if (skills.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  alignment: WrapAlignment.center,
+                  children: skills.map((skill) {
+                    return InkWell(
+                      borderRadius: BorderRadius.circular(6),
+                      onTap: () =>
+                          showSkillPopup(context, ref, skillName: skill),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceLight.withValues(alpha: 0.5),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                              color: AppColors.accent.withValues(alpha: 0.15)),
+                        ),
+                        child: Text(
+                          skill,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: AppColors.textSecondary,
+                            decoration: TextDecoration.underline,
+                            decorationColor: AppColors.textSecondary
+                                .withValues(alpha: 0.3),
+                            decorationStyle: TextDecorationStyle.dotted,
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
+              if (ability != null) ...[
+                const SizedBox(height: 8),
+                _StarPlayerAbilityBox(ability: ability),
+              ],
+              if (playsFor.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                _StarPlayerPlaysFor(lang: lang, playsFor: playsFor),
+              ],
+            ],
           ),
         ),
       ],
@@ -316,7 +381,7 @@ class _StarPlayerStatsRow extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.bold,
-                  color: AppColors.accent.withOpacity(0.7),
+                  color: AppColors.accent.withValues(alpha: 0.7),
                 ),
               ),
               Text(
@@ -346,9 +411,9 @@ class _StarPlayerAbilityBox extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.accent.withOpacity(0.08),
+        color: AppColors.accent.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.accent.withOpacity(0.2)),
+        border: Border.all(color: AppColors.accent.withValues(alpha: 0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -426,5 +491,55 @@ class _StarPlayerPlaysFor extends StatelessWidget {
         ),
       ],
     );
+  }
+}
+
+class _StarPlayerFavouredTag extends StatelessWidget {
+  const _StarPlayerFavouredTag({
+    required this.lang,
+    required this.requirement,
+  });
+
+  final String lang;
+  final String requirement;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: AppColors.accent.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: AppColors.accent.withValues(alpha: 0.22)),
+      ),
+      child: Text(
+        trf(lang, 'wikiStars.favouredTag', {'god': _godLabel(requirement, lang)}),
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          fontSize: 12,
+          color: AppColors.accent,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+String _godLabel(String requirement, String lang) {
+  switch (requirement) {
+    case 'chaos_undivided':
+      return lang == 'es' ? 'Caos Indivisible' : 'Chaos Undivided';
+    case 'khorne':
+      return 'Khorne';
+    case 'nurgle':
+      return 'Nurgle';
+    case 'tzeentch':
+      return 'Tzeentch';
+    case 'slaanesh':
+      return 'Slaanesh';
+    case 'hashut':
+      return 'Hashut';
+    default:
+      return requirement;
   }
 }
