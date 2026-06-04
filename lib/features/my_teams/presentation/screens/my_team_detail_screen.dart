@@ -2651,6 +2651,8 @@ class _HirePlayerDialogState extends ConsumerState<_HirePlayerDialog> {
     final lang = ref.watch(localeProvider);
     final rosterAsync =
         ref.watch(_baseRosterDetailProvider(widget.baseRosterId));
+    final activeRosterCount =
+        widget.currentPlayers.where((player) => !player.isDead).length;
 
     final screenSize = MediaQuery.sizeOf(context);
     final maxWidth = screenSize.width >= 900 ? 720.0 : screenSize.width - 32;
@@ -2690,7 +2692,7 @@ class _HirePlayerDialogState extends ConsumerState<_HirePlayerDialog> {
                                 fontWeight: FontWeight.bold,
                                 color: AppColors.textPrimary)),
                         Text(
-                          'Tesorería: ${widget.treasury ~/ 1000}k  •  ${widget.currentPlayers.length}/16 jugadores',
+                          'Tesorería: ${widget.treasury ~/ 1000}k  •  $activeRosterCount/16 jugadores',
                           style: const TextStyle(
                               fontSize: 12, color: AppColors.textMuted),
                         ),
@@ -2727,7 +2729,7 @@ class _HirePlayerDialogState extends ConsumerState<_HirePlayerDialog> {
                   itemBuilder: (_, i) {
                     final pos = roster.positions[i];
                     final hired = _hiredCount(pos.id);
-                    final isFull = widget.currentPlayers.length >= 16;
+                    final isFull = activeRosterCount >= 16;
                     final isMaxed = hired >= pos.maxQuantity;
                     final cantAfford = widget.treasury < pos.cost;
                     final canHire =

@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_client.dart';
+import '../../league/domain/models/league_dashboard_stats.dart';
 import '../../league/domain/models/league.dart';
 import '../../my_teams/domain/models/user_team.dart';
 import '../../leagues/domain/models/league_summary.dart';
@@ -30,6 +31,17 @@ class LeagueRepository {
     try {
       final response = await _dio.get('/leagues/$leagueId');
       return League.fromJson(response.data);
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  Future<LeagueDashboardStats> getLeagueDashboardStats(String leagueId) async {
+    try {
+      final response = await _dio.get('/leagues/$leagueId/dashboard-stats');
+      return LeagueDashboardStats.fromJson(
+        response.data as Map<String, dynamic>,
+      );
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }

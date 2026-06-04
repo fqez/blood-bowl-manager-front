@@ -8,9 +8,6 @@ extension _LiveMatchDialogs on _LiveMatchScreenState {
   TextStyle get _displayLarge =>
       Theme.of(context).textTheme.displayLarge ?? const TextStyle();
 
-  TextStyle get _displaySmall =>
-      Theme.of(context).textTheme.displaySmall ?? const TextStyle();
-
   bool _isLinemanPosition(BasePosition position) {
     final haystack = [position.position, position.name, position.id]
         .whereType<String>()
@@ -19,6 +16,17 @@ extension _LiveMatchDialogs on _LiveMatchScreenState {
     return haystack.contains('lineman') ||
         haystack.contains('linea') ||
         haystack.contains('línea');
+  }
+
+  int _nextAvailableHireNumber(UserTeamDetail team) {
+    final used = team.players
+        .where((player) => !player.isDead)
+        .map((player) => player.number)
+        .toSet();
+    for (var number = 1; number <= 99; number++) {
+      if (!used.contains(number)) return number;
+    }
+    return 99;
   }
 
 // ----------------------------------------------
@@ -503,9 +511,9 @@ extension _LiveMatchDialogs on _LiveMatchScreenState {
 
   Future<void> _showHirePlayerDialog(
       UserTeamDetail team, BaseTeam baseRoster, String lang) async {
-    final activePlayers = team.players.where((p) => !p.isDead).toList();
-    final eligiblePlayers =
-        team.players.where((p) => p.status == 'healthy').toList();
+    final isHome = _homeTeam?.id == team.id;
+    final activePlayers = _preMatchRosterPlayers(team, isHome).toList();
+    final eligiblePlayers = _preMatchAvailablePlayers(team, isHome);
     final needsSubstitutes = eligiblePlayers.length < 11;
     final countByType = <String, int>{};
     for (final p in eligiblePlayers) {
@@ -1066,13 +1074,18 @@ extension _LiveMatchDialogs on _LiveMatchScreenState {
       BasePosition pos, String lang,
       {required bool mercenary, required int cost}) {
     final nameCtrl = TextEditingController();
-    final numberCtrl = TextEditingController();
+    final numberCtrl =
+        TextEditingController(text: '${_nextAvailableHireNumber(team)}');
+    final optionalSuffix = lang == 'es' ? ' (opcional)' : ' (optional)';
 
     showDialog(
       context: parentCtx,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) {
-          final valid = nameCtrl.text.isNotEmpty && numberCtrl.text.isNotEmpty;
+          final rawNumber = numberCtrl.text.trim();
+          final parsedNumber = int.tryParse(rawNumber);
+          final valid = rawNumber.isEmpty ||
+              (parsedNumber != null && parsedNumber >= 1 && parsedNumber <= 99);
           return AlertDialog(
             backgroundColor: AppColors.surface,
             shape:
@@ -1093,7 +1106,8 @@ extension _LiveMatchDialogs on _LiveMatchScreenState {
                     controller: nameCtrl,
                     autofocus: true,
                     style: const TextStyle(color: AppColors.textPrimary),
-                    decoration: _inputDeco(tr(lang, 'liveMatch.playerName')),
+                    decoration: _inputDeco(
+                        '${tr(lang, 'liveMatch.playerName')}$optionalSuffix'),
                     onChanged: (_) => setS(() {}),
                   ),
                   const SizedBox(height: 8),
@@ -1101,7 +1115,8 @@ extension _LiveMatchDialogs on _LiveMatchScreenState {
                     controller: numberCtrl,
                     keyboardType: TextInputType.number,
                     style: const TextStyle(color: AppColors.textPrimary),
-                    decoration: _inputDeco('#'),
+                    decoration: _inputDeco(
+                        '${tr(lang, 'player.number')}$optionalSuffix'),
                     onChanged: (_) => setS(() {}),
                   ),
                 ],
@@ -1121,8 +1136,10 @@ extension _LiveMatchDialogs on _LiveMatchScreenState {
                         _hirePlayer(
                           team.id,
                           baseType: pos.id,
-                          name: nameCtrl.text,
-                          number: int.parse(numberCtrl.text),
+                          name: nameCtrl.text.trim().isEmpty
+                              ? null
+                              : nameCtrl.text.trim(),
+                          number: rawNumber.isEmpty ? null : parsedNumber,
                           mercenary: mercenary,
                         );
                       }
@@ -1141,8 +1158,8 @@ extension _LiveMatchDialogs on _LiveMatchScreenState {
 
   Future<void> _hirePlayer(String teamId,
       {required String baseType,
-      required String name,
-      required int number,
+      String? name,
+      int? number,
       required bool mercenary}) async {
     try {
       final teamRepo = ref.read(teamRepositoryProvider);
@@ -1193,13 +1210,18 @@ extension _LiveMatchDialogs on _LiveMatchScreenState {
     final spName = sp['name'] as String? ?? '';
     final spCost = sp['cost'] as int? ?? 0;
     final nameCtrl = TextEditingController(text: spName);
-    final numberCtrl = TextEditingController();
+    final numberCtrl =
+        TextEditingController(text: '${_nextAvailableHireNumber(team)}');
+    final optionalSuffix = lang == 'es' ? ' (opcional)' : ' (optional)';
 
     showDialog(
       context: parentCtx,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) {
-          final valid = nameCtrl.text.isNotEmpty && numberCtrl.text.isNotEmpty;
+          final rawNumber = numberCtrl.text.trim();
+          final parsedNumber = int.tryParse(rawNumber);
+          final valid = rawNumber.isEmpty ||
+              (parsedNumber != null && parsedNumber >= 1 && parsedNumber <= 99);
           return AlertDialog(
             backgroundColor: AppColors.surface,
             shape:
@@ -1229,7 +1251,8 @@ extension _LiveMatchDialogs on _LiveMatchScreenState {
                     controller: nameCtrl,
                     autofocus: true,
                     style: const TextStyle(color: AppColors.textPrimary),
-                    decoration: _inputDeco(tr(lang, 'liveMatch.playerName')),
+                    decoration: _inputDeco(
+                        '${tr(lang, 'liveMatch.playerName')}$optionalSuffix'),
                     onChanged: (_) => setS(() {}),
                   ),
                   const SizedBox(height: 8),
@@ -1237,7 +1260,8 @@ extension _LiveMatchDialogs on _LiveMatchScreenState {
                     controller: numberCtrl,
                     keyboardType: TextInputType.number,
                     style: const TextStyle(color: AppColors.textPrimary),
-                    decoration: _inputDeco('#'),
+                    decoration: _inputDeco(
+                        '${tr(lang, 'player.number')}$optionalSuffix'),
                     onChanged: (_) => setS(() {}),
                   ),
                 ],
@@ -1257,8 +1281,10 @@ extension _LiveMatchDialogs on _LiveMatchScreenState {
                         _hireStarPlayer(
                           team.id,
                           starPlayerId: spId,
-                          name: nameCtrl.text,
-                          number: int.parse(numberCtrl.text),
+                          name: nameCtrl.text.trim().isEmpty
+                              ? null
+                              : nameCtrl.text.trim(),
+                          number: rawNumber.isEmpty ? null : parsedNumber,
                         );
                       }
                     : null,
@@ -1277,8 +1303,8 @@ extension _LiveMatchDialogs on _LiveMatchScreenState {
 
   Future<void> _hireStarPlayer(String teamId,
       {required String starPlayerId,
-      required String name,
-      required int number}) async {
+      String? name,
+      int? number}) async {
     try {
       final teamRepo = ref.read(teamRepositoryProvider);
       await teamRepo.hireStarPlayer(teamId,

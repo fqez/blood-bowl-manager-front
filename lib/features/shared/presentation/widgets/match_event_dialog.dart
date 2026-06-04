@@ -396,30 +396,6 @@ Future<void> showMatchEventDialog({
                         if (isCasualty) ...[
                           const SizedBox(height: 12),
                           CheckboxListTile(
-                            value: accidentalCasualty,
-                            dense: true,
-                            activeColor: AppColors.warning,
-                            contentPadding: EdgeInsets.zero,
-                            title: Text(
-                              lang == 'es'
-                                  ? 'Caida/accidente (sin SPP)'
-                                  : 'Fall/accident (no SPP)',
-                              style: const TextStyle(
-                                color: AppColors.textSecondary,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            onChanged: submitting
-                                ? null
-                                : (value) => setS(() {
-                                      accidentalCasualty = value ?? false;
-                                      selectedPlayer = null;
-                                      selectedVictim = null;
-                                    }),
-                          ),
-                          const SizedBox(height: 12),
-                          CheckboxListTile(
                             value: regenerated,
                             dense: true,
                             activeColor: AppColors.success,
@@ -491,6 +467,8 @@ Future<void> showMatchEventDialog({
                                 ? null
                                 : (value) => setS(() {
                                       casualtyFromFall = value ?? false;
+                                      accidentalCasualty =
+                                          value ?? false;
                                       selectedPlayer = null;
                                       selectedVictim = null;
                                     }),
@@ -609,6 +587,29 @@ Future<void> showMatchEventDialog({
                         onPressed: submitting
                             ? null
                             : () async {
+                                final victimCandidates =
+                                    getVictimCandidates(selectedTeam);
+                                if (needsVictim &&
+                                    victimCandidates.isNotEmpty &&
+                                    selectedVictim == null) {
+                                  ScaffoldMessenger.of(ctx).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        isCasualty &&
+                                                (accidentalCasualty ||
+                                                    casualtyFromFall)
+                                            ? (lang == 'es'
+                                                ? 'Selecciona el jugador lesionado'
+                                                : 'Select the injured player')
+                                            : (lang == 'es'
+                                                ? 'Selecciona el jugador afectado'
+                                                : 'Select the affected player'),
+                                      ),
+                                      backgroundColor: AppColors.warning,
+                                    ),
+                                  );
+                                  return;
+                                }
                                 setS(() => submitting = true);
                                 final cleanDetail = detail.trim();
                                 final eventDetail = isThrowTeammate

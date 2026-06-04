@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/models/user.dart';
 import '../repositories/auth_repository.dart';
@@ -79,8 +81,8 @@ class AuthNotifier extends StateNotifier<AsyncValue<AuthState>> {
   }
 
   Future<void> logout() async {
-    await _repository.logout();
     state = const AsyncValue.data(AuthState());
+    unawaited(_repository.logout());
   }
 
   void clearError() {

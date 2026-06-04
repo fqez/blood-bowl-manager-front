@@ -11,6 +11,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../auth/data/providers/auth_provider.dart';
 import '../../../debug/data/debug_league_data.dart';
 import '../../../shared/data/repositories.dart';
+import '../../domain/models/league_dashboard_stats.dart';
 import '../../domain/models/league.dart';
 import '../widgets/standings_table.dart';
 import '../widgets/match_card.dart';
@@ -32,6 +33,16 @@ final matchesProvider = FutureProvider.autoDispose
 
   final repository = ref.watch(leagueRepositoryProvider);
   return repository.getLeagueMatches(leagueId);
+});
+
+final leagueDashboardStatsProvider = FutureProvider.autoDispose
+    .family<LeagueDashboardStats, String>((ref, leagueId) async {
+  if (leagueId == debugLeagueId) {
+    throw UnsupportedError('Dashboard stats are only available from backend');
+  }
+
+  final repository = ref.watch(leagueRepositoryProvider);
+  return repository.getLeagueDashboardStats(leagueId);
 });
 
 final leagueFormatProvider =
@@ -2701,16 +2712,26 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
 
   Widget _buildStatsTab(League league) {
     final lang = ref.watch(localeProvider);
-    final matchesAsync = ref.watch(matchesProvider(widget.leagueId));
+    if (_isDebugLeague) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(
+            'El dashboard avanzado usa datos agregados del backend y no esta disponible en modo debug.',
+            style: TextStyle(color: AppColors.textSecondary),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
 
-    return matchesAsync.when(
+    final dashboardAsync = ref.watch(leagueDashboardStatsProvider(widget.leagueId));
+
+    return dashboardAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, _) =>
           Center(child: Text(trf(lang, 'common.error', {'e': '$error'}))),
-      data: (matches) => LeagueStatsDashboard(
-        league: league,
-        matches: matches,
-      ),
+      data: (stats) => LeagueStatsDashboard(stats: stats),
     );
   }
 

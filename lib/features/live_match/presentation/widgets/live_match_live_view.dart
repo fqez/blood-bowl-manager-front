@@ -30,66 +30,74 @@ extension _LiveMatchLiveView on _LiveMatchScreenState {
   Widget _buildLiveView(Match match, String lang) {
     return Column(
       children: [
-        _buildScoreboard(match, lang),
         Expanded(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            padding: const EdgeInsets.only(bottom: 16),
             child: DefaultTextStyle.merge(
               style: const TextStyle(fontSize: 15),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Turn tracker
-                  _buildMatchStateRow(match, lang),
-                  const SizedBox(height: 24),
+                  _buildScoreboard(match, lang),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Turn tracker
+                        _buildMatchStateRow(match, lang),
+                        const SizedBox(height: 24),
 
-                  // Quick Actions
-                  _buildQuickActionsPanel(match, lang),
-                  const SizedBox(height: 28),
+                        // Quick Actions
+                        _buildQuickActionsPanel(match, lang),
+                        const SizedBox(height: 28),
 
-                  // Rosters
-                  _buildMatchRosterPanel(match, lang),
-                  const SizedBox(height: 28),
+                        // Rosters
+                        _buildMatchRosterPanel(match, lang),
+                        const SizedBox(height: 28),
 
-                  // Gate + Rerolls
-                  _buildGateAndRerolls(match, lang),
-                  const SizedBox(height: 28),
+                        // Gate + Rerolls
+                        _buildGateAndRerolls(match, lang),
+                        const SizedBox(height: 28),
 
-                  // Events
-                  _sectionHeader(tr(lang, 'liveMatch.eventLog'),
-                      PhosphorIcons.listBullets(PhosphorIconsStyle.fill)),
-                  const SizedBox(height: 10),
-                  _buildUserEventsSection(match, lang),
-                  const SizedBox(height: 24),
+                        // Events
+                        _sectionHeader(tr(lang, 'liveMatch.eventLog'),
+                            PhosphorIcons.listBullets(PhosphorIconsStyle.fill)),
+                        const SizedBox(height: 10),
+                        _buildUserEventsSection(match, lang),
+                        const SizedBox(height: 24),
 
-                  // Audit (collapsible)
-                  Theme(
-                    data: Theme.of(context)
-                        .copyWith(dividerColor: Colors.transparent),
-                    child: ExpansionTile(
-                      tilePadding: EdgeInsets.zero,
-                      childrenPadding: const EdgeInsets.only(top: 8),
-                      initiallyExpanded: false,
-                      leading: Icon(
-                        PhosphorIcons.clockCounterClockwise(
-                            PhosphorIconsStyle.fill),
-                        size: 17,
-                        color: AppColors.primary,
-                      ),
-                      title: Text(
-                        tr(lang, 'liveMatch.auditTrail'),
-                        style: const TextStyle(
-                          color: AppColors.textPrimary,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
+                        // Audit (collapsible)
+                        Theme(
+                          data: Theme.of(context)
+                              .copyWith(dividerColor: Colors.transparent),
+                          child: ExpansionTile(
+                            tilePadding: EdgeInsets.zero,
+                            childrenPadding: const EdgeInsets.only(top: 8),
+                            initiallyExpanded: false,
+                            leading: Icon(
+                              PhosphorIcons.clockCounterClockwise(
+                                  PhosphorIconsStyle.fill),
+                              size: 17,
+                              color: AppColors.primary,
+                            ),
+                            title: Text(
+                              tr(lang, 'liveMatch.auditTrail'),
+                              style: const TextStyle(
+                                color: AppColors.textPrimary,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            iconColor: AppColors.textMuted,
+                            collapsedIconColor: AppColors.textMuted,
+                            children: [_buildAuditSection(match, lang)],
+                          ),
                         ),
-                      ),
-                      iconColor: AppColors.textMuted,
-                      collapsedIconColor: AppColors.textMuted,
-                      children: [_buildAuditSection(match, lang)],
+                        const SizedBox(height: 80),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 80),
                 ],
               ),
             ),
@@ -103,7 +111,6 @@ extension _LiveMatchLiveView on _LiveMatchScreenState {
   // ── SCOREBOARD with team logos ──
 
   Widget _buildScoreboard(Match match, String lang) {
-    final elapsed = _fmtDuration(_elapsed);
     final homeLogo = _teamLogoPath(match.home.baseRosterId);
     final awayLogo = _teamLogoPath(match.away.baseRosterId);
     final weatherOpt = match.weather != null
@@ -175,9 +182,16 @@ extension _LiveMatchLiveView on _LiveMatchScreenState {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  Text(elapsed,
+                  ValueListenableBuilder<Duration>(
+                    valueListenable: _elapsedNotifier,
+                    builder: (context, elapsed, _) => Text(
+                      _fmtDuration(elapsed),
                       style: _displaySmall.copyWith(
-                          color: AppColors.accent, fontSize: 22)),
+                        color: AppColors.accent,
+                        fontSize: 22,
+                      ),
+                    ),
+                  ),
                   const Spacer(),
                   IconButton(
                     icon: Icon(PhosphorIcons.arrowsClockwise(
@@ -385,7 +399,7 @@ extension _LiveMatchLiveView on _LiveMatchScreenState {
       ),
     );
 
-    if (description == null || description.isEmpty) return child;
+    if (description == null || description.isEmpty || kIsWeb) return child;
 
     return Tooltip(
       richMessage: TextSpan(children: [
@@ -876,7 +890,7 @@ extension _LiveMatchLiveView on _LiveMatchScreenState {
         ),
       ),
     );
-    if (!completed || seconds == null) return child;
+    if (!completed || seconds == null || kIsWeb) return child;
     return Tooltip(
         message: 'Turno $turn · ${_fmtDuration(Duration(seconds: seconds))}',
         child: child);
@@ -1073,6 +1087,8 @@ extension _LiveMatchLiveView on _LiveMatchScreenState {
           ),
           const SizedBox(height: 12),
           _buildQuickActions(match, lang),
+          const SizedBox(height: 12),
+          _buildMatchMetaQuickActions(match, lang),
           const SizedBox(height: 12),
           const Divider(color: AppColors.surfaceLight),
           const SizedBox(height: 14),
@@ -2647,6 +2663,377 @@ extension _LiveMatchLiveView on _LiveMatchScreenState {
           ],
         );
       },
+    );
+  }
+
+  Widget _buildMatchMetaQuickActions(Match match, String lang) {
+    final weatherRules = ref.watch(weatherRulesProvider).valueOrNull;
+    final kickoffRules = ref.watch(kickoffEventRulesProvider).valueOrNull;
+    final weatherItems = _weatherOptionsFromRules(weatherRules, lang);
+    final kickoffItems = _kickoffOptionsFromRules(kickoffRules, lang);
+    final currentWeather = match.weather != null
+        ? _findOption(weatherItems, match.weather!)
+        : null;
+    final currentKickoff = match.kickoffEvent != null
+        ? _findOption(kickoffItems, match.kickoffEvent!)
+        : null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          lang == 'es' ? 'AJUSTES RAPIDOS' : 'QUICK MATCH SETTINGS',
+          style: const TextStyle(
+            color: AppColors.textMuted,
+            fontSize: 11,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 0.8,
+          ),
+        ),
+        const SizedBox(height: 8),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final stacked = constraints.maxWidth < 700;
+            final buttons = [
+              Expanded(
+                child: _matchMetaActionButton(
+                  title: tr(lang, 'liveMatch.weather'),
+                  value: currentWeather?.label ??
+                      (lang == 'es' ? 'Sin definir' : 'Not set'),
+                  icon: currentWeather?.icon ??
+                      PhosphorIcons.cloudSun(PhosphorIconsStyle.fill),
+                  color: currentWeather?.color ?? AppColors.info,
+                  onTap: () => _showQuickOptionPicker(
+                    title: tr(lang, 'liveMatch.selectWeather'),
+                    selected: match.weather,
+                    items: weatherItems,
+                    onSelected: (value) => _applyMatchMetaQuickChange(
+                      match: match,
+                      lang: lang,
+                      type: 'weather_change',
+                      fieldLabel: tr(lang, 'liveMatch.weather'),
+                      previousLabel: currentWeather?.label,
+                      nextValue: value,
+                      valueLabel:
+                          _findOption(weatherItems, value)?.label ?? value,
+                      updater: () => _updateState(weather: value),
+                    ),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: _matchMetaActionButton(
+                  title: tr(lang, 'liveMatch.kickoffEvent'),
+                  value: currentKickoff?.label ??
+                      (lang == 'es' ? 'Sin definir' : 'Not set'),
+                  icon: currentKickoff?.icon ??
+                      PhosphorIcons.lightning(PhosphorIconsStyle.fill),
+                  color: currentKickoff?.color ?? AppColors.warning,
+                  onTap: () => _showQuickOptionPicker(
+                    title: tr(lang, 'liveMatch.selectKickoff'),
+                    selected: match.kickoffEvent,
+                    items: kickoffItems,
+                    onSelected: (value) => _applyMatchMetaQuickChange(
+                      match: match,
+                      lang: lang,
+                      type: 'kickoff_change',
+                      fieldLabel: tr(lang, 'liveMatch.kickoffEvent'),
+                      previousLabel: currentKickoff?.label,
+                      nextValue: value,
+                      valueLabel:
+                          _findOption(kickoffItems, value)?.label ?? value,
+                      updater: () => _updateState(kickoffEvent: value),
+                    ),
+                  ),
+                ),
+              ),
+            ];
+
+            if (stacked) {
+              return Column(
+                children: [
+                  buttons[0],
+                  const SizedBox(height: 8),
+                  buttons[1],
+                ],
+              );
+            }
+
+            return Row(
+              children: [
+                buttons[0],
+                const SizedBox(width: 8),
+                buttons[1],
+              ],
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _matchMetaActionButton({
+    required String title,
+    required String value,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+          decoration: BoxDecoration(
+            color: AppColors.surface.withValues(alpha: 0.82),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: color.withValues(alpha: 0.28)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: color, size: 18),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        color: AppColors.textMuted,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.5,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      value,
+                      style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w900,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(
+                PhosphorIcons.caretDown(PhosphorIconsStyle.bold),
+                color: AppColors.textMuted,
+                size: 16,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showQuickOptionPicker({
+    required String title,
+    required String? selected,
+    required List<_CardOption> items,
+    required Future<void> Function(String value) onSelected,
+  }) async {
+    final picked = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (sheetContext) => SafeArea(
+        child: Container(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(sheetContext).size.height * 0.82,
+          ),
+          decoration: const BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  padding: const EdgeInsets.fromLTRB(14, 0, 14, 20),
+                  itemCount: items.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 8),
+                  itemBuilder: (context, index) {
+                    final item = items[index];
+                    final isSelected = item.value == selected;
+                    return Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () => Navigator.of(sheetContext).pop(item.value),
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: item.color
+                                .withValues(alpha: isSelected ? 0.18 : 0.1),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: item.color
+                                  .withValues(alpha: isSelected ? 0.55 : 0.24),
+                            ),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                width: 38,
+                                height: 38,
+                                decoration: BoxDecoration(
+                                  color: item.color.withValues(alpha: 0.18),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Icon(item.icon,
+                                    color: item.color, size: 20),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            item.label,
+                                            style: const TextStyle(
+                                              color: AppColors.textPrimary,
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w900,
+                                            ),
+                                          ),
+                                        ),
+                                        if (item.rollLabel != null &&
+                                            item.rollLabel!.isNotEmpty)
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 8, vertical: 4),
+                                            decoration: BoxDecoration(
+                                              color: AppColors.card,
+                                              borderRadius:
+                                                  BorderRadius.circular(999),
+                                            ),
+                                            child: Text(
+                                              item.rollLabel!,
+                                              style: const TextStyle(
+                                                color: AppColors.textMuted,
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.w800,
+                                              ),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                    if (item.description != null &&
+                                        item.description!.isNotEmpty) ...[
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        item.description!,
+                                        style: const TextStyle(
+                                          color: AppColors.textSecondary,
+                                          fontSize: 12,
+                                          height: 1.25,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Icon(
+                                isSelected
+                                    ? PhosphorIcons.checkCircle(
+                                        PhosphorIconsStyle.fill)
+                                    : PhosphorIcons.circle(
+                                        PhosphorIconsStyle.regular),
+                                color: isSelected
+                                    ? item.color
+                                    : AppColors.textMuted,
+                                size: 20,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (picked == null || picked == selected) return;
+    await onSelected(picked);
+  }
+
+  String _quickActionActorTeam(Match match) {
+    final currentUserId = ref.read(authStateProvider).valueOrNull?.user?.id;
+    if (currentUserId != null) {
+      if (match.home.userId == currentUserId) return 'home';
+      if (match.away.userId == currentUserId) return 'away';
+    }
+    return match.currentTeam == 'away' ? 'away' : 'home';
+  }
+
+  Future<void> _applyMatchMetaQuickChange({
+    required Match match,
+    required String lang,
+    required String type,
+    required String fieldLabel,
+    required String? previousLabel,
+    required String nextValue,
+    required String valueLabel,
+    required Future<Match?> Function() updater,
+  }) async {
+    final updated = await updater();
+    if (updated == null) return;
+    final previousDisplay = previousLabel == null || previousLabel.isEmpty
+        ? (lang == 'es' ? 'Sin definir' : 'Not set')
+        : previousLabel;
+    await _addEvent(
+      type: type,
+      team: _quickActionActorTeam(match),
+      detail: _withMatchAuditContext(
+        updated,
+        '$fieldLabel: $previousDisplay -> $valueLabel',
+      ),
+      half: updated.currentHalf,
+      turn: updated.currentTurn,
+      showSnack: false,
     );
   }
 

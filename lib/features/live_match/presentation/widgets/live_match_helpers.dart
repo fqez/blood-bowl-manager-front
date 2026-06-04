@@ -343,8 +343,6 @@ extension _LiveMatchHelpers on _LiveMatchScreenState {
         'score_change',
         'half_change',
         'turn_change',
-        'weather_change',
-        'kickoff_change',
         'reroll_change',
         'reroll_total_change',
         'inducement_purchase',

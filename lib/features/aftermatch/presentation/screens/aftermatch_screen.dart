@@ -4404,11 +4404,14 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
     final team = _teamForSide(teamSide);
     if (team == null) return 0;
     final decisions = _storedTemporaryPlayerDecisionsForSide(teamSide);
-    final permanent =
-        team.players.where((player) => !player.temporaryForMatch).length;
+    final permanent = team.players
+        .where((player) => !player.temporaryForMatch && !player.isDead)
+        .length;
     final keptTemporary = team.players
         .where((player) =>
-            player.temporaryForMatch && decisions[player.id] == 'keep')
+            player.temporaryForMatch &&
+            !player.isDead &&
+            decisions[player.id] == 'keep')
         .length;
     return permanent +
         keptTemporary +
@@ -4420,6 +4423,7 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
     if (team == null) return 0;
     final decisions = _storedTemporaryPlayerDecisionsForSide(teamSide);
     final existing = team.players.where((player) {
+      if (player.isDead) return false;
       if (player.baseType != baseType) return false;
       if (!player.temporaryForMatch) return true;
       return decisions[player.id] == 'keep';
@@ -4587,7 +4591,7 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
                     controller: numberCtrl,
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(
-                      labelText: 'Numero',
+                      labelText: 'Numero (opcional)',
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -4636,22 +4640,25 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
         throw Exception('No hay tesoreria suficiente para esta compra');
       }
 
-      final parsedNumber = int.tryParse(numberCtrl.text.trim());
-      if (parsedNumber == null || parsedNumber < 1 || parsedNumber > 99) {
+      final rawNumber = numberCtrl.text.trim();
+      final parsedNumber = rawNumber.isEmpty ? null : int.tryParse(rawNumber);
+      if (rawNumber.isNotEmpty &&
+          (parsedNumber == null || parsedNumber < 1 || parsedNumber > 99)) {
         throw Exception('El numero debe estar entre 1 y 99');
       }
       final decisions = _storedTemporaryPlayerDecisionsForSide(teamSide);
-      final usedNumber = _pendingPurchases(teamSide).players.any(
+      final usedNumber = parsedNumber != null &&
+          (_pendingPurchases(teamSide).players.any(
                 (player) => player.number == parsedNumber,
               ) ||
-          (_teamForSide(teamSide)?.players.any(
-                    (player) =>
-                        player.number == parsedNumber &&
-                        !player.isDead &&
-                        (!player.temporaryForMatch ||
-                            decisions[player.id] == 'keep'),
-                  ) ??
-              false);
+              (_teamForSide(teamSide)?.players.any(
+                        (player) =>
+                            player.number == parsedNumber &&
+                            !player.isDead &&
+                            (!player.temporaryForMatch ||
+                                decisions[player.id] == 'keep'),
+                      ) ??
+                  false));
       if (usedNumber) {
         throw Exception('Ese numero ya esta ocupado');
       }

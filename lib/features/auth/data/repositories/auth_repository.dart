@@ -32,8 +32,10 @@ class AuthRepository {
       final tokenResponse = TokenResponse.fromJson(response.data);
 
       // Store tokens
-      await _storage.write(key: AppConfig.accessTokenKey, value: tokenResponse.accessToken);
-      await _storage.write(key: AppConfig.refreshTokenKey, value: tokenResponse.refreshToken);
+      await _storage.write(
+          key: AppConfig.accessTokenKey, value: tokenResponse.accessToken);
+      await _storage.write(
+          key: AppConfig.refreshTokenKey, value: tokenResponse.refreshToken);
 
       return tokenResponse;
     } on DioException catch (e) {
@@ -66,8 +68,10 @@ class AuthRepository {
 
       final tokenResponse = TokenResponse.fromJson(response.data);
 
-      await _storage.write(key: AppConfig.accessTokenKey, value: tokenResponse.accessToken);
-      await _storage.write(key: AppConfig.refreshTokenKey, value: tokenResponse.refreshToken);
+      await _storage.write(
+          key: AppConfig.accessTokenKey, value: tokenResponse.accessToken);
+      await _storage.write(
+          key: AppConfig.refreshTokenKey, value: tokenResponse.refreshToken);
 
       return tokenResponse;
     } on DioException catch (e) {
@@ -76,18 +80,21 @@ class AuthRepository {
   }
 
   Future<void> logout() async {
+    final refreshToken = await _storage.read(key: AppConfig.refreshTokenKey);
+
+    await _storage.delete(key: AppConfig.accessTokenKey);
+    await _storage.delete(key: AppConfig.refreshTokenKey);
+
+    if (refreshToken == null) {
+      return;
+    }
+
     try {
-      final refreshToken = await _storage.read(key: AppConfig.refreshTokenKey);
-      if (refreshToken != null) {
-        await _dio.post('/auth/logout', data: {
-          'refresh_token': refreshToken,
-        });
-      }
+      await _dio.post('/auth/logout', data: {
+        'refresh_token': refreshToken,
+      });
     } catch (_) {
       // Ignore logout errors
-    } finally {
-      await _storage.delete(key: AppConfig.accessTokenKey);
-      await _storage.delete(key: AppConfig.refreshTokenKey);
     }
   }
 

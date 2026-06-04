@@ -66,6 +66,8 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
   Timer? _clockTimer;
   Timer? _inducementBudgetTimer;
   Duration _elapsed = Duration.zero;
+  final ValueNotifier<Duration> _elapsedNotifier =
+      ValueNotifier(Duration.zero);
   DateTime? _matchStartedAt;
 
   List<UserPlayer>? _homePlayers;
@@ -146,6 +148,7 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
     _pollTimer?.cancel();
     _clockTimer?.cancel();
     _inducementBudgetTimer?.cancel();
+    _elapsedNotifier.dispose();
     super.dispose();
   }
 
@@ -211,14 +214,15 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
     if (_matchStartedAt == startedAt) return;
     _matchStartedAt = startedAt;
     _elapsed = DateTime.now().toUtc().difference(_toUtc(startedAt));
+    _elapsedNotifier.value = _elapsed;
     _clockTimer?.cancel();
     _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted) {
-        setState(() {
-          _elapsed =
-              DateTime.now().toUtc().difference(_toUtc(_matchStartedAt!));
-        });
-      }
+      if (!mounted || _matchStartedAt == null) return;
+      final nextElapsed =
+          DateTime.now().toUtc().difference(_toUtc(_matchStartedAt!));
+      if (nextElapsed.inSeconds == _elapsed.inSeconds) return;
+      _elapsed = nextElapsed;
+      _elapsedNotifier.value = nextElapsed;
     });
   }
 
@@ -833,7 +837,7 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
     if (mounted) setState(() => _isSubmitting = false);
   }
 
-  Future<void> _updateState({
+  Future<Match?> _updateState({
     int? scoreHome,
     int? scoreAway,
     int? currentHalf,
@@ -919,8 +923,10 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
         setState(() => _optimisticPreMatch = updated);
       }
       _refresh();
+      return updated;
     } catch (e) {
       if (mounted) _snack('$e');
+      return null;
     }
   }
 

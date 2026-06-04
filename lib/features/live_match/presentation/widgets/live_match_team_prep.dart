@@ -73,9 +73,9 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
     final rerollCost =
         baseRerollCost * (team.leagueMemberships.isNotEmpty ? 2 : 1);
     final rosterPlayers = _preMatchRosterPlayers(team, isHome);
+    final availablePlayers = _preMatchAvailablePlayers(team, isHome);
     final rosterPlayerIds = rosterPlayers.map((player) => player.id).toSet();
-    final activeCount =
-        rosterPlayers.where((p) => p.status == 'healthy').length;
+    final activeCount = availablePlayers.length;
     final woundedCount = rosterPlayers
         .where((p) => p.status != 'healthy' && p.status != 'dead')
         .length;
@@ -387,9 +387,7 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
                 isHome ? _selectedHomePlayers : _selectedAwayPlayers;
             final selectedCount =
                 selectedIds.where(rosterPlayerIds.contains).length;
-            final eligibleCount = rosterPlayers
-                .where((player) => player.status == 'healthy')
-                .length;
+            final eligibleCount = availablePlayers.length;
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -403,20 +401,20 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                        color: selectedCount >= 11
+                        color: eligibleCount >= 11
                             ? AppColors.success.withValues(alpha: 0.15)
                             : AppColors.warning.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(6),
                         border: Border.all(
-                          color: selectedCount >= 11
+                          color: eligibleCount >= 11
                               ? AppColors.success.withValues(alpha: 0.3)
                               : AppColors.warning.withValues(alpha: 0.3),
                         ),
                       ),
                       child: Text(
-                        'SQUAD: $selectedCount/$eligibleCount',
+                        'AVAILABLE: $eligibleCount/11',
                         style: TextStyle(
-                          color: selectedCount >= 11
+                          color: eligibleCount >= 11
                               ? AppColors.success
                               : AppColors.warning,
                           fontSize: 11,
@@ -427,7 +425,7 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'ACTIVE: $activeCount/${rosterPlayers.length}',
+                      'SQUAD: $selectedCount/11',
                       style: const TextStyle(
                           color: AppColors.textMuted,
                           fontSize: 10,
@@ -2540,11 +2538,18 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
         .toList();
   }
 
+  List<UserPlayer> _preMatchAvailablePlayers(UserTeamDetail team, bool isHome) {
+    return _preMatchRosterPlayers(team, isHome)
+        .where((player) => player.status == 'healthy')
+        .toList();
+  }
+
   bool _isVisiblePreMatchRosterPlayer(
     UserPlayer player,
     Set<String> tempIds,
     Map<String, int> purchases,
   ) {
+    if (player.isDead || player.status == 'dead') return false;
     if (!player.temporaryForMatch) return true;
     if (player.temporaryMatchId != widget.matchId) return false;
 
