@@ -2237,8 +2237,8 @@
             },
             {
                 "title": "ACQUIRING ADDITIONAL PLAYERS / ADQUIRIR JUGADORES ADICIONALES",
-                "en": "If a team acquires additional players during the course of a game, such as those earned through the Plague Ridden Trait or the Masters of Undeath special rule, then those additional players will only be available until the end of the game in which they were earned, and will not be added to your Team Draft List at the end of the game.",
-                "es": "Si un equipo adquiere jugadores adicionales durante el transcurso de un partido, como los obtenidos mediante el Rasgo Infectado (Plague Ridden) o la regla especial Maestros de la No Muerte, esos jugadores adicionales solo estarán disponibles hasta el final del partido en el que fueron obtenidos, y no se añadirán a tu Lista de Reclutamiento al finalizar el encuentro."
+                "en": "If a team acquires additional players during the course of a game, such as those earned through the Infected Trait or the Masters of Undeath special rule, then those additional players will only be available until the end of the game in which they were earned, and will not be added to your Team Draft List at the end of the game.",
+                "es": "Si un equipo adquiere jugadores adicionales durante el transcurso de un partido, como los obtenidos mediante el Rasgo Infectado (Infected) o la regla especial Maestros de la No Muerte, esos jugadores adicionales solo estarán disponibles hasta el final del partido en el que fueron obtenidos, y no se añadirán a tu Lista de Reclutamiento al finalizar el encuentro."
             }
         ]
     },
@@ -2883,7 +2883,7 @@
                 "es": "Cuando este jugador derriba a un oponente durante una Acción de Placaje, puede realizar una Acción de Falta gratuita contra ese oponente siempre que el jugador siga de pie y marcándolo. Acto seguido, este jugador se queda Cuerpo a Tierra y su activación termina inmediatamente."
             },
             {
-                "title": "PLAGUE RIDDEN (PASSIVE) / INFESTADO POR LA PESTE (PASIVA)",
+                "title": "INFECTED (PASSIVE) / INFESTADO POR LA PESTE (PASIVA)",
                 "en": "Once per game, when a player with this Trait causes a Casualty against an opposition player as a result of a Block Action, and that player suffers a Dead result on their Casualty Roll and is not saved by an Apothecary, you may immediately add one new Lineman player from your team’s Team Roster to your Reserves Box. During the Post-game Sequence, this player may be hired in the same manner as any Journeymen players. This Trait cannot be used against Big Guy players, or any player with the Decay, Regeneration or Stunty Traits.",
                 "es": "Una vez por partido, si este jugador causa una baja por Placaje y el resultado es Muerto (sin ser salvado por un Médico), puedes añadir un Lineman de tu lista de equipo al banquillo de reservas. Tras el partido, este jugador puede contratarse como un Meritorio. No afecta a Tipos Grandes ni a jugadores con Descomposición, Regeneración o Escurridizo."
             },

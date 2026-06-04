@@ -1457,9 +1457,9 @@
       }
     },
     {
-      "id": "perk-plague-ridden",
+      "id": "perk-infected",
       "name": {
-        "en": "Plague Ridden",
+        "en": "Infected",
         "es": "Infestado Por La Peste"
       },
       "family": "trait",
