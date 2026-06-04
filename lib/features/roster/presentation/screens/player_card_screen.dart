@@ -53,6 +53,9 @@ final _playerUserTeamDetailProvider = FutureProvider.autoDispose
 class _SkillAdvancementChoice {
   final Map<String, dynamic>? perk;
   final String advancementType;
+  final String? skillCategory;
+  final int? randomSkillFirstD6;
+  final int? randomSkillSecondD6;
   final String? characteristic;
   final int? characteristicRoll;
   final String? resultLabel;
@@ -60,10 +63,25 @@ class _SkillAdvancementChoice {
   const _SkillAdvancementChoice({
     this.perk,
     required this.advancementType,
+    this.skillCategory,
+    this.randomSkillFirstD6,
+    this.randomSkillSecondD6,
     this.characteristic,
     this.characteristicRoll,
     this.resultLabel,
   });
+}
+
+class _RandomSkillRollValue {
+  final int firstDie;
+  final int secondDie;
+
+  const _RandomSkillRollValue({
+    required this.firstDie,
+    required this.secondDie,
+  });
+
+  String get label => '$firstDie+$secondDie';
 }
 
 class _SkillCategoryAccess {
@@ -89,6 +107,7 @@ class _RandomSkillRollOption {
   final String englishName;
   final String displayName;
   final List<String> rollLabels;
+  final List<_RandomSkillRollValue> rollValues;
   final bool isOwned;
 
   _RandomSkillRollOption({
@@ -96,6 +115,7 @@ class _RandomSkillRollOption {
     required this.englishName,
     required this.displayName,
     required this.rollLabels,
+    required this.rollValues,
     required this.isOwned,
   });
 
@@ -552,6 +572,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
           final randomRollOptions =
               selectedMode == 'random_primary_skill' && selectedAccess != null
                   ? _buildRandomSkillRollOptions(
+                  rules: rules,
                       perks: perks,
                       lang: lang,
                       categorySymbol: selectedAccess.symbol,
@@ -912,6 +933,33 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                                                   ? () {
                                                       final perk =
                                                           selectedPerk!;
+                                                        _RandomSkillRollOption?
+                                                          selectedOption;
+                                                        for (final option
+                                                          in randomRollOptions) {
+                                                        if (option.perkId ==
+                                                          perkIdFromJson(
+                                                            perk)) {
+                                                          selectedOption =
+                                                            option;
+                                                          break;
+                                                        }
+                                                        }
+                                                        final appliedRoll =
+                                                          selectedOption ==
+                                                                null ||
+                                                              selectedOption
+                                                                .rollValues
+                                                                .isEmpty
+                                                            ? null
+                                                            : selectedOption
+                                                              .rollValues
+                                                              .first;
+                                                    if (selectedAccess ==
+                                                        null ||
+                                                      appliedRoll == null) {
+                                                    return;
+                                                    }
                                                       final nameMap =
                                                           perk['name']
                                                                   as Map? ??
@@ -927,6 +975,15 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                                                           perk: perk,
                                                           advancementType:
                                                               'random_primary_skill',
+                                                          skillCategory:
+                                                              selectedAccess
+                                                                  .symbol,
+                                                          randomSkillFirstD6:
+                                                              appliedRoll
+                                                                  .firstDie,
+                                                          randomSkillSecondD6:
+                                                              appliedRoll
+                                                                  .secondDie,
                                                           resultLabel: name,
                                                         ),
                                                       );
@@ -1193,7 +1250,11 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
     if (!context.mounted || confirmed != true) return;
 
     final chosenPerk = selectedChoice.perk;
-    final perkId = chosenPerk == null ? null : perkIdFromJson(chosenPerk);
+    final perkId = selectedChoice.advancementType == 'random_primary_skill'
+      ? null
+      : chosenPerk == null
+        ? null
+        : perkIdFromJson(chosenPerk);
     final resultName = selectedChoice.resultLabel ?? '';
 
     try {
@@ -1203,6 +1264,9 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
             playerId,
             advancementType: selectedChoice.advancementType,
             perkId: perkId,
+        skillCategory: selectedChoice.skillCategory,
+        randomSkillFirstD6: selectedChoice.randomSkillFirstD6,
+        randomSkillSecondD6: selectedChoice.randomSkillSecondD6,
             characteristic: selectedChoice.characteristic,
             characteristicRoll: selectedChoice.characteristicRoll,
             leagueId: leagueId.isEmpty ? null : leagueId,
@@ -1784,6 +1848,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
   }
 
   List<_RandomSkillRollOption> _buildRandomSkillRollOptions({
+    required AdvancementRules? rules,
     required List<Map<String, dynamic>> perks,
     required String lang,
     required String categorySymbol,
@@ -1798,26 +1863,33 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
     void addRoll(int? firstDie, int? secondDie) {
       if (firstDie == null || secondDie == null) return;
 
-      final englishName =
-          _randomPrimarySkillName(categorySymbol, firstDie, secondDie);
-      if (englishName == null) return;
+      final perkId =
+          _randomPrimarySkillPerkId(rules, categorySymbol, firstDie, secondDie);
+      if (perkId == null) return;
 
-      final perk = findPerkDefinition(perks, englishName);
-      final perkId = perkIdFromJson(perk);
-      final key = perkId.isNotEmpty ? _skillKey(perkId) : englishName;
-      final rollLabel = '$firstDie+$secondDie';
+      final perk = findPerkDefinition(perks, perkId);
+      final resolvedPerkId = perkIdFromJson(perk);
+      final key = _skillKey(resolvedPerkId.isNotEmpty ? resolvedPerkId : perkId);
+      final rollValue =
+          _RandomSkillRollValue(firstDie: firstDie, secondDie: secondDie);
       final existing = options[key];
       if (existing != null) {
-        existing.rollLabels.add(rollLabel);
+        existing.rollLabels.add(rollValue.label);
+        existing.rollValues.add(rollValue);
         return;
       }
+
+      final nameMap = perk?['name'] as Map? ?? {};
+      final englishName = nameMap['en'] as String? ?? perkId;
 
       options[key] = _RandomSkillRollOption(
         perk: perk,
         englishName: englishName,
-        displayName: localizedPerkName(perks, englishName, lang),
-        rollLabels: [rollLabel],
-        isOwned: perkId.isNotEmpty && ownedIds.contains(_skillKey(perkId)),
+        displayName: localizedPerkName(perks, perkId, lang),
+        rollLabels: [rollValue.label],
+        rollValues: [rollValue],
+        isOwned:
+            resolvedPerkId.isNotEmpty && ownedIds.contains(_skillKey(resolvedPerkId)),
       );
     }
 
@@ -1827,114 +1899,35 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
     return options.values.toList();
   }
 
-  String? _randomPrimarySkillName(
-      String categorySymbol, int firstDie, int secondDie) {
-    if (firstDie < 1 || firstDie > 6 || secondDie < 1 || secondDie > 6) {
+  String? _randomPrimarySkillPerkId(
+    AdvancementRules? rules,
+    String categorySymbol,
+    int firstDie,
+    int secondDie,
+  ) {
+    if (rules == null || firstDie < 1 || firstDie > 6 || secondDie < 1 || secondDie > 6) {
       return null;
     }
 
-    const table = <String, List<List<String>>>{
-      'A': [
-        [
-          'Catch',
-          'Diving Catch',
-          'Diving Tackle',
-          'Dodge',
-          'Defensive',
-          'Hit and Run'
-        ],
-        [
-          'Jump Up',
-          'Leap',
-          'Safe Pair of Hands',
-          'Sidestep',
-          'Sprint',
-          'Sure Feet'
-        ],
-      ],
-      'D': [
-        [
-          'Dirty Player',
-          'Eye Gouge',
-          'Fumblerooski',
-          'Lethal Flight',
-          'Lone Fouler',
-          'Pile Driver'
-        ],
-        [
-          'Put the Boot In',
-          'Quick Foul',
-          'Saboteur',
-          'Shadowing',
-          'Sneaky Git',
-          'Violent Innovator'
-        ],
-      ],
-      'G': [
-        ['Block', 'Dauntless', 'Fend', 'Frenzy', 'Kick', 'Pro'],
-        [
-          'Steady Footing',
-          'Strip Ball',
-          'Sure Hands',
-          'Tackle',
-          'Taunt',
-          'Wrestle'
-        ],
-      ],
-      'M': [
-        [
-          'Big Hand',
-          'Claws',
-          'Disturbing Presence',
-          'Extra Arms',
-          'Foul Appearance',
-          'Horns'
-        ],
-        [
-          'Iron Hard Skin',
-          'Monstrous Mouth',
-          'Prehensile Tail',
-          'Tentacles',
-          'Two Heads',
-          'Very Long Legs'
-        ],
-      ],
-      'P': [
-        [
-          'Accurate',
-          'Cannoneer',
-          'Cloud Burster',
-          'Dump-Off',
-          'Give and Go',
-          'Hail Mary Pass'
-        ],
-        [
-          'Leader',
-          'Nerves of Steel',
-          'On the Ball',
-          'Pass',
-          'Punt',
-          'Safe Pass'
-        ],
-      ],
-      'S': [
-        ['Arm Bar', 'Brawler', 'Break Tackle', 'Bullseye', 'Grab', 'Guard'],
-        [
-          'Juggernaut',
-          'Mighty Blow',
-          'Multiple Block',
-          'Stand Firm',
-          'Strong Arm',
-          'Thick Skull'
-        ],
-      ],
-    };
+    final categoryIndex = rules.skillCategories.indexWhere(
+      (category) => category.symbol.toUpperCase() == categorySymbol.toUpperCase(),
+    );
+    if (categoryIndex < 0) return null;
 
-    final rows = table[categorySymbol.toUpperCase()];
-    if (rows == null) return null;
+    final entry = rules.randomPrimarySkillTable.firstWhere(
+      (row) => row.matchesRoll(firstDie, secondDie),
+      orElse: () => const RandomPrimarySkillTableEntry(
+        firstD6Min: 0,
+        firstD6Max: 0,
+        secondD6: 0,
+        perkIds: <String>[],
+      ),
+    );
+    if (entry.perkIds.isEmpty || categoryIndex >= entry.perkIds.length) {
+      return null;
+    }
 
-    final halfIndex = firstDie <= 3 ? 0 : 1;
-    return rows[halfIndex][secondDie - 1];
+    return entry.perkIds[categoryIndex];
   }
 
   Widget _characteristicImprovementPanel({

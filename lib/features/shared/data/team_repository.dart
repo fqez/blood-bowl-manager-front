@@ -85,6 +85,7 @@ class AdvancementRules {
   final List<CharacteristicImprovementResult> characteristicTable;
   final List<AdvancementValueIncrease> valueIncreases;
   final List<SkillCategoryRule> skillCategories;
+  final List<RandomPrimarySkillTableEntry> randomPrimarySkillTable;
   final int randomSkillRolls;
   final String randomSkillDice;
   final Map<String, String> description;
@@ -96,6 +97,7 @@ class AdvancementRules {
     required this.characteristicTable,
     required this.valueIncreases,
     required this.skillCategories,
+    required this.randomPrimarySkillTable,
     required this.randomSkillRolls,
     required this.randomSkillDice,
     required this.description,
@@ -122,6 +124,11 @@ class AdvancementRules {
             .toList(),
         skillCategories: (json['skill_categories'] as List<dynamic>? ?? [])
             .map((e) => SkillCategoryRule.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        randomPrimarySkillTable:
+          (json['random_primary_skill_table'] as List<dynamic>? ?? [])
+            .map((e) =>
+              RandomPrimarySkillTableEntry.fromJson(e as Map<String, dynamic>))
             .toList(),
         randomSkillRolls: (json['random_skill_rolls'] as num?)?.toInt() ?? 2,
         randomSkillDice: json['random_skill_dice'] as String? ?? '2D6',
@@ -242,6 +249,35 @@ class SkillCategoryRule {
         family: json['family'] as String? ?? '',
         name: ExpensiveMistakeEffect._localized(json['name']),
       );
+}
+
+class RandomPrimarySkillTableEntry {
+  final int firstD6Min;
+  final int firstD6Max;
+  final int secondD6;
+  final List<String> perkIds;
+
+  const RandomPrimarySkillTableEntry({
+    required this.firstD6Min,
+    required this.firstD6Max,
+    required this.secondD6,
+    required this.perkIds,
+  });
+
+  factory RandomPrimarySkillTableEntry.fromJson(Map<String, dynamic> json) =>
+      RandomPrimarySkillTableEntry(
+        firstD6Min: (json['first_d6_min'] as num?)?.toInt() ?? 1,
+        firstD6Max: (json['first_d6_max'] as num?)?.toInt() ?? 1,
+        secondD6: (json['second_d6'] as num?)?.toInt() ?? 1,
+        perkIds:
+            (json['perk_ids'] as List<dynamic>? ?? []).map((e) => '$e').toList(),
+      );
+
+  bool matchesRoll(int firstDie, int secondDie) =>
+      firstDie >= firstD6Min && firstDie <= firstD6Max && secondDie == secondD6;
+
+  String get firstD6Label =>
+      firstD6Min == firstD6Max ? '$firstD6Min' : '$firstD6Min-$firstD6Max';
 }
 
 class DiceRangeRules {
@@ -1390,6 +1426,9 @@ class TeamRepository {
     String playerId, {
     required String advancementType,
     String? perkId,
+    String? skillCategory,
+    int? randomSkillFirstD6,
+    int? randomSkillSecondD6,
     String? characteristic,
     int? characteristicRoll,
     String? leagueId,
@@ -1400,6 +1439,11 @@ class TeamRepository {
         data: {
           'advancement_type': advancementType,
           if (perkId != null) 'perk_id': perkId,
+          if (skillCategory != null) 'skill_category': skillCategory,
+          if (randomSkillFirstD6 != null)
+            'random_skill_first_d6': randomSkillFirstD6,
+          if (randomSkillSecondD6 != null)
+            'random_skill_second_d6': randomSkillSecondD6,
           if (characteristic != null) 'characteristic': characteristic,
           if (characteristicRoll != null)
             'characteristic_roll': characteristicRoll,

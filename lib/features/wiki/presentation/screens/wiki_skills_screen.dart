@@ -19,6 +19,18 @@ class WikiSkillsScreen extends ConsumerStatefulWidget {
   ConsumerState<WikiSkillsScreen> createState() => _WikiSkillsScreenState();
 }
 
+class _AdvancementTableRowData {
+  final String firstD6Label;
+  final int secondD6;
+  final List<String> perkIds;
+
+  const _AdvancementTableRowData({
+    required this.firstD6Label,
+    required this.secondD6,
+    required this.perkIds,
+  });
+}
+
 class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
   final _searchController = TextEditingController();
   String _searchQuery = '';
@@ -33,6 +45,7 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
   Widget build(BuildContext context) {
     final lang = ref.watch(localeProvider);
     final perksAsync = ref.watch(allPerksProvider);
+    final advancementRulesAsync = ref.watch(advancementRulesProvider);
 
     return WikiPageLayout(
       title: tr(lang, 'wikiSkills.title'),
@@ -43,9 +56,9 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildAdvancementTable(lang, perksAsync),
+          _buildAdvancementTable(lang, perksAsync, advancementRulesAsync),
           const SizedBox(height: 32),
-          _buildSkillsSection(perksAsync, lang),
+          _buildSkillsSection(perksAsync, advancementRulesAsync, lang),
           const SizedBox(height: 40),
         ],
       ),
@@ -55,9 +68,13 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
   // -- Advancement Table (dice roll → skill category) -------------------------
 
   Widget _buildAdvancementTable(
-      String lang, AsyncValue<List<Map<String, dynamic>>> perksAsync) {
+    String lang,
+    AsyncValue<List<Map<String, dynamic>>> perksAsync,
+    AsyncValue<AdvancementRules> advancementRulesAsync,
+  ) {
     final perks = perksAsync.valueOrNull ?? const <Map<String, dynamic>>[];
     final traitPerks = _traitPerksFrom(perks);
+    final rules = advancementRulesAsync.valueOrNull;
 
     return Container(
       width: double.infinity,
@@ -92,15 +109,42 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
             lang == 'es'
                 ? 'Cuando un jugador sube de nivel, tira 2D6 para determinar que categoria de habilidad puede elegir.'
                 : 'When a player levels up, roll 2D6 to determine which skill category they may choose from.',
-            style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+            style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
           ),
           const SizedBox(height: 16),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              if (constraints.maxWidth < 420) {
+          if (rules == null)
+            _buildAdvancementRulesState(advancementRulesAsync, lang)
+          else
+            LayoutBuilder(
+              builder: (context, constraints) {
+                if (constraints.maxWidth < 420) {
+                  return Column(
+                    children: [
+                      _buildCompactAdvancementList(lang, perks, rules),
+                      if (traitPerks.isNotEmpty) ...[
+                        const SizedBox(height: 20),
+                        _buildTraitsTable(
+                          lang,
+                          traitPerks,
+                          availableWidth: constraints.maxWidth,
+                        ),
+                      ],
+                    ],
+                  );
+                }
+
                 return Column(
                   children: [
-                    _buildCompactAdvancementList(lang, perks),
+                    Center(
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: ConstrainedBox(
+                          constraints:
+                              BoxConstraints(minWidth: constraints.maxWidth),
+                          child: _buildTable(lang, perks, rules),
+                        ),
+                      ),
+                    ),
                     if (traitPerks.isNotEmpty) ...[
                       const SizedBox(height: 20),
                       _buildTraitsTable(
@@ -111,275 +155,74 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
                     ],
                   ],
                 );
-              }
-
-              return Column(
-                children: [
-                  Center(
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: ConstrainedBox(
-                        constraints:
-                            BoxConstraints(minWidth: constraints.maxWidth),
-                        child: _buildTable(lang, perks),
-                      ),
-                    ),
-                  ),
-                  if (traitPerks.isNotEmpty) ...[
-                    const SizedBox(height: 20),
-                    _buildTraitsTable(
-                      lang,
-                      traitPerks,
-                      availableWidth: constraints.maxWidth,
-                    ),
-                  ],
-                ],
-              );
-            },
-          ),
+              },
+            ),
         ],
       ),
     );
   }
 
-  List<String> _advancementHeaders(String lang) => [
-        '1er D6',
-        '2do D6',
-        lang == 'es' ? 'AGILIDAD' : 'AGILITY',
-        lang == 'es' ? 'TRIQUIÑUELA' : 'DEVIOUS',
-        'GENERAL',
-        lang == 'es' ? 'MUTACION' : 'MUTATION',
-        lang == 'es' ? 'PASE' : 'PASSING',
-        lang == 'es' ? 'FUERZA' : 'STRENGTH',
-      ];
-
-  List<Color> get _advancementHeaderColors => [
-        AppColors.textMuted,
-        AppColors.textMuted,
-        AppColors.skillAgility,
-        const Color(0xFFFF6F00),
-        AppColors.skillGeneral,
-        AppColors.skillMutation,
-        AppColors.skillPassing,
-        AppColors.skillStrength,
-      ];
-
-  List<List<String>> get _advancementRows => [
-        [
-          '1-3',
-          '1',
-          'Catch',
-          'Dirty Player',
-          'Block',
-          'Big Hand',
-          'Accurate',
-          'Arm Bar'
-        ],
-        [
-          '1-3',
-          '2',
-          'Diving Catch',
-          'Eye Gouge',
-          'Dauntless',
-          'Claws',
-          'Cannoneer',
-          'Brawler'
-        ],
-        [
-          '1-3',
-          '3',
-          'Diving Tackle',
-          'Fumblerooski',
-          'Fend',
-          'Disturbing Presence',
-          'Cloud Burster',
-          'Break Tackle'
-        ],
-        [
-          '1-3',
-          '4',
-          'Dodge',
-          'Lethal Flight',
-          'Frenzy',
-          'Extra Arms',
-          'Dump-Off',
-          'Bullseye'
-        ],
-        [
-          '1-3',
-          '5',
-          'Defensive',
-          'Lone Fouler',
-          'Kick',
-          'Foul Appearance',
-          'Give and Go',
-          'Grab'
-        ],
-        [
-          '1-3',
-          '6',
-          'Hit and Run',
-          'Pile Driver',
-          'Pro',
-          'Horns',
-          'Hail Mary Pass',
-          'Guard'
-        ],
-        [
-          '4-6',
-          '1',
-          'Jump Up',
-          'Put the Boot In',
-          'Steady Footing',
-          'Iron Hard Skin',
-          'Leader',
-          'Juggernaut'
-        ],
-        [
-          '4-6',
-          '2',
-          'Leap',
-          'Quick Foul',
-          'Strip Ball',
-          'Monstrous Mouth',
-          'Nerves of Steel',
-          'Mighty Blow'
-        ],
-        [
-          '4-6',
-          '3',
-          'Safe Pair of Hands',
-          'Saboteur',
-          'Sure Hands',
-          'Prehensile Tail',
-          'On the Ball',
-          'Multiple Block'
-        ],
-        [
-          '4-6',
-          '4',
-          'Sidestep',
-          'Shadowing',
-          'Tackle',
-          'Tentacles',
-          'Pass',
-          'Stand Firm'
-        ],
-        [
-          '4-6',
-          '5',
-          'Sprint',
-          'Sneaky Git',
-          'Taunt',
-          'Two Heads',
-          'Punt',
-          'Strong Arm'
-        ],
-        [
-          '4-6',
-          '6',
-          'Sure Feet',
-          'Violent Innovator',
-          'Wrestle',
-          'Very Long Legs',
-          'Safe Pass',
-          'Thick Skull'
-        ],
-      ];
-
-  String _localizedSkillName(
-      String englishName, List<Map<String, dynamic>> perks, String lang) {
-    if (lang == 'en') return englishName;
-
-    final normalized = englishName.toLowerCase().trim();
-    for (final perk in perks) {
-      final nameMap = perk['name'] as Map? ?? {};
-      final english = (nameMap['en'] as String? ?? '').toLowerCase().trim();
-      if (english == normalized) {
-        return nameMap[lang] as String? ?? englishName;
-      }
-    }
-
-    return _spanishAdvancementSkillFallbacks[englishName] ?? englishName;
+  Widget _buildAdvancementRulesState(
+    AsyncValue<AdvancementRules> advancementRulesAsync,
+    String lang,
+  ) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.surfaceLight),
+      ),
+      child: advancementRulesAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (err, _) => Text(
+          trf(lang, 'wikiSkills.errorLoading', {'err': '$err'}),
+          style: const TextStyle(color: AppColors.error),
+        ),
+        data: (_) => const SizedBox.shrink(),
+      ),
+    );
   }
 
-  static const Map<String, String> _spanishAdvancementSkillFallbacks = {
-    'Catch': 'Atrapar',
-    'Dauntless': 'Agallas',
-    'Big Hand': 'Mano Grande',
-    'Accurate': 'Precisión',
-    'Arm Bar': 'Llave de Brazo',
-    'Diving Catch': 'Recepción Heroica',
-    'Dirty Player': 'Jugar Sucio',
-    'Disturbing Presence': 'Presencia Perturbadora',
-    'Cannoneer': 'Bombardero',
-    'Brawler': 'Luchador',
-    'Diving Tackle': 'Placaje Heroico',
-    'Fend': 'Zafarse',
-    'Foul Appearance': 'Apariencia Asquerosa',
-    'Cloud Burster': 'Parte Nubes',
-    'Break Tackle': 'Abrirse Paso',
-    'Dodge': 'Esquivar',
-    'Frenzy': 'Furia',
-    'Horns': 'Cuernos',
-    'Dump-Off': 'Liberar Rápido',
-    'Grab': 'Apartar',
-    'Defensive': 'Rompe defensas',
-    'Kick': 'Patada',
-    'Iron Hard Skin': 'Piel Ferrea',
-    'Fumblerooskie': 'Fumblerooskie',
-    'Guard': 'Defensa',
-    'Jump Up': 'En Pie de un Salto',
-    'Pro': 'Profesional',
-    'Tentacles': 'Tentáculos',
-    'Hail Mary Pass': 'Pase a lo Loco',
-    'Juggernaut': 'Imparable',
-    'Leap': 'Saltar',
-    'Shadowing': 'Perseguir',
-    'Two Heads': 'Dos Cabezas',
-    'Leader': 'Líder',
-    'Mighty Blow': 'Golpe Mortífero',
-    'Safe Pair of Hands': 'Proteger el Cuero',
-    'Strip Ball': 'Robar Balón',
-    'Very Long Legs': 'Piernas Muy Largas',
-    'Nerves of Steel': 'Nervios de Acero',
-    'Multiple Block': 'Placaje Múltiple',
-    'Sidestep': 'Paso Lateral',
-    'Sure Hands': 'Manos Seguras',
-    'Monstrous Mouth': 'Boca Monstruosa',
-    'On the Ball': 'Atento al Balón',
-    'Pile Driver': 'Crujir',
-    'Sneaky Git': 'Furtivo',
-    'Tackle': 'Placaje Defensivo',
-    'Prehensile Tail': 'Cola Prensil',
-    'Pass': 'Pasar',
-    'Stand Firm': 'Mantenerse Firme',
-    'Sprint': 'Esprintar',
-    'Wrestle': 'Forcejeo',
-    'Extra Arms': 'Brazos Adicionales',
-    'Running Pass': 'Pase en carrera',
-    'Strong Arm': 'Brazo Fuerte',
-    'Sure Feet': 'Pies Firmes',
-    'Block': 'Placar',
-    'Claws': 'Garras',
-    'Safe Pass': 'Pase Seguro',
-    'Thick Skull': 'Cabeza Dura',
-  };
+  List<String> _advancementHeaders(String lang, AdvancementRules rules) => [
+        '1er D6',
+        '2do D6',
+        ...rules.skillCategories.map((category) =>
+            (category.name[lang] ?? category.name['en'] ?? category.symbol)
+                .toUpperCase()),
+      ];
+
+  List<Color> _advancementHeaderColors(AdvancementRules rules) => [
+        AppColors.textMuted,
+        AppColors.textMuted,
+        ...rules.skillCategories
+            .map((category) => _familyColor(category.family)),
+      ];
+
+  List<_AdvancementTableRowData> _advancementRows(AdvancementRules rules) =>
+      rules.randomPrimarySkillTable
+          .map(
+            (entry) => _AdvancementTableRowData(
+              firstD6Label: entry.firstD6Label,
+              secondD6: entry.secondD6,
+              perkIds: entry.perkIds,
+            ),
+          )
+          .toList();
 
   Widget _buildCompactAdvancementList(
-      String lang, List<Map<String, dynamic>> perks) {
-    final headers = _advancementHeaders(lang);
-    final headerColors = _advancementHeaderColors;
-    final rows = _advancementRows;
+    String lang,
+    List<Map<String, dynamic>> perks,
+    AdvancementRules rules,
+  ) {
+    final headers = _advancementHeaders(lang, rules);
+    final headerColors = _advancementHeaderColors(rules);
+    final rows = _advancementRows(rules);
     final families = [
       '',
       '',
-      'agility',
-      'devious',
-      'general',
-      'mutation',
-      'passing',
-      'strength',
+      ...rules.skillCategories.map((category) => category.family),
     ];
 
     return Column(
@@ -405,22 +248,22 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  _buildDiceBadge(headers[0], row[0]),
-                  _buildDiceBadge(headers[1], row[1]),
+                  _buildDiceBadge(headers[0], row.firstD6Label),
+                  _buildDiceBadge(headers[1], '${row.secondD6}'),
                 ],
               ),
               const SizedBox(height: 10),
               ...List.generate(families.length - 2, (skillIdx) {
                 final colIdx = skillIdx + 2;
                 final color = headerColors[colIdx];
-                final skillName = row[colIdx];
+                final perkId = row.perkIds[skillIdx];
 
                 return InkWell(
                   borderRadius: BorderRadius.circular(6),
-                  onTap: skillName == '-'
+                  onTap: perkId == '-'
                       ? null
                       : () => showSkillPopup(context, ref,
-                          skillName: skillName, family: families[colIdx]),
+                          skillName: perkId, family: families[colIdx]),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 4),
                     child: Row(
@@ -441,11 +284,11 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            _localizedSkillName(skillName, perks, lang),
+                            localizedPerkName(perks, perkId, lang),
                             style: TextStyle(
                               fontSize: 15,
                               color: color.withOpacity(0.9),
-                              decoration: skillName == '-'
+                              decoration: perkId == '-'
                                   ? TextDecoration.none
                                   : TextDecoration.underline,
                               decorationColor: color.withOpacity(0.4),
@@ -484,10 +327,14 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
     );
   }
 
-  Widget _buildTable(String lang, List<Map<String, dynamic>> perks) {
-    final headers = _advancementHeaders(lang);
-    final headerColors = _advancementHeaderColors;
-    final rows = _advancementRows;
+  Widget _buildTable(
+    String lang,
+    List<Map<String, dynamic>> perks,
+    AdvancementRules rules,
+  ) {
+    final headers = _advancementHeaders(lang, rules);
+    final headerColors = _advancementHeaderColors(rules);
+    final rows = _advancementRows(rules);
 
     return DataTable(
       headingRowColor: WidgetStateProperty.all(AppColors.surface),
@@ -516,11 +363,16 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
       rows: List.generate(rows.length, (rowIdx) {
         final row = rows[rowIdx];
         final isTopHalf = rowIdx < 6;
+        final cells = [
+          row.firstD6Label,
+          '${row.secondD6}',
+          ...row.perkIds,
+        ];
         return DataRow(
           color: WidgetStateProperty.all(
             isTopHalf ? AppColors.card : AppColors.surface.withOpacity(0.7),
           ),
-          cells: List.generate(row.length, (colIdx) {
+          cells: List.generate(cells.length, (colIdx) {
             Color textColor;
             FontWeight weight = FontWeight.normal;
             if (colIdx < 2) {
@@ -533,35 +385,30 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
             final families = [
               '',
               '',
-              'agility',
-              'devious',
-              'general',
-              'mutation',
-              'passing',
-              'strength',
+              ...rules.skillCategories.map((category) => category.family),
             ];
-            final skillName = row[colIdx];
+            final cellValue = cells[colIdx];
             return DataCell(
               isSkillCell
                   ? GestureDetector(
-                      onTap: skillName == '-'
+                      onTap: cellValue == '-'
                           ? null
                           : () => showSkillPopup(context, ref,
-                              skillName: skillName, family: families[colIdx]),
+                              skillName: cellValue, family: families[colIdx]),
                       child: MouseRegion(
-                        cursor: skillName == '-'
+                        cursor: cellValue == '-'
                             ? SystemMouseCursors.basic
                             : SystemMouseCursors.click,
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
-                              _localizedSkillName(skillName, perks, lang),
+                              localizedPerkName(perks, cellValue, lang),
                               style: TextStyle(
                                 fontSize: 15,
                                 color: textColor,
                                 fontWeight: weight,
-                                decoration: skillName == '-'
+                                decoration: cellValue == '-'
                                     ? TextDecoration.none
                                     : TextDecoration.underline,
                                 decorationColor: textColor.withOpacity(0.4),
@@ -573,7 +420,7 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
                       ),
                     )
                   : Text(
-                      row[colIdx],
+                      cellValue,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
@@ -611,7 +458,7 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
     List<Map<String, dynamic>> traitPerks, {
     required double availableWidth,
   }) {
-    final color = AppColors.skillExtraordinary;
+    const color = AppColors.skillExtraordinary;
 
     final columnCount = availableWidth >= 980
         ? 4
@@ -648,7 +495,7 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   child: Text(
                     localizedName,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
                       color: color,
@@ -708,7 +555,10 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
   // -- Skills Catalog ---------------------------------------------------------
 
   Widget _buildSkillsSection(
-      AsyncValue<List<Map<String, dynamic>>> perksAsync, String lang) {
+    AsyncValue<List<Map<String, dynamic>>> perksAsync,
+    AsyncValue<AdvancementRules> advancementRulesAsync,
+    String lang,
+  ) {
     return perksAsync.when(
       loading: () => const Center(
         child: Padding(
@@ -727,6 +577,7 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
             style: const TextStyle(color: AppColors.error)),
       ),
       data: (perks) {
+        final advancementRules = advancementRulesAsync.valueOrNull;
         final query = _searchQuery.trim().toLowerCase();
         final filteredPerks = query.isEmpty
             ? perks
@@ -743,14 +594,11 @@ class _WikiSkillsScreenState extends ConsumerState<WikiSkillsScreen> {
           skillFamilies.putIfAbsent(family, () => []).add(perk);
         }
 
-        final familyOrder = [
-          'general',
-          'agility',
-          'devious',
-          'strength',
-          'passing',
-          'mutation',
-        ];
+        final familyOrder = advancementRules == null
+            ? ['general', 'agility', 'devious', 'strength', 'passing', 'mutation']
+            : advancementRules.skillCategories
+                .map((category) => category.family)
+                .toList();
         final sortedFamilies =
             familyOrder.where((f) => skillFamilies.containsKey(f)).toList();
         for (final f in skillFamilies.keys) {

@@ -277,13 +277,19 @@ Map<String, dynamic>? findPerkDefinition(
   List<Map<String, dynamic>> allPerks,
   String value,
 ) {
-  final lowerValue = _perkLookupValue(value);
+  final lookupValue = _perkLookupValue(value);
+  final lookupId = _normalizePerkLookupId(value);
   for (final perk in allPerks) {
     final nameMap = perk['name'] as Map? ?? {};
     final id = perkIdFromJson(perk).toLowerCase().trim();
+    final rawId = _normalizePerkLookupId(
+      (perk['_id'] ?? perk['id'] ?? '').toString(),
+    );
     final en = (nameMap['en'] as String? ?? '').toLowerCase().trim();
     final es = (nameMap['es'] as String? ?? '').toLowerCase().trim();
-    if (id == lowerValue || en == lowerValue || es == lowerValue) {
+    if ((lookupId.isNotEmpty && (id == lookupId || rawId == lookupId)) ||
+        en == lookupValue ||
+        es == lookupValue) {
       return perk;
     }
   }
@@ -328,6 +334,19 @@ String localizedPerkValue(Map source, String lang, {required String fallback}) {
 
 String _perkLookupValue(String value) =>
     _stripPerkParameter(_englishHalf(value)).toLowerCase().trim();
+
+String _normalizePerkLookupId(String value) {
+  var normalized = _stripPerkParameter(_englishHalf(value)).toLowerCase().trim();
+  if (normalized.isEmpty) return '';
+
+  normalized = normalized.replaceAll('_', '-');
+  normalized = normalized.replaceAll(RegExp(r'[^a-z0-9]+'), '-');
+  normalized = normalized.replaceAll(RegExp(r'-+'), '-');
+  normalized = normalized.replaceAll(RegExp(r'^-|-$'), '');
+  if (normalized.isEmpty) return '';
+
+  return normalized.startsWith('perk-') ? normalized : 'perk-$normalized';
+}
 
 String _englishHalf(String value) => value.split(' / ').first.trim();
 
