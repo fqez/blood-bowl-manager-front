@@ -8,7 +8,9 @@ import '../../../../core/l10n/locale_provider.dart';
 import '../../../../core/l10n/translations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../auth/data/providers/auth_provider.dart';
+import '../../../league/domain/models/league.dart';
 import '../../../shared/data/repositories.dart';
+import '../../../shared/utils/player_advancement.dart';
 import '../../domain/models/league_summary.dart';
 
 final myLeaguesSummaryProvider =
@@ -24,6 +26,199 @@ final myLeaguesSummaryProvider =
 
   return ref.watch(leagueRepositoryProvider).getMyLeaguesSummary();
 });
+
+final leagueNotificationsProvider =
+    FutureProvider.autoDispose<List<_LeagueNotificationData>>((ref) async {
+  final authState = ref.watch(authStateProvider);
+  final currentAuth = authState.valueOrNull;
+  final userId = currentAuth?.user?.id;
+  if (authState.isLoading || currentAuth?.isLoading == true) {
+    return const <_LeagueNotificationData>[];
+  }
+  if (currentAuth?.isAuthenticated != true || userId == null) {
+    return const <_LeagueNotificationData>[];
+  }
+
+  final leagues = await ref.watch(myLeaguesSummaryProvider.future);
+  if (leagues.isEmpty) return const <_LeagueNotificationData>[];
+
+  final leagueRepository = ref.watch(leagueRepositoryProvider);
+  final teamRepository = ref.watch(teamRepositoryProvider);
+  final notifications = <_LeagueNotificationData>[];
+
+  for (final leagueSummary in leagues) {
+    try {
+      final league = await leagueRepository.getLeague(leagueSummary.id);
+      final userTeams =
+          league.teams.where((team) => team.userId == userId).toList();
+      if (userTeams.isEmpty) continue;
+
+      notifications.addAll(
+        _buildUpcomingMatchNotifications(league, userTeams),
+      );
+
+      notifications.addAll(
+        _buildPendingAftermatchNotifications(league, userTeams),
+      );
+
+      for (final team in userTeams) {
+        try {
+          final detail = await teamRepository.getUserTeamDetail(
+            team.teamId,
+            leagueId: league.id,
+          );
+          final rosterSize =
+              detail.players.where((player) => !player.isDead).length;
+          if (rosterSize < 11) {
+            notifications.add(
+              _LeagueNotificationData(
+                type: NotificationType.shortRoster,
+                title: 'Plantilla por debajo de 11',
+                description:
+                    'Liga: ${league.name}\nEquipo: ${detail.name} • Solo tienes $rosterSize jugadores en plantilla.',
+                meta: detail.name,
+                actionLabel: 'Ver roster',
+                actionRoute: '/league/${league.id}/team/${detail.id}',
+                priority: 2,
+              ),
+            );
+          }
+
+          final availablePlayers = detail.players
+              .where(
+                (player) =>
+                    !player.isDead &&
+                    hasAvailableAdvancement(
+                        level: player.level, spp: player.spp),
+              )
+              .toList();
+          if (availablePlayers.isEmpty) continue;
+
+          final playerSummary = availablePlayers.length == 1
+              ? '${availablePlayers.first.name} puede mejorar.'
+              : '${availablePlayers.length} jugadores pueden mejorar.';
+          notifications.add(
+            _LeagueNotificationData(
+              type: NotificationType.levelUp,
+              title: availablePlayers.length == 1
+                  ? 'Mejora disponible'
+                  : '${availablePlayers.length} mejoras disponibles',
+              description:
+                  'Liga: ${league.name}\nEquipo: ${detail.name} • $playerSummary',
+              meta: detail.name,
+              actionLabel: 'Ir a mejoras',
+              actionRoute: '/league/${league.id}/team/${detail.id}',
+              priority: 2,
+            ),
+          );
+        } catch (_) {
+          continue;
+        }
+      }
+    } catch (_) {
+      continue;
+    }
+  }
+
+  notifications.sort((a, b) {
+    final byPriority = a.priority.compareTo(b.priority);
+    if (byPriority != 0) return byPriority;
+    return a.description.compareTo(b.description);
+  });
+
+  return notifications;
+});
+
+Match? _nextUpcomingMatchForTeam(League league, String teamId) {
+  final upcomingMatches = league.matches
+      .where(
+        (match) =>
+            (match.home.teamId == teamId || match.away.teamId == teamId) &&
+            (match.isPending || match.isInProgress),
+      )
+      .toList();
+  upcomingMatches.sort((a, b) {
+    final statusRankA = a.isInProgress ? 0 : 1;
+    final statusRankB = b.isInProgress ? 0 : 1;
+    if (statusRankA != statusRankB) {
+      return statusRankA.compareTo(statusRankB);
+    }
+    final roundCompare = a.round.compareTo(b.round);
+    if (roundCompare != 0) return roundCompare;
+    final aDate = a.scheduledAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+    final bDate = b.scheduledAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+    return aDate.compareTo(bDate);
+  });
+  if (upcomingMatches.isEmpty) return null;
+  return upcomingMatches.first;
+}
+
+List<_LeagueNotificationData> _buildUpcomingMatchNotifications(
+  League league,
+  List<LeagueTeam> userTeams,
+) {
+  final notifications = <_LeagueNotificationData>[];
+
+  for (final team in userTeams) {
+    final nextMatch = _nextUpcomingMatchForTeam(league, team.teamId);
+    if (nextMatch == null) continue;
+
+    final isHomeTeam = nextMatch.home.teamId == team.teamId;
+    final opponentName =
+        isHomeTeam ? nextMatch.away.teamName : nextMatch.home.teamName;
+
+    notifications.add(
+      _LeagueNotificationData(
+        type: NotificationType.nextMatch,
+        title: nextMatch.isInProgress ? 'Partido en curso' : 'Próximo partido',
+        description: 'Liga: ${league.name}\n${team.teamName} vs $opponentName.',
+        meta: 'J${nextMatch.round}',
+        actionLabel: nextMatch.isInProgress ? 'Ir al partido' : 'Ver partido',
+        actionRoute: '/league/${league.id}/match/${nextMatch.id}/live',
+        priority: nextMatch.isInProgress ? 0 : 1,
+      ),
+    );
+  }
+
+  return notifications;
+}
+
+List<_LeagueNotificationData> _buildPendingAftermatchNotifications(
+  League league,
+  List<LeagueTeam> userTeams,
+) {
+  final notifications = <_LeagueNotificationData>[];
+
+  for (final team in userTeams) {
+    for (final match in league.matches) {
+      final isHomeTeam = match.home.teamId == team.teamId;
+      final isAwayTeam = match.away.teamId == team.teamId;
+      if (!match.isPlayed || (!isHomeTeam && !isAwayTeam)) continue;
+
+      final submittedAt = isHomeTeam
+          ? match.aftermatchHomeSubmittedAt
+          : match.aftermatchAwaySubmittedAt;
+      if (submittedAt != null) continue;
+
+      final opponentName =
+          isHomeTeam ? match.away.teamName : match.home.teamName;
+      notifications.add(
+        _LeagueNotificationData(
+          type: NotificationType.aftermatch,
+          title: 'Informe postpartido pendiente',
+          description:
+              'Liga: ${league.name}\n${team.teamName} vs $opponentName.',
+          meta: 'J${match.round}',
+          actionLabel: 'Ir al informe',
+          actionRoute: '/league/${league.id}/match/${match.id}/aftermatch',
+          priority: 0,
+        ),
+      );
+    }
+  }
+
+  return notifications;
+}
 
 class LeaguesScreen extends ConsumerStatefulWidget {
   const LeaguesScreen({super.key});
@@ -597,6 +792,13 @@ class _LeaguesScreenState extends ConsumerState<LeaguesScreen> {
 
   Widget _buildNotificationsSection(String lang) {
     final isCompact = MediaQuery.of(context).size.width < 700;
+    final notificationsAsync = ref.watch(leagueNotificationsProvider);
+    final notificationCount = notificationsAsync.maybeWhen(
+      data: (notifications) => notifications.length,
+      orElse: () => 0,
+    );
+    final counterLabel =
+        notificationCount == 1 ? '1 aviso' : '$notificationCount avisos';
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -632,8 +834,8 @@ class _LeaguesScreenState extends ConsumerState<LeaguesScreen> {
                   color: AppColors.primary,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Text(
-                  '0 Nuevos',
+                child: Text(
+                  counterLabel,
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
@@ -644,19 +846,49 @@ class _LeaguesScreenState extends ConsumerState<LeaguesScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          // Placeholder notifications
-          _NotificationItem(
-            type: NotificationType.info,
-            title: tr(lang, 'dashboard.welcome'),
-            description: tr(lang, 'dashboard.welcomeBody'),
-            timeAgo: 'Ahora',
-          ),
-          const SizedBox(height: 12),
-          _NotificationItem(
-            type: NotificationType.tip,
-            title: tr(lang, 'dashboard.tip'),
-            description: tr(lang, 'dashboard.tipBody'),
-            timeAgo: '',
+          notificationsAsync.when(
+            loading: () => const Padding(
+              padding: EdgeInsets.symmetric(vertical: 12),
+              child: Center(child: CircularProgressIndicator()),
+            ),
+            error: (_, __) => const _NotificationItem(
+              type: NotificationType.info,
+              title: 'Avisos no disponibles',
+              description: 'No se pudieron cargar los avisos ahora mismo.',
+              meta: '',
+            ),
+            data: (notifications) {
+              if (notifications.isEmpty) {
+                return const _NotificationItem(
+                  type: NotificationType.info,
+                  title: 'Sin avisos pendientes',
+                  description:
+                      'No tienes informes postpartido ni mejoras pendientes en tus ligas.',
+                  meta: '',
+                );
+              }
+
+              return Column(
+                children: [
+                  for (var index = 0;
+                      index < notifications.length;
+                      index++) ...[
+                    _NotificationItem(
+                      type: notifications[index].type,
+                      title: notifications[index].title,
+                      description: notifications[index].description,
+                      meta: notifications[index].meta,
+                      actionLabel: notifications[index].actionLabel,
+                      onAction: notifications[index].actionRoute == null
+                          ? null
+                          : () => context.go(notifications[index].actionRoute!),
+                    ),
+                    if (index != notifications.length - 1)
+                      const SizedBox(height: 12),
+                  ],
+                ],
+              );
+            },
           ),
         ],
       ),
@@ -1562,19 +1794,43 @@ class _ManageOption extends StatelessWidget {
   }
 }
 
-enum NotificationType { levelUp, matchResult, invitation, info, tip }
+enum NotificationType { levelUp, aftermatch, nextMatch, shortRoster, info }
+
+class _LeagueNotificationData {
+  final NotificationType type;
+  final String title;
+  final String description;
+  final String meta;
+  final String? actionLabel;
+  final String? actionRoute;
+  final int priority;
+
+  const _LeagueNotificationData({
+    required this.type,
+    required this.title,
+    required this.description,
+    required this.meta,
+    this.actionLabel,
+    this.actionRoute,
+    required this.priority,
+  });
+}
 
 class _NotificationItem extends StatelessWidget {
   final NotificationType type;
   final String title;
   final String description;
-  final String timeAgo;
+  final String meta;
+  final String? actionLabel;
+  final VoidCallback? onAction;
 
   const _NotificationItem({
     required this.type,
     required this.title,
     required this.description,
-    required this.timeAgo,
+    required this.meta,
+    this.actionLabel,
+    this.onAction,
   });
 
   @override
@@ -1608,9 +1864,9 @@ class _NotificationItem extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              if (timeAgo.isNotEmpty)
+              if (meta.isNotEmpty)
                 Text(
-                  timeAgo,
+                  meta,
                   style:
                       const TextStyle(fontSize: 10, color: AppColors.textMuted),
                 ),
@@ -1631,6 +1887,24 @@ class _NotificationItem extends StatelessWidget {
             style:
                 const TextStyle(fontSize: 11, color: AppColors.textSecondary),
           ),
+          if (onAction != null && actionLabel != null) ...[
+            const SizedBox(height: 10),
+            TextButton.icon(
+              onPressed: onAction,
+              icon: Icon(
+                PhosphorIcons.arrowRight(PhosphorIconsStyle.bold),
+                size: 14,
+              ),
+              label: Text(actionLabel!),
+              style: TextButton.styleFrom(
+                foregroundColor: _bgColor,
+                padding: EdgeInsets.zero,
+                minimumSize: const Size(0, 0),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                alignment: Alignment.centerLeft,
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -1639,30 +1913,30 @@ class _NotificationItem extends StatelessWidget {
   Color get _bgColor {
     switch (type) {
       case NotificationType.levelUp:
-        return AppColors.primary;
-      case NotificationType.matchResult:
+        return AppColors.warning;
+      case NotificationType.aftermatch:
         return AppColors.info;
-      case NotificationType.invitation:
-        return AppColors.accent;
+      case NotificationType.nextMatch:
+        return AppColors.error;
+      case NotificationType.shortRoster:
+        return AppColors.mng;
       case NotificationType.info:
         return AppColors.info;
-      case NotificationType.tip:
-        return AppColors.accent;
     }
   }
 
   String get _typeLabel {
     switch (type) {
       case NotificationType.levelUp:
-        return 'SUBIDA DE NIVEL';
-      case NotificationType.matchResult:
-        return 'RESULTADO';
-      case NotificationType.invitation:
-        return 'INVITACIÓN A LIGA';
+        return 'MEJORA';
+      case NotificationType.aftermatch:
+        return 'POSTPARTIDO';
+      case NotificationType.nextMatch:
+        return 'PARTIDO';
+      case NotificationType.shortRoster:
+        return 'PLANTILLA';
       case NotificationType.info:
         return 'INFO';
-      case NotificationType.tip:
-        return 'CONSEJO';
     }
   }
 }

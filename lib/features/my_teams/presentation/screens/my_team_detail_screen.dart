@@ -16,6 +16,7 @@ import '../../../auth/data/providers/auth_provider.dart';
 import '../../../league/domain/models/league.dart';
 import '../../../roster/domain/models/team.dart';
 import '../../../shared/data/repositories.dart';
+import '../../../shared/utils/player_advancement.dart';
 import '../../../shared/presentation/widgets/skill_popup.dart';
 import '../../../shared/presentation/widgets/team_hero_header.dart';
 import '../../../shared/utils/player_position_labels.dart';
@@ -2199,9 +2200,7 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
   }
 
   bool _canLevelUp(UserPlayer p) {
-    const nextCosts = {1: 3, 2: 4, 3: 6, 4: 8, 5: 10, 6: 15};
-    final next = nextCosts[p.level] ?? 0;
-    return next > 0 && p.spp >= next;
+    return hasAvailableAdvancement(level: p.level, spp: p.spp);
   }
 
   void _showHireDialog(BuildContext context) {

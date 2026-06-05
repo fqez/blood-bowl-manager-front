@@ -166,7 +166,8 @@ class _WikiStarPlayersScreenState extends ConsumerState<WikiStarPlayersScreen> {
                     _buildTeamFilter(sortedTeams, lang),
                   ],
                 ),
-              if (_teamFilter != null && rosterCanChooseFavoured(_teamFilter)) ...[
+              if (_teamFilter != null &&
+                  rosterCanChooseFavoured(_teamFilter)) ...[
                 const SizedBox(height: 10),
                 _buildFavouredTeamHint(lang),
               ],
@@ -203,8 +204,8 @@ class _WikiStarPlayersScreenState extends ConsumerState<WikiStarPlayersScreen> {
                     lang == 'es'
                         ? 'No se encontraron jugadores estrella'
                         : 'No star players found',
-                    style:
-                        const TextStyle(color: AppColors.textMuted, fontSize: 18),
+                    style: const TextStyle(
+                        color: AppColors.textMuted, fontSize: 18),
                   ),
                 )
               : SingleChildScrollView(

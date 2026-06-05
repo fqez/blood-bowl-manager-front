@@ -81,7 +81,8 @@ void showStarPlayerPopup(
                             color: const Color(0xFF2A241A),
                             borderRadius: BorderRadius.circular(999),
                             border: Border.all(
-                              color: const Color(0xFFD6B35A).withValues(alpha: 0.4),
+                              color: const Color(0xFFD6B35A)
+                                  .withValues(alpha: 0.4),
                             ),
                           ),
                           child: Row(
@@ -186,8 +187,7 @@ class StarPlayerDetailCard extends ConsumerWidget {
     final isCompact = MediaQuery.of(context).size.width < 520;
     final resolvedImageSize = imageSize ?? (isCompact ? 240.0 : 400.0);
     final resolvedImageOverlap = imageOverlap ?? (isCompact ? 120.0 : 170.0);
-    final bodyTopPadding =
-      ((resolvedImageSize - resolvedImageOverlap) * 0.72) +
+    final bodyTopPadding = ((resolvedImageSize - resolvedImageOverlap) * 0.72) +
         (isCompact ? 14 : 20);
 
     return Stack(
@@ -327,8 +327,8 @@ class StarPlayerDetailCard extends ConsumerWidget {
                             fontSize: 14,
                             color: AppColors.textSecondary,
                             decoration: TextDecoration.underline,
-                            decorationColor: AppColors.textSecondary
-                                .withValues(alpha: 0.3),
+                            decorationColor:
+                                AppColors.textSecondary.withValues(alpha: 0.3),
                             decorationStyle: TextDecorationStyle.dotted,
                           ),
                         ),
@@ -513,7 +513,8 @@ class _StarPlayerFavouredTag extends StatelessWidget {
         border: Border.all(color: AppColors.accent.withValues(alpha: 0.22)),
       ),
       child: Text(
-        trf(lang, 'wikiStars.favouredTag', {'god': _godLabel(requirement, lang)}),
+        trf(lang, 'wikiStars.favouredTag',
+            {'god': _godLabel(requirement, lang)}),
         textAlign: TextAlign.center,
         style: const TextStyle(
           fontSize: 12,

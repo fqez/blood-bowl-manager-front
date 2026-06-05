@@ -15,6 +15,7 @@ import '../../../auth/data/providers/auth_provider.dart';
 import '../../../league/domain/models/league.dart';
 import '../../../my_teams/domain/models/user_team.dart';
 import '../../../shared/data/repositories.dart';
+import '../../../shared/utils/player_advancement.dart';
 import '../../../shared/utils/player_position_labels.dart';
 import '../../domain/models/team.dart';
 import '../screens/roster_screen.dart';
@@ -53,6 +54,7 @@ final _playerUserTeamDetailProvider = FutureProvider.autoDispose
 class _SkillAdvancementChoice {
   final Map<String, dynamic>? perk;
   final String advancementType;
+  final String? perkParameter;
   final String? skillCategory;
   final int? randomSkillFirstD6;
   final int? randomSkillSecondD6;
@@ -63,6 +65,7 @@ class _SkillAdvancementChoice {
   const _SkillAdvancementChoice({
     this.perk,
     required this.advancementType,
+    this.perkParameter,
     this.skillCategory,
     this.randomSkillFirstD6,
     this.randomSkillSecondD6,
@@ -145,6 +148,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
   String get _teamDetailKey =>
       leagueId.isEmpty ? teamId : 'league|$leagueId|$teamId';
   bool _isMutating = false;
+  List<String>? _hatredKeywordCache;
 
   void _refresh() {
     ref.invalidate(teamProvider(teamId));
@@ -513,6 +517,15 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
       final symbol = _perkFamilySymbol(perk);
       if (symbol != null) families.putIfAbsent(symbol, () => []).add(perk);
     }
+    Map<String, dynamic>? hatredPerk;
+    for (final perk in perks) {
+      if (_skillKey(perkIdFromJson(perk)) == 'hatred') {
+        hatredPerk = perk;
+        break;
+      }
+    }
+    final hatredKeywordOptions = await _loadHatredKeywordOptions(baseRoster);
+    if (!context.mounted) return;
 
     final ownedIds = player.skills.map((skill) => _skillKey(skill.id)).toSet();
     String selectedMode = primaryRows.isNotEmpty
@@ -529,6 +542,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
     Map<String, dynamic>? selectedPerk;
     int? selectedCharacteristicRoll;
     String? selectedCharacteristic;
+    String? selectedRuleKeyword;
     int? randomRollOneFirstDie;
     int? randomRollOneSecondDie;
     int? randomRollTwoFirstDie;
@@ -553,11 +567,14 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
             'choose_primary_skill' => primaryRows.isNotEmpty,
             'choose_secondary_skill' => secondaryRows.isNotEmpty,
             'characteristic_improvement' => true,
+            'rule_trait' => hatredPerk != null,
             _ => false,
           };
-          final selectedModeBrowsable = selectedModeHasAccess && modeCost > 0;
-          final selectedModeAffordable =
-              selectedModeBrowsable && player.spp >= modeCost;
+          final selectedModeBrowsable = selectedModeHasAccess &&
+              (selectedMode == 'rule_trait' || modeCost > 0);
+          final selectedModeAffordable = selectedMode == 'rule_trait'
+              ? selectedModeBrowsable
+              : selectedModeBrowsable && player.spp >= modeCost;
           final requiredAccess = selectedMode == 'choose_secondary_skill'
               ? 'SECONDARY'
               : 'PRIMARY';
@@ -642,7 +659,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                                 const Text('ADQUIRIR MEJORA',
                                     style: TextStyle(
                                       color: AppColors.accentLight,
-                                      fontSize: 11,
+                                      fontSize: 13,
                                       fontWeight: FontWeight.w900,
                                     )),
                                 const SizedBox(height: 3),
@@ -652,7 +669,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                                     style: TextStyle(
                                       fontFamily:
                                           AppTypography.displayFontFamily,
-                                      fontSize: 24,
+                                      fontSize: 26,
                                       fontWeight: FontWeight.w900,
                                       color: AppColors.textPrimary,
                                     )),
@@ -678,7 +695,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           SizedBox(
-                            width: 330,
+                            width: 360,
                             child: Container(
                               color:
                                   AppColors.background.withValues(alpha: 0.55),
@@ -761,6 +778,27 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                                   ),
                                   const SizedBox(height: 8),
                                   _advancementModeCard(
+                                    title: 'Anadir por regla',
+                                    subtitle: hatredPerk == null
+                                        ? 'Rasgos especiales no disponibles'
+                                        : 'Rasgos especiales sin gasto de SPP',
+                                    icon: PhosphorIcons.scales(
+                                        PhosphorIconsStyle.fill),
+                                    cost: 0,
+                                    enabled: hatredPerk != null,
+                                    selected: selectedMode == 'rule_trait',
+                                    color: AppColors.primary,
+                                    onTap: () => setDialogState(() {
+                                      selectedMode = 'rule_trait';
+                                      searchQuery = '';
+                                      selectedPerk = null;
+                                      selectedCharacteristicRoll = null;
+                                      selectedCharacteristic = null;
+                                      selectedRuleKeyword = null;
+                                    }),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  _advancementModeCard(
                                     title: 'Mejora de atributo',
                                     subtitle: 'Tirada D8 y atributo permitido',
                                     icon: PhosphorIcons.chartLineUp(
@@ -777,34 +815,39 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                                       selectedPerk = null;
                                     }),
                                   ),
-                                  const SizedBox(height: 18),
-                                  _dialogSectionLabel('CATEGORIAS'),
-                                  const SizedBox(height: 10),
-                                  Wrap(
-                                    spacing: 8,
-                                    runSpacing: 8,
-                                    children: [
-                                      for (final row in accessRows)
-                                        _skillCategoryChip(
-                                          row: row,
-                                          selected: row.symbol ==
-                                                  selectedSymbol &&
-                                              selectedMode !=
-                                                  'characteristic_improvement',
-                                          onTap: selectedModeBrowsable &&
-                                                  row.access ==
-                                                      requiredAccess &&
-                                                  selectedMode !=
-                                                      'characteristic_improvement'
-                                              ? () => setDialogState(() {
-                                                    selectedSymbol = row.symbol;
-                                                    searchQuery = '';
-                                                    selectedPerk = null;
-                                                  })
-                                              : null,
-                                        ),
-                                    ],
-                                  ),
+                                  if (selectedMode !=
+                                          'characteristic_improvement' &&
+                                      selectedMode != 'rule_trait') ...[
+                                    const SizedBox(height: 18),
+                                    _dialogSectionLabel('CATEGORIAS'),
+                                    const SizedBox(height: 10),
+                                    Wrap(
+                                      spacing: 8,
+                                      runSpacing: 8,
+                                      children: [
+                                        for (final row in accessRows)
+                                          _skillCategoryChip(
+                                            row: row,
+                                            selected: row.symbol ==
+                                                    selectedSymbol &&
+                                                selectedMode !=
+                                                    'characteristic_improvement',
+                                            onTap: selectedModeBrowsable &&
+                                                    row.access ==
+                                                        requiredAccess &&
+                                                    selectedMode !=
+                                                        'characteristic_improvement'
+                                                ? () => setDialogState(() {
+                                                      selectedSymbol =
+                                                          row.symbol;
+                                                      searchQuery = '';
+                                                      selectedPerk = null;
+                                                    })
+                                                : null,
+                                          ),
+                                      ],
+                                    ),
+                                  ],
                                 ],
                               ),
                             ),
@@ -832,7 +875,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                                             fontFamily:
                                                 AppTypography.displayFontFamily,
                                             color: AppColors.textPrimary,
-                                            fontSize: 22,
+                                            fontSize: 24,
                                             fontWeight: FontWeight.w900,
                                           ),
                                         ),
@@ -843,387 +886,451 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                                   ),
                                 ),
                                 Expanded(
-                                  child: selectedMode ==
-                                          'characteristic_improvement'
-                                      ? _characteristicImprovementPanel(
-                                          rules: rules,
-                                          player: player,
-                                          lang: lang,
-                                          selectedRoll:
-                                              selectedCharacteristicRoll,
-                                          selectedCharacteristic:
-                                              selectedCharacteristic,
+                                  child: selectedMode == 'rule_trait'
+                                      ? _ruleTraitPanel(
+                                          hatredKeywordOptions:
+                                              hatredKeywordOptions,
+                                          hatredPerk: hatredPerk,
                                           enabled: selectedModeBrowsable,
-                                          onRollSelected: (roll) =>
+                                          lang: lang,
+                                          player: player,
+                                          selected: selectedPerk != null,
+                                          selectedKeyword: selectedRuleKeyword,
+                                          onSelected: (value) =>
                                               setDialogState(() {
-                                            selectedCharacteristicRoll = roll;
-                                            selectedCharacteristic = null;
-                                            selectedPerk = null;
+                                            selectedPerk =
+                                                value ? hatredPerk : null;
+                                            if (!value) {
+                                              selectedRuleKeyword = null;
+                                            }
                                           }),
-                                          onCharacteristicSelected:
-                                              (characteristic) =>
-                                                  setDialogState(() {
-                                            selectedCharacteristic =
-                                                characteristic;
+                                          onKeywordChanged: (value) =>
+                                              setDialogState(() {
+                                            selectedPerk = hatredPerk;
+                                            selectedRuleKeyword = value;
                                           }),
                                           onApply: selectedModeAffordable &&
-                                                  selectedCharacteristicRoll !=
-                                                      null &&
-                                                  selectedCharacteristic != null
+                                                  hatredPerk != null &&
+                                                  selectedPerk != null &&
+                                                  selectedRuleKeyword != null
                                               ? () => Navigator.pop(
                                                     ctx,
                                                     _SkillAdvancementChoice(
+                                                      perk: hatredPerk,
+                                                      perkParameter:
+                                                          selectedRuleKeyword,
                                                       advancementType:
-                                                          'characteristic_improvement',
-                                                      characteristic:
-                                                          selectedCharacteristic,
-                                                      characteristicRoll:
-                                                          selectedCharacteristicRoll,
+                                                          'rule_trait',
                                                       resultLabel:
-                                                          selectedCharacteristic,
+                                                          'Odio ($selectedRuleKeyword)',
                                                     ),
                                                   )
                                               : null,
                                         )
-                                      : selectedMode == 'random_primary_skill'
-                                          ? _randomPrimaryPanel(
-                                              cost: randomPrimaryCost,
+                                      : selectedMode ==
+                                              'characteristic_improvement'
+                                          ? _characteristicImprovementPanel(
+                                              rules: rules,
+                                              player: player,
+                                              lang: lang,
+                                              selectedRoll:
+                                                  selectedCharacteristicRoll,
+                                              selectedCharacteristic:
+                                                  selectedCharacteristic,
                                               enabled: selectedModeBrowsable,
-                                              affordable:
-                                                  selectedModeAffordable,
-                                              selectedAccess: selectedAccess,
-                                              canChooseCategory:
-                                                  primaryRows.length > 1,
-                                              rollOneFirstDie:
-                                                  randomRollOneFirstDie,
-                                              rollOneSecondDie:
-                                                  randomRollOneSecondDie,
-                                              rollTwoFirstDie:
-                                                  randomRollTwoFirstDie,
-                                              rollTwoSecondDie:
-                                                  randomRollTwoSecondDie,
-                                              options: randomRollOptions,
-                                              selectedPerk: selectedPerk,
-                                              onRollOneFirstDieChanged:
-                                                  (value) => setDialogState(() {
-                                                randomRollOneFirstDie = value;
-                                                selectedPerk = null;
-                                              }),
-                                              onRollOneSecondDieChanged:
-                                                  (value) => setDialogState(() {
-                                                randomRollOneSecondDie = value;
-                                                selectedPerk = null;
-                                              }),
-                                              onRollTwoFirstDieChanged:
-                                                  (value) => setDialogState(() {
-                                                randomRollTwoFirstDie = value;
-                                                selectedPerk = null;
-                                              }),
-                                              onRollTwoSecondDieChanged:
-                                                  (value) => setDialogState(() {
-                                                randomRollTwoSecondDie = value;
-                                                selectedPerk = null;
-                                              }),
-                                              onSelectOption: (option) =>
+                                              onRollSelected: (roll) =>
                                                   setDialogState(() {
-                                                selectedPerk = option.perk;
+                                                selectedCharacteristicRoll =
+                                                    roll;
+                                                selectedCharacteristic = null;
+                                                selectedPerk = null;
+                                              }),
+                                              onCharacteristicSelected:
+                                                  (characteristic) =>
+                                                      setDialogState(() {
+                                                selectedCharacteristic =
+                                                    characteristic;
                                               }),
                                               onApply: selectedModeAffordable &&
-                                                      selectedPerk != null
-                                                  ? () {
-                                                      final perk =
-                                                          selectedPerk!;
-                                                      _RandomSkillRollOption?
-                                                          selectedOption;
-                                                      for (final option
-                                                          in randomRollOptions) {
-                                                        if (option.perkId ==
-                                                            perkIdFromJson(
-                                                                perk)) {
-                                                          selectedOption =
-                                                              option;
-                                                          break;
-                                                        }
-                                                      }
-                                                      final appliedRoll =
-                                                          selectedOption ==
-                                                                      null ||
-                                                                  selectedOption
-                                                                      .rollValues
-                                                                      .isEmpty
-                                                              ? null
-                                                              : selectedOption
-                                                                  .rollValues
-                                                                  .first;
-                                                      if (selectedAccess ==
-                                                              null ||
-                                                          appliedRoll == null) {
-                                                        return;
-                                                      }
-                                                      final nameMap =
-                                                          perk['name']
-                                                                  as Map? ??
-                                                              {};
-                                                      final name = nameMap['es']
-                                                              as String? ??
-                                                          nameMap['en']
-                                                              as String? ??
-                                                          '';
-                                                      Navigator.pop(
+                                                      selectedCharacteristicRoll !=
+                                                          null &&
+                                                      selectedCharacteristic !=
+                                                          null
+                                                  ? () => Navigator.pop(
                                                         ctx,
                                                         _SkillAdvancementChoice(
-                                                          perk: perk,
                                                           advancementType:
-                                                              'random_primary_skill',
-                                                          skillCategory:
-                                                              selectedAccess
-                                                                  .symbol,
-                                                          randomSkillFirstD6:
-                                                              appliedRoll
-                                                                  .firstDie,
-                                                          randomSkillSecondD6:
-                                                              appliedRoll
-                                                                  .secondDie,
-                                                          resultLabel: name,
+                                                              'characteristic_improvement',
+                                                          characteristic:
+                                                              selectedCharacteristic,
+                                                          characteristicRoll:
+                                                              selectedCharacteristicRoll,
+                                                          resultLabel:
+                                                              selectedCharacteristic,
                                                         ),
-                                                      );
-                                                    }
+                                                      )
                                                   : null,
                                             )
-                                          : Column(
-                                              children: [
-                                                Padding(
-                                                  padding:
-                                                      const EdgeInsets.fromLTRB(
-                                                          16, 14, 16, 10),
-                                                  child: TextField(
-                                                    enabled:
-                                                        selectedModeBrowsable,
-                                                    style: const TextStyle(
-                                                        color: AppColors
-                                                            .textPrimary),
-                                                    decoration: InputDecoration(
-                                                      hintText: tr(lang,
-                                                          'player.searchSkill'),
-                                                      hintStyle:
-                                                          const TextStyle(
-                                                              color: AppColors
-                                                                  .textMuted),
-                                                      filled: true,
-                                                      fillColor:
-                                                          AppColors.background,
-                                                      border:
-                                                          OutlineInputBorder(
-                                                        borderRadius:
-                                                            BorderRadius
-                                                                .circular(6),
-                                                        borderSide:
-                                                            BorderSide.none,
-                                                      ),
-                                                      prefixIcon: Icon(
-                                                          PhosphorIcons
-                                                              .magnifyingGlass(
-                                                                  PhosphorIconsStyle
-                                                                      .regular),
-                                                          color: AppColors
-                                                              .textMuted,
-                                                          size: 18),
-                                                      contentPadding:
-                                                          const EdgeInsets
-                                                              .symmetric(
-                                                              vertical: 12),
-                                                    ),
-                                                    onChanged: (value) =>
-                                                        setDialogState(() =>
-                                                            searchQuery =
-                                                                value.trim()),
-                                                  ),
-                                                ),
-                                                Padding(
-                                                  padding:
-                                                      const EdgeInsets.fromLTRB(
-                                                          16, 0, 16, 12),
-                                                  child: Align(
-                                                    alignment:
-                                                        Alignment.centerLeft,
-                                                    child: Text(
-                                                      tr(lang,
-                                                          'player.tapSkillForDetails'),
-                                                      style: const TextStyle(
-                                                        color:
-                                                            AppColors.textMuted,
-                                                        fontSize: 12,
-                                                        fontWeight:
-                                                            FontWeight.w700,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ),
-                                                Expanded(
-                                                  child: !selectedModeBrowsable
-                                                      ? _disabledAdvancementState(
-                                                          player.spp,
-                                                          modeCost,
-                                                          selectedModeHasAccess,
-                                                        )
-                                                      : filtered.isEmpty
-                                                          ? Center(
-                                                              child: Text(
-                                                                  tr(lang,
-                                                                      'player.noResults'),
-                                                                  style: const TextStyle(
-                                                                      color: AppColors
-                                                                          .textMuted)))
-                                                          : GridView.builder(
-                                                              padding:
-                                                                  const EdgeInsets
-                                                                      .fromLTRB(
-                                                                      16,
-                                                                      0,
-                                                                      16,
-                                                                      16),
-                                                              gridDelegate:
-                                                                  const SliverGridDelegateWithMaxCrossAxisExtent(
-                                                                maxCrossAxisExtent:
-                                                                    260,
-                                                                mainAxisExtent:
-                                                                    74,
-                                                                crossAxisSpacing:
-                                                                    12,
-                                                                mainAxisSpacing:
-                                                                    12,
-                                                              ),
-                                                              itemCount:
-                                                                  filtered
-                                                                      .length,
-                                                              itemBuilder:
-                                                                  (ctx, index) {
-                                                                final perk =
-                                                                    filtered[
-                                                                        index];
-                                                                final perkId =
+                                          : selectedMode ==
+                                                  'random_primary_skill'
+                                              ? _randomPrimaryPanel(
+                                                  cost: randomPrimaryCost,
+                                                  enabled:
+                                                      selectedModeBrowsable,
+                                                  affordable:
+                                                      selectedModeAffordable,
+                                                  selectedAccess:
+                                                      selectedAccess,
+                                                  canChooseCategory:
+                                                      primaryRows.length > 1,
+                                                  rollOneFirstDie:
+                                                      randomRollOneFirstDie,
+                                                  rollOneSecondDie:
+                                                      randomRollOneSecondDie,
+                                                  rollTwoFirstDie:
+                                                      randomRollTwoFirstDie,
+                                                  rollTwoSecondDie:
+                                                      randomRollTwoSecondDie,
+                                                  options: randomRollOptions,
+                                                  selectedPerk: selectedPerk,
+                                                  onRollOneFirstDieChanged:
+                                                      (value) =>
+                                                          setDialogState(() {
+                                                    randomRollOneFirstDie =
+                                                        value;
+                                                    selectedPerk = null;
+                                                  }),
+                                                  onRollOneSecondDieChanged:
+                                                      (value) =>
+                                                          setDialogState(() {
+                                                    randomRollOneSecondDie =
+                                                        value;
+                                                    selectedPerk = null;
+                                                  }),
+                                                  onRollTwoFirstDieChanged:
+                                                      (value) =>
+                                                          setDialogState(() {
+                                                    randomRollTwoFirstDie =
+                                                        value;
+                                                    selectedPerk = null;
+                                                  }),
+                                                  onRollTwoSecondDieChanged:
+                                                      (value) =>
+                                                          setDialogState(() {
+                                                    randomRollTwoSecondDie =
+                                                        value;
+                                                    selectedPerk = null;
+                                                  }),
+                                                  onSelectOption: (option) =>
+                                                      setDialogState(() {
+                                                    selectedPerk = option.perk;
+                                                  }),
+                                                  onApply:
+                                                      selectedModeAffordable &&
+                                                              selectedPerk !=
+                                                                  null
+                                                          ? () {
+                                                              final perk =
+                                                                  selectedPerk!;
+                                                              _RandomSkillRollOption?
+                                                                  selectedOption;
+                                                              for (final option
+                                                                  in randomRollOptions) {
+                                                                if (option
+                                                                        .perkId ==
                                                                     perkIdFromJson(
-                                                                        perk);
-                                                                final nameMap =
-                                                                    perk['name']
-                                                                            as Map? ??
-                                                                        {};
-                                                                final name = nameMap[
-                                                                            'es']
-                                                                        as String? ??
-                                                                    nameMap['en']
-                                                                        as String? ??
-                                                                    '';
-                                                                final isOwned =
-                                                                    ownedIds.contains(
-                                                                        _skillKey(
-                                                                            perkId));
-                                                                final isSelected = selectedPerk !=
-                                                                        null &&
-                                                                    _skillKey(perkIdFromJson(
-                                                                            selectedPerk!)) ==
-                                                                        _skillKey(
-                                                                            perkId);
-
-                                                                return _skillChoiceTile(
-                                                                  perkId:
-                                                                      perkId,
-                                                                  name: name,
-                                                                  color: _familyColor(
-                                                                      selectedAccess
-                                                                              ?.family ??
-                                                                          ''),
-                                                                  isOwned:
-                                                                      isOwned,
-                                                                  selected:
-                                                                      isSelected,
-                                                                  onTap: () =>
-                                                                      showSkillPopup(
-                                                                    ctx,
-                                                                    ref,
-                                                                    skillName:
-                                                                        name,
-                                                                  ),
-                                                                  onSelect: isOwned ||
-                                                                          !selectedModeAffordable
-                                                                      ? null
-                                                                      : () =>
-                                                                          setDialogState(
-                                                                              () {
-                                                                            selectedPerk =
-                                                                                perk;
-                                                                          }),
-                                                                );
-                                                              },
-                                                            ),
-                                                ),
-                                                Padding(
-                                                  padding:
-                                                      const EdgeInsets.fromLTRB(
-                                                          16, 0, 16, 16),
-                                                  child: SizedBox(
-                                                    width: double.infinity,
-                                                    child: ElevatedButton.icon(
-                                                      onPressed:
-                                                          selectedModeAffordable &&
-                                                                  selectedPerk !=
-                                                                      null
-                                                              ? () {
-                                                                  final perk =
-                                                                      selectedPerk!;
-                                                                  final nameMap =
-                                                                      perk['name']
-                                                                              as Map? ??
-                                                                          {};
-                                                                  final name = nameMap[
-                                                                              'es']
-                                                                          as String? ??
-                                                                      nameMap['en']
-                                                                          as String? ??
-                                                                      '';
-                                                                  Navigator.pop(
-                                                                    ctx,
-                                                                    _SkillAdvancementChoice(
-                                                                      perk:
-                                                                          perk,
-                                                                      advancementType:
-                                                                          selectedMode,
-                                                                      resultLabel:
-                                                                          name,
-                                                                    ),
-                                                                  );
+                                                                        perk)) {
+                                                                  selectedOption =
+                                                                      option;
+                                                                  break;
                                                                 }
-                                                              : null,
-                                                      icon: Icon(PhosphorIcons
-                                                          .checkCircle(
-                                                              PhosphorIconsStyle
-                                                                  .fill)),
-                                                      label: Text(tr(lang,
-                                                              'player.confirmAdvancement')
-                                                          .toUpperCase()),
-                                                      style: ElevatedButton
-                                                          .styleFrom(
-                                                        backgroundColor:
-                                                            AppColors.warning,
-                                                        foregroundColor:
-                                                            AppColors
-                                                                .background,
-                                                        disabledBackgroundColor:
-                                                            AppColors
-                                                                .surfaceLight,
-                                                        disabledForegroundColor:
-                                                            AppColors.textMuted,
-                                                        padding:
-                                                            const EdgeInsets
-                                                                .symmetric(
-                                                                horizontal: 18,
-                                                                vertical: 14),
+                                                              }
+                                                              final appliedRoll = selectedOption ==
+                                                                          null ||
+                                                                      selectedOption
+                                                                          .rollValues
+                                                                          .isEmpty
+                                                                  ? null
+                                                                  : selectedOption
+                                                                      .rollValues
+                                                                      .first;
+                                                              if (selectedAccess ==
+                                                                      null ||
+                                                                  appliedRoll ==
+                                                                      null) {
+                                                                return;
+                                                              }
+                                                              final nameMap =
+                                                                  perk['name']
+                                                                          as Map? ??
+                                                                      {};
+                                                              final name = nameMap[
+                                                                          'es']
+                                                                      as String? ??
+                                                                  nameMap['en']
+                                                                      as String? ??
+                                                                  '';
+                                                              Navigator.pop(
+                                                                ctx,
+                                                                _SkillAdvancementChoice(
+                                                                  perk: perk,
+                                                                  advancementType:
+                                                                      'random_primary_skill',
+                                                                  skillCategory:
+                                                                      selectedAccess
+                                                                          .symbol,
+                                                                  randomSkillFirstD6:
+                                                                      appliedRoll
+                                                                          .firstDie,
+                                                                  randomSkillSecondD6:
+                                                                      appliedRoll
+                                                                          .secondDie,
+                                                                  resultLabel:
+                                                                      name,
+                                                                ),
+                                                              );
+                                                            }
+                                                          : null,
+                                                )
+                                              : Column(
+                                                  children: [
+                                                    Padding(
+                                                      padding: const EdgeInsets
+                                                          .fromLTRB(
+                                                          16, 14, 16, 10),
+                                                      child: TextField(
+                                                        enabled:
+                                                            selectedModeBrowsable,
+                                                        style: const TextStyle(
+                                                          color: AppColors
+                                                              .textPrimary,
+                                                          fontSize: 16,
+                                                          fontWeight:
+                                                              FontWeight.w600,
+                                                        ),
+                                                        decoration:
+                                                            InputDecoration(
+                                                          hintText: tr(lang,
+                                                              'player.searchSkill'),
+                                                          hintStyle:
+                                                              const TextStyle(
+                                                            color: AppColors
+                                                                .textMuted,
+                                                            fontSize: 15,
+                                                          ),
+                                                          filled: true,
+                                                          fillColor: AppColors
+                                                              .background,
+                                                          border:
+                                                              OutlineInputBorder(
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .circular(
+                                                                        6),
+                                                            borderSide:
+                                                                BorderSide.none,
+                                                          ),
+                                                          prefixIcon: Icon(
+                                                              PhosphorIcons
+                                                                  .magnifyingGlass(
+                                                                      PhosphorIconsStyle
+                                                                          .regular),
+                                                              color: AppColors
+                                                                  .textMuted,
+                                                              size: 18),
+                                                          contentPadding:
+                                                              const EdgeInsets
+                                                                  .symmetric(
+                                                                  vertical: 14,
+                                                                  horizontal:
+                                                                      14),
+                                                        ),
+                                                        onChanged: (value) =>
+                                                            setDialogState(() =>
+                                                                searchQuery =
+                                                                    value
+                                                                        .trim()),
                                                       ),
                                                     ),
-                                                  ),
+                                                    Padding(
+                                                      padding: const EdgeInsets
+                                                          .fromLTRB(
+                                                          16, 0, 16, 12),
+                                                      child: Align(
+                                                        alignment: Alignment
+                                                            .centerLeft,
+                                                        child: Text(
+                                                          tr(lang,
+                                                              'player.tapSkillForDetails'),
+                                                          style:
+                                                              const TextStyle(
+                                                            color: AppColors
+                                                                .textMuted,
+                                                            fontSize: 14,
+                                                            fontWeight:
+                                                                FontWeight.w700,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    Expanded(
+                                                      child:
+                                                          !selectedModeBrowsable
+                                                              ? _disabledAdvancementState(
+                                                                  player.spp,
+                                                                  modeCost,
+                                                                  selectedModeHasAccess,
+                                                                )
+                                                              : filtered.isEmpty
+                                                                  ? Center(
+                                                                      child: Text(
+                                                                          tr(lang,
+                                                                              'player.noResults'),
+                                                                          style: const TextStyle(
+                                                                              color: AppColors
+                                                                                  .textMuted)))
+                                                                  : GridView
+                                                                      .builder(
+                                                                      padding: const EdgeInsets
+                                                                          .fromLTRB(
+                                                                          16,
+                                                                          0,
+                                                                          16,
+                                                                          16),
+                                                                      gridDelegate:
+                                                                          const SliverGridDelegateWithMaxCrossAxisExtent(
+                                                                        maxCrossAxisExtent:
+                                                                            260,
+                                                                        mainAxisExtent:
+                                                                            88,
+                                                                        crossAxisSpacing:
+                                                                            12,
+                                                                        mainAxisSpacing:
+                                                                            12,
+                                                                      ),
+                                                                      itemCount:
+                                                                          filtered
+                                                                              .length,
+                                                                      itemBuilder:
+                                                                          (ctx,
+                                                                              index) {
+                                                                        final perk =
+                                                                            filtered[index];
+                                                                        final perkId =
+                                                                            perkIdFromJson(perk);
+                                                                        final nameMap =
+                                                                            perk['name'] as Map? ??
+                                                                                {};
+                                                                        final name = nameMap['es']
+                                                                                as String? ??
+                                                                            nameMap['en']
+                                                                                as String? ??
+                                                                            '';
+                                                                        final isOwned =
+                                                                            ownedIds.contains(_skillKey(perkId));
+                                                                        final isSelected = selectedPerk !=
+                                                                                null &&
+                                                                            _skillKey(perkIdFromJson(selectedPerk!)) ==
+                                                                                _skillKey(perkId);
+
+                                                                        return _skillChoiceTile(
+                                                                          perkId:
+                                                                              perkId,
+                                                                          name:
+                                                                              name,
+                                                                          color:
+                                                                              _familyColor(selectedAccess?.family ?? ''),
+                                                                          isOwned:
+                                                                              isOwned,
+                                                                          selected:
+                                                                              isSelected,
+                                                                          onTap: () =>
+                                                                              showSkillPopup(
+                                                                            ctx,
+                                                                            ref,
+                                                                            skillName:
+                                                                                name,
+                                                                          ),
+                                                                          onSelect: isOwned || !selectedModeAffordable
+                                                                              ? null
+                                                                              : () => setDialogState(() {
+                                                                                    selectedPerk = perk;
+                                                                                  }),
+                                                                        );
+                                                                      },
+                                                                    ),
+                                                    ),
+                                                    Padding(
+                                                      padding: const EdgeInsets
+                                                          .fromLTRB(
+                                                          16, 0, 16, 16),
+                                                      child: SizedBox(
+                                                        width: double.infinity,
+                                                        child:
+                                                            ElevatedButton.icon(
+                                                          onPressed:
+                                                              selectedModeAffordable &&
+                                                                      selectedPerk !=
+                                                                          null
+                                                                  ? () {
+                                                                      final perk =
+                                                                          selectedPerk!;
+                                                                      final nameMap =
+                                                                          perk['name'] as Map? ??
+                                                                              {};
+                                                                      final name = nameMap['es']
+                                                                              as String? ??
+                                                                          nameMap['en']
+                                                                              as String? ??
+                                                                          '';
+                                                                      Navigator
+                                                                          .pop(
+                                                                        ctx,
+                                                                        _SkillAdvancementChoice(
+                                                                          perk:
+                                                                              perk,
+                                                                          advancementType:
+                                                                              selectedMode,
+                                                                          resultLabel:
+                                                                              name,
+                                                                        ),
+                                                                      );
+                                                                    }
+                                                                  : null,
+                                                          icon: Icon(PhosphorIcons
+                                                              .checkCircle(
+                                                                  PhosphorIconsStyle
+                                                                      .fill)),
+                                                          label: Text(tr(lang,
+                                                                  'player.confirmAdvancement')
+                                                              .toUpperCase()),
+                                                          style: ElevatedButton
+                                                              .styleFrom(
+                                                            backgroundColor:
+                                                                AppColors
+                                                                    .warning,
+                                                            foregroundColor:
+                                                                AppColors
+                                                                    .background,
+                                                            disabledBackgroundColor:
+                                                                AppColors
+                                                                    .surfaceLight,
+                                                            disabledForegroundColor:
+                                                                AppColors
+                                                                    .textMuted,
+                                                            padding:
+                                                                const EdgeInsets
+                                                                    .symmetric(
+                                                                    horizontal:
+                                                                        18,
+                                                                    vertical:
+                                                                        14),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ),
-                                              ],
-                                            ),
                                 ),
                               ],
                             ),
@@ -1259,18 +1366,33 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
 
     try {
       setState(() => _isMutating = true);
-      await ref.read(teamRepositoryProvider).applyPlayerAdvancement(
-            teamId,
-            playerId,
-            advancementType: selectedChoice.advancementType,
-            perkId: perkId,
-            skillCategory: selectedChoice.skillCategory,
-            randomSkillFirstD6: selectedChoice.randomSkillFirstD6,
-            randomSkillSecondD6: selectedChoice.randomSkillSecondD6,
-            characteristic: selectedChoice.characteristic,
-            characteristicRoll: selectedChoice.characteristicRoll,
-            leagueId: leagueId.isEmpty ? null : leagueId,
-          );
+      if (selectedChoice.advancementType == 'rule_trait') {
+        await ref.read(teamRepositoryProvider).addPerkToPlayer(
+              teamId,
+              playerId,
+              perkId: perkId ?? 'perk-hatred',
+              perkName: chosenPerk == null
+                  ? 'Hatred'
+                  : ((chosenPerk['name'] as Map?)?['en'] as String? ??
+                      'Hatred'),
+              parameter: selectedChoice.perkParameter,
+              category: ((chosenPerk?['family'] as String?) ?? 'trait'),
+              leagueId: leagueId.isEmpty ? null : leagueId,
+            );
+      } else {
+        await ref.read(teamRepositoryProvider).applyPlayerAdvancement(
+              teamId,
+              playerId,
+              advancementType: selectedChoice.advancementType,
+              perkId: perkId,
+              skillCategory: selectedChoice.skillCategory,
+              randomSkillFirstD6: selectedChoice.randomSkillFirstD6,
+              randomSkillSecondD6: selectedChoice.randomSkillSecondD6,
+              characteristic: selectedChoice.characteristic,
+              characteristicRoll: selectedChoice.characteristicRoll,
+              leagueId: leagueId.isEmpty ? null : leagueId,
+            );
+      }
       if (!context.mounted) return;
       _refresh();
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1300,7 +1422,9 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
     required _SkillAdvancementChoice choice,
     required String lang,
   }) {
-    final cost = _advancementCost(player, choice.advancementType);
+    final cost = choice.advancementType == 'rule_trait'
+        ? 0
+        : _advancementCost(player, choice.advancementType);
     final remainingSpp = player.spp - cost;
     final summary = choice.advancementType == 'characteristic_improvement'
         ? '+${choice.characteristic ?? ''}'
@@ -1381,7 +1505,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
               label,
               style: const TextStyle(
                 color: AppColors.textMuted,
-                fontSize: 12,
+                fontSize: 13,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -1392,7 +1516,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
               value,
               style: const TextStyle(
                 color: AppColors.textPrimary,
-                fontSize: 13,
+                fontSize: 15,
                 fontWeight: FontWeight.w800,
               ),
             ),
@@ -1406,7 +1530,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
     return Text(label,
         style: const TextStyle(
           color: AppColors.textMuted,
-          fontSize: 10,
+          fontSize: 12,
           fontWeight: FontWeight.w900,
         ));
   }
@@ -1416,7 +1540,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: prominent ? 14 : 11,
-        vertical: prominent ? 10 : 6,
+        vertical: prominent ? 10 : 7,
       ),
       decoration: BoxDecoration(
         color: color.withValues(alpha: prominent ? 0.22 : 0.16),
@@ -1443,7 +1567,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
           Text(label,
               style: TextStyle(
                 color: color,
-                fontSize: prominent ? 15 : 12,
+                fontSize: prominent ? 15 : 13,
                 fontWeight: FontWeight.w900,
                 letterSpacing: prominent ? 0.3 : 0,
               )),
@@ -1457,6 +1581,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
       'random_primary_skill' => 'Primaria al azar',
       'choose_primary_skill' => 'Elegir habilidad primaria',
       'choose_secondary_skill' => 'Elegir habilidad secundaria',
+      'rule_trait' => 'Anadir rasgo por regla',
       'characteristic_improvement' => 'Mejora de atributo',
       _ => 'Mejora',
     };
@@ -1479,7 +1604,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
         onTap: enabled ? onTap : null,
         borderRadius: BorderRadius.circular(6),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 10),
           decoration: BoxDecoration(
             color: selected ? color.withValues(alpha: 0.15) : AppColors.card,
             borderRadius: BorderRadius.circular(6),
@@ -1488,13 +1613,13 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
           child: Row(
             children: [
               Container(
-                width: 30,
-                height: 30,
+                width: 34,
+                height: 34,
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.18),
                   borderRadius: BorderRadius.circular(5),
                 ),
-                child: Icon(icon, color: color, size: 16),
+                child: Icon(icon, color: color, size: 18),
               ),
               const SizedBox(width: 9),
               Expanded(
@@ -1507,16 +1632,16 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                         style: TextStyle(
                           fontFamily: AppTypography.displayFontFamily,
                           color: AppColors.textPrimary,
-                          fontSize: 13,
+                          fontSize: 15,
                           fontWeight: FontWeight.w900,
                         )),
                     const SizedBox(height: 2),
                     Text(subtitle,
-                        maxLines: 1,
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: AppColors.textMuted,
-                          fontSize: 9,
+                          fontSize: 11,
                           fontWeight: FontWeight.w700,
                         )),
                   ],
@@ -1546,7 +1671,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
               textAlign: TextAlign.center,
               style: const TextStyle(
                 color: AppColors.textMuted,
-                fontSize: 13,
+                fontSize: 15,
                 fontWeight: FontWeight.w700,
               )),
         ],
@@ -1611,7 +1736,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                         'Introduce dos tiradas manuales de 2D6 y elige uno de los resultados.',
                         style: TextStyle(
                           color: AppColors.textSecondary,
-                          fontSize: 13,
+                          fontSize: 15,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -1632,7 +1757,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                               'Si tiene varias primarias, elige la categoria a la izquierda.',
                               style: TextStyle(
                                 color: AppColors.textMuted,
-                                fontSize: 12,
+                                fontSize: 13,
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
@@ -1682,7 +1807,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: AppColors.textMuted,
-                          fontSize: 13,
+                          fontSize: 15,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -1763,6 +1888,356 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
     );
   }
 
+  Widget _ruleTraitPanel({
+    required List<String> hatredKeywordOptions,
+    required Map<String, dynamic>? hatredPerk,
+    required bool enabled,
+    required String lang,
+    required Character player,
+    required bool selected,
+    required String? selectedKeyword,
+    required ValueChanged<bool> onSelected,
+    required ValueChanged<String?> onKeywordChanged,
+    required VoidCallback? onApply,
+  }) {
+    final ownedKeywords = _ownedTraitParameters(player, 'hatred');
+    final availableKeywords = hatredKeywordOptions
+        .where(
+          (keyword) => !ownedKeywords.contains(_normalizeRuleKeyword(keyword)),
+        )
+        .toList();
+    final perkId = perkIdFromJson(hatredPerk);
+    final displayName = hatredPerk == null
+        ? 'Hatred'
+        : localizedPerkName(
+            ref.read(allPerksProvider).valueOrNull ?? const [],
+            perkId,
+            lang,
+          );
+
+    return Padding(
+      padding: const EdgeInsets.all(22),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: AppColors.card,
+              borderRadius: BorderRadius.circular(8),
+              border:
+                  Border.all(color: AppColors.primary.withValues(alpha: 0.45)),
+            ),
+            child: Row(
+              children: [
+                Icon(PhosphorIcons.scales(PhosphorIconsStyle.fill),
+                    color: AppColors.primary, size: 38),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('RASGO POR REGLA',
+                          style: TextStyle(
+                            fontFamily: AppTypography.displayFontFamily,
+                            color: AppColors.textPrimary,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                          )),
+                      const SizedBox(height: 6),
+                      Text(
+                        lang == 'es'
+                            ? 'Anade Odio (X) manualmente cuando una regla especial se lo conceda al jugador.'
+                            : 'Add Hatred (X) manually when a special rule grants it to the player.',
+                        style: const TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          _sppPill('Odio (X)', true),
+                          _sppPill('0 SPP', true),
+                          if (ownedKeywords.isNotEmpty)
+                            _sppPill(
+                              lang == 'es'
+                                  ? '${ownedKeywords.length} ya asignado(s)'
+                                  : '${ownedKeywords.length} already owned',
+                              true,
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 18),
+          if (!enabled)
+            const Expanded(
+              child: Center(
+                child: Text(
+                  'El rasgo Odio no esta disponible en el catalogo.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: AppColors.textMuted,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            )
+          else ...[
+            Text(
+              lang == 'es' ? 'RASGOS DISPONIBLES' : 'AVAILABLE TRAITS',
+              style: TextStyle(
+                fontFamily: AppTypography.displayFontFamily,
+                color: AppColors.textPrimary,
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              lang == 'es'
+                  ? 'Excluye: Blitzer, Corredor, Defensor, Especial, Grandullon, Lanzador, Linea y Receptor.'
+                  : 'Excludes: Blitzer, Runner, Blocker, Special, Big Guy, Thrower, Lineman and Catcher.',
+              style: const TextStyle(
+                color: AppColors.textMuted,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 14),
+            Expanded(
+              child: availableKeywords.isEmpty
+                  ? Center(
+                      child: Text(
+                        lang == 'es'
+                            ? 'No quedan claves disponibles para Odio en este jugador.'
+                            : 'There are no remaining Hatred keywords available for this player.',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: AppColors.textMuted,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    )
+                  : ListView(
+                      children: [
+                        _ruleTraitChoiceTile(
+                          perkId: perkId,
+                          name: displayName,
+                          description: lang == 'es'
+                              ? 'Selecciona la palabra clave que ira en Odio (X).'
+                              : 'Choose the keyword that will be used for Hatred (X).',
+                          selected: selected,
+                          enabled: enabled,
+                          selectedKeyword: selectedKeyword,
+                          availableKeywords: availableKeywords,
+                          onTap: () => showSkillPopup(
+                            context,
+                            ref,
+                            skillName: selectedKeyword == null
+                                ? displayName
+                                : '$displayName ($selectedKeyword)',
+                            family: 'trait',
+                          ),
+                          onSelected: onSelected,
+                          onKeywordChanged: onKeywordChanged,
+                        ),
+                      ],
+                    ),
+            ),
+            const SizedBox(height: 12),
+            if (selectedKeyword != null)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: () => showSkillPopup(
+                    context,
+                    ref,
+                    skillName: 'Hatred ($selectedKeyword)',
+                    family: 'trait',
+                  ),
+                  icon: Icon(
+                    PhosphorIcons.info(PhosphorIconsStyle.regular),
+                    size: 16,
+                  ),
+                  label: Text(
+                    lang == 'es' ? 'Ver rasgo' : 'View trait',
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                ),
+              ),
+            Align(
+              alignment: Alignment.centerRight,
+              child: ElevatedButton.icon(
+                onPressed: onApply,
+                icon: Icon(PhosphorIcons.checkCircle(PhosphorIconsStyle.fill)),
+                label: Text(
+                  (lang == 'es' ? 'Confirmar rasgo' : 'Confirm trait')
+                      .toUpperCase(),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: AppColors.background,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _ruleTraitChoiceTile({
+    required String perkId,
+    required String name,
+    required String description,
+    required bool selected,
+    required bool enabled,
+    required String? selectedKeyword,
+    required List<String> availableKeywords,
+    required VoidCallback onTap,
+    required ValueChanged<bool> onSelected,
+    required ValueChanged<String?> onKeywordChanged,
+  }) {
+    final color = _familyColor('trait');
+
+    return Opacity(
+      opacity: enabled ? 1 : 0.5,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: AppColors.card,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: selected ? AppColors.warning : color,
+              width: selected ? 2 : 1.5,
+            ),
+          ),
+          child: Row(
+            children: [
+              Radio<bool>(
+                value: true,
+                groupValue: selected,
+                onChanged: enabled ? (_) => onSelected(true) : null,
+                activeColor: AppColors.warning,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: color.withValues(alpha: 0.4)),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: Image.asset(
+                    perkAssetPath(perkId),
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => Icon(
+                      PhosphorIcons.scales(PhosphorIconsStyle.fill),
+                      color: color,
+                      size: 28,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      name.toUpperCase(),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: AppTypography.displayFontFamily,
+                        color: AppColors.textPrimary,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        height: 1,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      description,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: AppColors.textMuted,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 14),
+              SizedBox(
+                width: 270,
+                child: DropdownButtonFormField<String>(
+                  value: availableKeywords.contains(selectedKeyword)
+                      ? selectedKeyword
+                      : null,
+                  isExpanded: true,
+                  dropdownColor: AppColors.surface,
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: 'Clave de Odio',
+                    hintStyle: const TextStyle(
+                      color: AppColors.textMuted,
+                      fontSize: 14,
+                    ),
+                    filled: true,
+                    fillColor: AppColors.background,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 16,
+                    ),
+                  ),
+                  items: [
+                    for (final keyword in availableKeywords)
+                      DropdownMenuItem<String>(
+                        value: keyword,
+                        child: Text(keyword),
+                      ),
+                  ],
+                  onTap: enabled ? () => onSelected(true) : null,
+                  onChanged: selected ? onKeywordChanged : null,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _randomDiceInputCard({
     required String title,
     required int? firstDie,
@@ -1824,7 +2299,10 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
       dropdownColor: AppColors.surface,
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: AppColors.textMuted),
+        labelStyle: const TextStyle(
+          color: AppColors.textMuted,
+          fontSize: 13,
+        ),
         filled: true,
         fillColor: AppColors.background,
         border: OutlineInputBorder(
@@ -1834,6 +2312,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
       ),
       style: const TextStyle(
         color: AppColors.textPrimary,
+        fontSize: 15,
         fontWeight: FontWeight.w800,
       ),
       items: List.generate(
@@ -2032,7 +2511,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                       '',
               style: const TextStyle(
                 color: AppColors.textSecondary,
-                fontSize: 12,
+                fontSize: 14,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -2111,8 +2590,8 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
         onTap: enabled ? onTap : null,
         borderRadius: BorderRadius.circular(6),
         child: Container(
-          width: 147,
-          height: 48,
+          width: 157,
+          height: 58,
           padding: const EdgeInsets.symmetric(horizontal: 9),
           decoration: BoxDecoration(
             color: selected ? color.withValues(alpha: 0.18) : AppColors.card,
@@ -2135,7 +2614,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                 child: Text(row.symbol,
                     style: TextStyle(
                       color: enabled ? color : AppColors.textMuted,
-                      fontSize: 12,
+                      fontSize: 14,
                       fontWeight: FontWeight.w900,
                     )),
               ),
@@ -2151,7 +2630,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                         style: TextStyle(
                           fontFamily: AppTypography.displayFontFamily,
                           color: AppColors.textPrimary,
-                          fontSize: 12,
+                          fontSize: 14,
                           fontWeight: FontWeight.w900,
                         )),
                     const SizedBox(height: 2),
@@ -2162,7 +2641,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                           color: enabled
                               ? AppColors.textSecondary
                               : AppColors.textMuted,
-                          fontSize: 9,
+                          fontSize: 11,
                           fontWeight: FontWeight.w800,
                         )),
                   ],
@@ -2234,7 +2713,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                 ),
               ),
               Container(
-                width: 58,
+                width: 64,
                 height: double.infinity,
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.16),
@@ -2267,7 +2746,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                           style: TextStyle(
                             fontFamily: AppTypography.displayFontFamily,
                             color: AppColors.textPrimary,
-                            fontSize: 16,
+                            fontSize: 18,
                             fontWeight: FontWeight.w900,
                             height: 1.0,
                           )),
@@ -2279,7 +2758,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             color: AppColors.textMuted,
-                            fontSize: 11,
+                            fontSize: 12,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -2349,11 +2828,13 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
   }
 
   bool _canLevelUp(Character player) {
-    final next = _nextSpp(player.level);
-    return next > 0 && player.spp >= next;
+    return hasAvailableAdvancement(level: player.level, spp: player.spp);
   }
 
   int _advancementCost(Character player, String advancementType) {
+    if (advancementType == 'rule_trait') {
+      return 0;
+    }
     final row = ref
         .read(advancementRulesProvider)
         .valueOrNull
@@ -2542,6 +3023,95 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
     return normalized.startsWith('perk-')
         ? normalized.substring('perk-'.length)
         : normalized;
+  }
+
+  String _normalizeRuleKeyword(String value) => _normalizeAsciiText(value)
+      .replaceAll(RegExp(r'[^a-z0-9]+'), ' ')
+      .trim()
+      .replaceAll(RegExp(r'\s+'), ' ');
+
+  String _normalizeAsciiText(String value) {
+    const replacements = {
+      'á': 'a',
+      'à': 'a',
+      'ä': 'a',
+      'â': 'a',
+      'Á': 'a',
+      'À': 'a',
+      'Ä': 'a',
+      'Â': 'a',
+      'é': 'e',
+      'è': 'e',
+      'ë': 'e',
+      'ê': 'e',
+      'É': 'e',
+      'È': 'e',
+      'Ë': 'e',
+      'Ê': 'e',
+      'í': 'i',
+      'ì': 'i',
+      'ï': 'i',
+      'î': 'i',
+      'Í': 'i',
+      'Ì': 'i',
+      'Ï': 'i',
+      'Î': 'i',
+      'ó': 'o',
+      'ò': 'o',
+      'ö': 'o',
+      'ô': 'o',
+      'Ó': 'o',
+      'Ò': 'o',
+      'Ö': 'o',
+      'Ô': 'o',
+      'ú': 'u',
+      'ù': 'u',
+      'ü': 'u',
+      'û': 'u',
+      'Ú': 'u',
+      'Ù': 'u',
+      'Ü': 'u',
+      'Û': 'u',
+      'ñ': 'n',
+      'Ñ': 'n',
+    };
+
+    final buffer = StringBuffer();
+    for (final rune in value.runes) {
+      final character = String.fromCharCode(rune);
+      buffer.write(replacements[character] ?? character.toLowerCase());
+    }
+    return buffer.toString();
+  }
+
+  Future<List<String>> _loadHatredKeywordOptions(BaseTeam? roster) async {
+    final cached = _hatredKeywordCache;
+    if (cached != null) return cached;
+
+    try {
+      final keywords =
+          await ref.read(teamRepositoryProvider).getHatredKeywords();
+      _hatredKeywordCache = keywords;
+      return keywords;
+    } catch (error, stackTrace) {
+      debugPrint(
+        'Could not load Hatred keywords: $error\n$stackTrace',
+      );
+      _hatredKeywordCache = const [];
+      return const [];
+    }
+  }
+
+  Set<String> _ownedTraitParameters(Character player, String perkId) {
+    final normalizedPerkId = _skillKey(perkId);
+    final result = <String>{};
+    for (final skill in player.skills) {
+      if (_skillKey(skill.id) != normalizedPerkId) continue;
+      final parameter = skill.parameter?.trim();
+      if (parameter == null || parameter.isEmpty) continue;
+      result.add(_normalizeRuleKeyword(parameter));
+    }
+    return result;
   }
 
   bool? _isAcquiredSkill(Skill skill, Set<String>? startingSkillKeys) {

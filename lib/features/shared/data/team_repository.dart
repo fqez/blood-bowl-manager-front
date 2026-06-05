@@ -1293,6 +1293,16 @@ class TeamRepository {
     }
   }
 
+  Future<List<String>> getHatredKeywords() async {
+    try {
+      final response = await _dio.get('/base-rosters/hatred-keywords');
+      final keywords = response.data['keywords'] as List? ?? const [];
+      return keywords.map((value) => value.toString()).toList();
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
   Future<List<Map<String, dynamic>>> getPerks() async {
     try {
       final response = await _dio.get('/perks/');
@@ -1403,6 +1413,7 @@ class TeamRepository {
     String playerId, {
     required String perkId,
     required String perkName,
+    String? parameter,
     String? category,
     String? leagueId,
   }) async {
@@ -1412,6 +1423,7 @@ class TeamRepository {
         data: {
           'perk_id': perkId,
           'perk_name': perkName,
+          if (parameter != null) 'parameter': parameter,
           if (category != null) 'category': category,
           if (leagueId != null) 'league_id': leagueId,
         },

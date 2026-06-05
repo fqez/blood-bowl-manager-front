@@ -1224,7 +1224,8 @@ const _t = <String, Map<String, String>>{
     'en': 'Favoured of {god}',
   },
   'wikiStars.favouredTeamHint': {
-    'es': 'Se muestran todas las opciones del roster. Algunas requieren un dios concreto.',
+    'es':
+        'Se muestran todas las opciones del roster. Algunas requieren un dios concreto.',
     'en': 'All roster options are shown here. Some require a specific god.',
   },
 
