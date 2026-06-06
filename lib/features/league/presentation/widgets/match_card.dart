@@ -85,124 +85,221 @@ class MatchCard extends ConsumerWidget {
   }
 
   Widget _buildTeams() {
-    return Row(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final stackTeams = constraints.maxWidth < (expanded ? 620 : 520);
+
+        if (stackTeams) {
+          return Column(
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildTeamText(
+                      match.home,
+                      alignEnd: true,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  _buildTeamIcon(match.home.baseRosterId, match.home.teamName),
+                ],
+              ),
+              const SizedBox(height: 10),
+              _buildScore(),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  _buildTeamIcon(match.away.baseRosterId, match.away.teamName),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: _buildTeamText(
+                      match.away,
+                      alignEnd: false,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          );
+        }
+
+        return Row(
+          children: [
+            Expanded(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Flexible(
+                    child: _buildTeamText(
+                      match.home,
+                      alignEnd: true,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  _buildTeamIcon(match.home.baseRosterId, match.home.teamName),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 18),
+              child: _buildScore(),
+            ),
+            Expanded(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  _buildTeamIcon(match.away.baseRosterId, match.away.teamName),
+                  const SizedBox(width: 16),
+                  Flexible(
+                    child: _buildTeamText(
+                      match.away,
+                      alignEnd: false,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildTeamText(
+    MatchTeamInfo team, {
+    required bool alignEnd,
+  }) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment:
+          alignEnd ? CrossAxisAlignment.end : CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: Column(
-            children: [
-              _buildTeamIcon(match.home.teamName),
-              const SizedBox(height: 8),
-              Text(
-                match.home.teamName,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textPrimary,
-                ),
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
+        Text(
+          team.teamName,
+          style: TextStyle(
+            fontSize: expanded ? 18 : 17,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textPrimary,
           ),
+          textAlign: alignEnd ? TextAlign.right : TextAlign.left,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
-        _buildScore(),
-        Expanded(
-          child: Column(
-            children: [
-              _buildTeamIcon(match.away.teamName),
-              const SizedBox(height: 8),
-              Text(
-                match.away.teamName,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textPrimary,
-                ),
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
+        if (team.username.isNotEmpty) ...[
+          const SizedBox(height: 2),
+          Text(
+            team.username,
+            style: const TextStyle(
+              fontSize: 12,
+              color: AppColors.textMuted,
+            ),
+            textAlign: alignEnd ? TextAlign.right : TextAlign.left,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
-        ),
+        ],
       ],
     );
   }
 
-  Widget _buildTeamIcon(String teamName) {
-    return Container(
-      width: 48,
-      height: 48,
-      decoration: const BoxDecoration(
-        color: AppColors.surfaceLight,
-        shape: BoxShape.circle,
-      ),
-      child: Center(
-        child: Text(
-          teamName.substring(0, 1).toUpperCase(),
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
-          ),
+  Widget _buildTeamIcon(String baseRosterId, String teamName) {
+    final fallbackLabel = teamName.isNotEmpty ? teamName[0].toUpperCase() : '?';
+    final assetPath =
+        baseRosterId.isNotEmpty ? 'assets/teams/$baseRosterId/logo.webp' : null;
+
+    return SizedBox(
+      width: expanded ? 104 : 92,
+      height: expanded ? 104 : 92,
+      child: assetPath == null
+          ? _buildTeamFallback(fallbackLabel)
+          : Image.asset(
+              assetPath,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => _buildTeamFallback(fallbackLabel),
+            ),
+    );
+  }
+
+  Widget _buildTeamFallback(String label) {
+    return Center(
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontSize: 28,
+          fontWeight: FontWeight.bold,
+          color: AppColors.textPrimary,
         ),
       ),
     );
   }
 
   Widget _buildScore() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceLight,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            (match.isPlayed || match.isInProgress) ? '${match.scoreHome}' : '?',
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
-            ),
-          ),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 8),
-            child: Text(
-              '-',
-              style: TextStyle(
-                fontSize: 24,
-                color: AppColors.textMuted,
+    final showScore = match.isPlayed || match.isInProgress;
+
+    return showScore
+        ? Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '${match.scoreHome}',
+                style: TextStyle(
+                  fontSize: expanded ? 28 : 26,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
               ),
-            ),
-          ),
-          Text(
-            (match.isPlayed || match.isInProgress) ? '${match.scoreAway}' : '?',
-            style: const TextStyle(
-              fontSize: 24,
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                child: Text(
+                  '-',
+                  style: TextStyle(
+                    fontSize: expanded ? 28 : 26,
+                    color: AppColors.textMuted,
+                  ),
+                ),
+              ),
+              Text(
+                '${match.scoreAway}',
+                style: TextStyle(
+                  fontSize: expanded ? 28 : 26,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ],
+          )
+        : Text(
+            '-',
+            style: TextStyle(
+              fontSize: expanded ? 28 : 26,
               fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
+              color: AppColors.textMuted,
             ),
-          ),
-        ],
-      ),
-    );
+          );
   }
 
   Widget _buildActionButton(String lang) {
     return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton(
-        onPressed: onTap,
-        style: match.isInProgress
-            ? ElevatedButton.styleFrom(backgroundColor: AppColors.warning)
-            : null,
-        child: Text(match.isInProgress
-            ? tr(lang, 'match.continueMatch')
-            : tr(lang, 'match.startMatch')),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: expanded ? 180 : 156),
+          child: ElevatedButton(
+            onPressed: onTap,
+            style: (match.isInProgress
+                    ? ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.warning,
+                      )
+                    : ElevatedButton.styleFrom())
+                .copyWith(
+              padding: WidgetStatePropertyAll(
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              ),
+            ),
+            child: Text(match.isInProgress
+                ? tr(lang, 'match.continueMatch')
+                : tr(lang, 'match.startMatch')),
+          ),
+        ),
       ),
     );
   }

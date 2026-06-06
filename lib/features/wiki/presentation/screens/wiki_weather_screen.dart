@@ -149,6 +149,11 @@ class WikiWeatherScreen extends ConsumerWidget {
           ? 'Pasos a seguir antes de que comience la accion en el campo.'
           : 'Steps to follow before the action begins on the pitch.',
       entries: steps,
+      railColor: Colors.white.withOpacity(0.58),
+      railWidth: 52,
+      circleSize: 24,
+      lineWidth: 3,
+        itemSpacing: 6,
       descriptionBuilder: (context, entry, fontSize) => _buildRichDescription(
           entry.description,
           lang: lang,

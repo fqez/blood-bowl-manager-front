@@ -36,6 +36,11 @@ final expensiveMistakesRulesProvider =
   return repo.getExpensiveMistakesRules();
 });
 
+final sppRewardsRulesProvider = FutureProvider<SppRewardsRules>((ref) async {
+  final repo = ref.watch(teamRepositoryProvider);
+  return repo.getSppRewardsRules();
+});
+
 final injuryRulesProvider = FutureProvider<InjuryRules>((ref) async {
   final repo = ref.watch(teamRepositoryProvider);
   return repo.getInjuryRules();
@@ -733,6 +738,91 @@ class ExpensiveMistakeEffect {
   }
 }
 
+class SppRewardsRules {
+  final String id;
+  final List<SppEventReward> eventRewards;
+  final int mvpSpp;
+  final List<String> nonSppEventTypes;
+  final ThrowTeammateReward throwTeammate;
+
+  const SppRewardsRules({
+    required this.id,
+    required this.eventRewards,
+    required this.mvpSpp,
+    required this.nonSppEventTypes,
+    required this.throwTeammate,
+  });
+
+  factory SppRewardsRules.fromJson(Map<String, dynamic> json) =>
+      SppRewardsRules(
+        id: json['id'] as String? ?? 'spp_rewards',
+        eventRewards: (json['event_rewards'] as List<dynamic>? ?? [])
+            .map((e) => SppEventReward.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        mvpSpp: (json['mvp_spp'] as num?)?.toInt() ?? 4,
+        nonSppEventTypes: (json['non_spp_event_types'] as List<dynamic>? ?? [])
+            .map((e) => '$e')
+            .toList(),
+        throwTeammate: ThrowTeammateReward.fromJson(
+          json['throw_teammate'] as Map<String, dynamic>? ?? const {},
+        ),
+      );
+}
+
+class SppEventReward {
+  final String eventType;
+  final int spp;
+  final String? careerStat;
+  final bool requiresPlayer;
+  final Map<String, String> description;
+
+  const SppEventReward({
+    required this.eventType,
+    required this.spp,
+    required this.careerStat,
+    required this.requiresPlayer,
+    required this.description,
+  });
+
+  factory SppEventReward.fromJson(Map<String, dynamic> json) => SppEventReward(
+        eventType: json['event_type'] as String? ?? '',
+        spp: (json['spp'] as num?)?.toInt() ?? 0,
+        careerStat: json['career_stat'] as String?,
+        requiresPlayer: json['requires_player'] as bool? ?? true,
+        description: ExpensiveMistakeEffect._localized(json['description']),
+      );
+
+  String localizedDescription(String lang) =>
+      description[lang] ?? description['en'] ?? '';
+}
+
+class ThrowTeammateReward {
+  final String eventType;
+  final int thrownPlayerLandedSpp;
+  final int superbThrowerSpp;
+  final Map<String, String> description;
+
+  const ThrowTeammateReward({
+    required this.eventType,
+    required this.thrownPlayerLandedSpp,
+    required this.superbThrowerSpp,
+    required this.description,
+  });
+
+  factory ThrowTeammateReward.fromJson(Map<String, dynamic> json) =>
+      ThrowTeammateReward(
+        eventType: json['event_type'] as String? ?? 'throw_teammate',
+        thrownPlayerLandedSpp:
+            (json['thrown_player_landed_spp'] as num?)?.toInt() ?? 1,
+        superbThrowerSpp:
+            (json['superb_thrower_spp'] as num?)?.toInt() ?? 1,
+        description: ExpensiveMistakeEffect._localized(json['description']),
+      );
+
+  String localizedDescription(String lang) =>
+      description[lang] ?? description['en'] ?? '';
+}
+
 class InjuryRules {
   final List<DiceTableEntry> injuryTable;
   final List<DiceTableEntry> stuntyInjuryTable;
@@ -1181,6 +1271,15 @@ class TeamRepository {
       return ExpensiveMistakesRules.fromJson(
         response.data as Map<String, dynamic>,
       );
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  Future<SppRewardsRules> getSppRewardsRules() async {
+    try {
+      final response = await _dio.get('/rules/spp-rewards');
+      return SppRewardsRules.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }

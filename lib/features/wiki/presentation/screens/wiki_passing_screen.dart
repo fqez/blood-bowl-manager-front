@@ -6,6 +6,7 @@ import '../../../../core/l10n/locale_provider.dart';
 import '../../../../core/l10n/translations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../widgets/wiki_page_layout.dart';
+import '../widgets/wiki_timeline_section.dart';
 
 // ignore_for_file: deprecated_member_use
 
@@ -290,8 +291,8 @@ class WikiPassingScreen extends ConsumerWidget {
   Widget _buildPassProcedure(String lang) {
     final es = lang == 'es';
     final steps = [
-      _PassStep(
-        number: '1',
+      WikiTimelineEntry(
+        marker: '1',
         title: es ? 'DECLARAR PASE' : 'DECLARE PASS',
         icon: PhosphorIcons.megaphone(PhosphorIconsStyle.fill),
         color: const Color(0xFF42A5F5),
@@ -299,8 +300,8 @@ class WikiPassingScreen extends ConsumerWidget {
             ? 'Elige al lanzador y declara una casilla objetivo. Puede moverse antes, pero no lanzar bien si esta demasiado presionado.'
             : 'Choose the thrower and declare a target square. The player may move first, but pressure still makes the pass harder.',
       ),
-      _PassStep(
-        number: '2',
+      WikiTimelineEntry(
+        marker: '2',
         title: es ? 'MEDIR DISTANCIA' : 'MEASURE RANGE',
         icon: PhosphorIcons.ruler(PhosphorIconsStyle.fill),
         color: const Color(0xFFFFA726),
@@ -308,8 +309,8 @@ class WikiPassingScreen extends ConsumerWidget {
             ? 'Cuenta la distancia entre lanzador y objetivo para saber si es Quick Pass, Short Pass, Long Pass o Long Bomb.'
             : 'Measure the distance between thrower and target to determine the pass category.',
       ),
-      _PassStep(
-        number: '3',
+      WikiTimelineEntry(
+        marker: '3',
         title: es ? 'TIRADA DE PASE' : 'PASS ROLL',
         icon: PhosphorIcons.diceSix(PhosphorIconsStyle.fill),
         color: const Color(0xFF66BB6A),
@@ -317,8 +318,8 @@ class WikiPassingScreen extends ConsumerWidget {
             ? 'Tira 1D6 aplicando PA y modificadores. Un 1 natural siempre es Fumble.'
             : 'Roll 1D6 and apply PA plus modifiers. A natural 1 is always a Fumble.',
       ),
-      _PassStep(
-        number: '4',
+      WikiTimelineEntry(
+        marker: '4',
         title: es ? 'INTERCEPCIONES' : 'INTERCEPTIONS',
         icon: PhosphorIcons.handGrabbing(PhosphorIconsStyle.fill),
         color: const Color(0xFFEF5350),
@@ -326,8 +327,8 @@ class WikiPassingScreen extends ConsumerWidget {
             ? 'Un rival de pie en la trayectoria del pase puede intentar interceptarlo antes de que llegue al objetivo.'
             : 'A standing opponent in the flight path may try to intercept the ball before it reaches the target.',
       ),
-      _PassStep(
-        number: '5',
+      WikiTimelineEntry(
+        marker: '5',
         title: es ? 'RECEPCION' : 'CATCH',
         icon: PhosphorIcons.handPalm(PhosphorIconsStyle.fill),
         color: const Color(0xFF7E57C2),
@@ -337,134 +338,23 @@ class WikiPassingScreen extends ConsumerWidget {
       ),
     ];
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.surfaceLight),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(PhosphorIcons.listNumbers(PhosphorIconsStyle.fill),
-                  color: AppColors.accent, size: 20),
-              const SizedBox(width: 10),
-              Text(
-                tr(lang, 'wikiPassing.procedure'),
-                style: TextStyle(
-                  fontFamily: AppTypography.displayFontFamily,
-                  fontSize: AppTypography.wikiSectionTitleFontSize,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                  letterSpacing: 1,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(
-            es
-                ? 'Pasos para resolver un pase en Blood Bowl.'
-                : 'Steps to resolve a pass in Blood Bowl.',
-            style: TextStyle(fontSize: 12, color: AppColors.textMuted),
-          ),
-          const SizedBox(height: 20),
-          ...steps.map((s) => _buildPassStepCard(s, steps.length, lang)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPassStepCard(_PassStep step, int totalSteps, String lang) {
-    final stepNum = int.parse(step.number);
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Column(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [step.color, step.color.withOpacity(0.6)],
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: step.color.withOpacity(0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Center(
-                  child: Text(
-                    step.number,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w900,
-                      fontSize: 18,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-              if (stepNum < totalSteps)
-                Container(
-                  width: 2,
-                  height: 24,
-                  color: step.color.withOpacity(0.3),
-                ),
-            ],
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    step.color.withOpacity(0.08),
-                    Colors.transparent,
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: step.color.withOpacity(0.2)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(step.icon, color: step.color, size: 18),
-                      const SizedBox(width: 8),
-                      Text(
-                        step.title,
-                        style: TextStyle(
-                          fontFamily: AppTypography.displayFontFamily,
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                          color: step.color,
-                          letterSpacing: 1,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  _buildRichDescription(step.description, lang: lang),
-                ],
-              ),
-            ),
-          ),
-        ],
+    return WikiTimelineSection(
+      headerIcon: PhosphorIcons.listNumbers(PhosphorIconsStyle.fill),
+      title: tr(lang, 'wikiPassing.procedure'),
+      subtitle: es
+          ? 'Pasos para resolver un pase en Blood Bowl.'
+          : 'Steps to resolve a pass in Blood Bowl.',
+      entries: steps,
+      railColor: Colors.white.withOpacity(0.58),
+      railWidth: 52,
+      circleSize: 24,
+      lineWidth: 3,
+      itemSpacing: 6,
+      circleLineGap: 6,
+      descriptionBuilder: (context, entry, fontSize) => _buildRichDescription(
+        entry.description,
+        lang: lang,
+        fontSize: fontSize,
       ),
     );
   }
@@ -966,22 +856,6 @@ class _PassRange {
     required this.modifier,
     required this.color,
     required this.icon,
-    required this.description,
-  });
-}
-
-class _PassStep {
-  final String number;
-  final String title;
-  final IconData icon;
-  final Color color;
-  final String description;
-
-  const _PassStep({
-    required this.number,
-    required this.title,
-    required this.icon,
-    required this.color,
     required this.description,
   });
 }

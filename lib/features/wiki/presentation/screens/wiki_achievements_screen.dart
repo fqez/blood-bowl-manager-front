@@ -214,6 +214,7 @@ class WikiAchievementsScreen extends ConsumerWidget {
               border: Border.all(color: a.color.withOpacity(0.4)),
             ),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
@@ -223,6 +224,7 @@ class WikiAchievementsScreen extends ConsumerWidget {
                     fontSize: 22,
                     fontWeight: FontWeight.w900,
                     color: a.color,
+                    height: 0.9,
                   ),
                 ),
                 Text(
@@ -232,6 +234,7 @@ class WikiAchievementsScreen extends ConsumerWidget {
                     fontSize: 9,
                     fontWeight: FontWeight.bold,
                     color: a.color.withOpacity(0.7),
+                    height: 0.9,
                   ),
                 ),
               ],
@@ -430,6 +433,7 @@ class WikiAchievementsScreen extends ConsumerWidget {
               border: Border.all(color: level.color.withOpacity(0.35)),
             ),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   level.spp,
@@ -438,6 +442,7 @@ class WikiAchievementsScreen extends ConsumerWidget {
                     fontSize: 18,
                     fontWeight: FontWeight.w900,
                     color: level.color,
+                    height: 0.9,
                   ),
                 ),
                 Text(
@@ -447,6 +452,7 @@ class WikiAchievementsScreen extends ConsumerWidget {
                     fontSize: 9,
                     fontWeight: FontWeight.bold,
                     color: level.color.withOpacity(0.7),
+                    height: 0.9,
                   ),
                 ),
               ],

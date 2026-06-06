@@ -10,6 +10,7 @@ import '../../../../core/l10n/translations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../widgets/wiki_dice_board.dart';
 import '../widgets/wiki_page_layout.dart';
+import '../widgets/wiki_timeline_section.dart';
 
 // ignore_for_file: deprecated_member_use
 
@@ -171,8 +172,8 @@ class WikiBlockingScreen extends ConsumerWidget {
   Widget _buildBlockProcedure(String lang) {
     final es = lang == 'es';
     final steps = [
-      _BlockStep(
-        number: '1',
+      WikiTimelineEntry(
+        marker: '1',
         title: es ? 'DECLARAR PLACAJE' : 'DECLARE BLOCK',
         icon: PhosphorIcons.target(PhosphorIconsStyle.fill),
         color: const Color(0xFF42A5F5),
@@ -180,8 +181,8 @@ class WikiBlockingScreen extends ConsumerWidget {
             ? 'Elige a un jugador oponente adyacente como objetivo. El atacante no puede moverse antes de placar salvo que sea un Blitz.'
             : 'Choose an adjacent opposing player as the target. The attacker cannot move before blocking unless this is part of a Blitz.',
       ),
-      _BlockStep(
-        number: '2',
+      WikiTimelineEntry(
+        marker: '2',
         title: es ? 'CALCULAR DADOS' : 'CALCULATE DICE',
         icon: PhosphorIcons.scales(PhosphorIconsStyle.fill),
         color: const Color(0xFFFFA726),
@@ -189,8 +190,8 @@ class WikiBlockingScreen extends ConsumerWidget {
             ? 'Compara la Strength del atacante con la del defensor, incluyendo asistencias. Eso determina cuantos dados se tiran y quien elige el resultado.'
             : 'Compare the attacker\'s Strength to the defender\'s, including assists. That decides how many dice are rolled and who chooses the result.',
       ),
-      _BlockStep(
-        number: '3',
+      WikiTimelineEntry(
+        marker: '3',
         title: es ? 'TIRAR DADOS DE PLACAJE' : 'ROLL BLOCK DICE',
         icon: PhosphorIcons.diceSix(PhosphorIconsStyle.fill),
         color: const Color(0xFF66BB6A),
@@ -198,8 +199,8 @@ class WikiBlockingScreen extends ConsumerWidget {
             ? 'Tira el numero de dados correspondiente. El jugador que elige decide cual de los resultados aplicar.'
             : 'Roll the required number of Block dice. The player who has choice decides which result is applied.',
       ),
-      _BlockStep(
-        number: '4',
+      WikiTimelineEntry(
+        marker: '4',
         title: es ? 'APLICAR RESULTADO' : 'APPLY RESULT',
         icon: PhosphorIcons.checkCircle(PhosphorIconsStyle.fill),
         color: const Color(0xFFEF5350),
@@ -207,8 +208,8 @@ class WikiBlockingScreen extends ConsumerWidget {
             ? 'Resuelve el resultado elegido: Push Back, derribo o ambos. Si hay empujon, elige la direccion. Si hay derribo, tira Armadura.'
             : 'Resolve the chosen result: Push Back, a knockdown, or both. If there is a push, choose the direction. If someone goes down, make the Armour roll.',
       ),
-      _BlockStep(
-        number: '5',
+      WikiTimelineEntry(
+        marker: '5',
         title: es ? 'SEGUIR' : 'FOLLOW UP',
         icon: PhosphorIcons.arrowRight(PhosphorIconsStyle.fill),
         color: const Color(0xFF7E57C2),
@@ -218,134 +219,23 @@ class WikiBlockingScreen extends ConsumerWidget {
       ),
     ];
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.surfaceLight),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(PhosphorIcons.listNumbers(PhosphorIconsStyle.fill),
-                  color: AppColors.accent, size: 20),
-              const SizedBox(width: 10),
-              Text(
-                tr(lang, 'wikiBlocking.procedure'),
-                style: TextStyle(
-                  fontFamily: AppTypography.displayFontFamily,
-                  fontSize: AppTypography.wikiSectionTitleFontSize,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                  letterSpacing: 1,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(
-            es
-                ? 'Pasos para resolver un placaje en Blood Bowl.'
-                : 'Steps to resolve a Block in Blood Bowl.',
-            style: TextStyle(fontSize: 12, color: AppColors.textMuted),
-          ),
-          const SizedBox(height: 20),
-          ...steps.map((s) => _buildBlockStepCard(s, steps.length, lang)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBlockStepCard(_BlockStep step, int totalSteps, String lang) {
-    final stepNum = int.parse(step.number);
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Column(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [step.color, step.color.withOpacity(0.6)],
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: step.color.withOpacity(0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Center(
-                  child: Text(
-                    step.number,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w900,
-                      fontSize: 18,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-              if (stepNum < totalSteps)
-                Container(
-                  width: 2,
-                  height: 24,
-                  color: step.color.withOpacity(0.3),
-                ),
-            ],
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    step.color.withOpacity(0.08),
-                    Colors.transparent,
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: step.color.withOpacity(0.2)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(step.icon, color: step.color, size: 18),
-                      const SizedBox(width: 8),
-                      Text(
-                        step.title,
-                        style: TextStyle(
-                          fontFamily: AppTypography.displayFontFamily,
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                          color: step.color,
-                          letterSpacing: 1,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  _buildRichDescription(step.description, lang: lang),
-                ],
-              ),
-            ),
-          ),
-        ],
+    return WikiTimelineSection(
+      headerIcon: PhosphorIcons.listNumbers(PhosphorIconsStyle.fill),
+      title: tr(lang, 'wikiBlocking.procedure'),
+      subtitle: es
+          ? 'Pasos para resolver un placaje en Blood Bowl.'
+          : 'Steps to resolve a Block in Blood Bowl.',
+      entries: steps,
+      railColor: Colors.white.withOpacity(0.58),
+      railWidth: 52,
+      circleSize: 24,
+      lineWidth: 3,
+      itemSpacing: 6,
+      circleLineGap: 6,
+      descriptionBuilder: (context, entry, fontSize) => _buildRichDescription(
+        entry.description,
+        lang: lang,
+        fontSize: fontSize,
       ),
     );
   }
@@ -579,18 +469,3 @@ Widget _buildRichDescription(
 
 // ── Data classes ────────────────────────────────────────────────────────────
 
-class _BlockStep {
-  final String number;
-  final String title;
-  final IconData icon;
-  final Color color;
-  final String description;
-
-  const _BlockStep({
-    required this.number,
-    required this.title,
-    required this.icon,
-    required this.color,
-    required this.description,
-  });
-}

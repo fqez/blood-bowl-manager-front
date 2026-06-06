@@ -1250,7 +1250,7 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
           Text(
             match.isPlayed || match.isInProgress
                 ? '$teamScore - $opponentScore'
-                : '? - ?',
+                : '-',
             style: TextStyle(
               color: AppColors.textPrimary,
               fontWeight: FontWeight.w900,
@@ -1386,10 +1386,10 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
               color: isCurrent
-                  ? AppColors.primary.withOpacity(0.1)
+                  ? AppColors.primary.withValues(alpha: 0.1)
                   : AppColors.surfaceLight,
               borderRadius:
                   const BorderRadius.vertical(top: Radius.circular(11)),
@@ -1402,7 +1402,7 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
                 Text(
                   trf(lang, 'leagueOverview.round', {'n': '$round'}),
                   style: TextStyle(
-                    fontSize: isCompact ? 14 : 16,
+                    fontSize: isCompact ? 13 : 14,
                     fontWeight: FontWeight.bold,
                     color:
                         isCurrent ? AppColors.primary : AppColors.textPrimary,
@@ -1420,7 +1420,7 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
                     child: Text(
                       tr(lang, 'leagueOverview.currentRound'),
                       style: TextStyle(
-                        fontSize: 10,
+                        fontSize: 9,
                         fontWeight: FontWeight.bold,
                         color: AppColors.textPrimary,
                       ),
@@ -1431,13 +1431,13 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
                     padding:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
-                      color: AppColors.success.withOpacity(0.2),
+                      color: AppColors.success.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
                       tr(lang, 'status.completed'),
                       style: TextStyle(
-                        fontSize: 10,
+                        fontSize: 9,
                         fontWeight: FontWeight.bold,
                         color: AppColors.success,
                       ),
@@ -1475,9 +1475,9 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
       color: Colors.transparent,
       child: InkWell(
         onTap: () => _showMatchSummaryDialog(match),
-        hoverColor: AppColors.cardHover.withOpacity(0.35),
+        hoverColor: AppColors.cardHover.withValues(alpha: 0.35),
         child: Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
             border: Border(
               top: BorderSide(color: AppColors.surfaceLight),
@@ -1489,8 +1489,8 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
 
               final score = Container(
                 padding: EdgeInsets.symmetric(
-                  horizontal: stackTeams ? 12 : 0,
-                  vertical: stackTeams ? 6 : 0,
+                  horizontal: stackTeams ? 14 : 0,
+                  vertical: stackTeams ? 8 : 0,
                 ),
                 alignment: Alignment.center,
                 decoration: stackTeams
@@ -1503,7 +1503,7 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
                 child: Text(
                   match.scoreDisplay,
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: stackTeams ? 18 : 20,
                     fontWeight: FontWeight.bold,
                     color: match.isPlayed
                         ? AppColors.textPrimary
@@ -1551,20 +1551,42 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _buildCalendarTeamName(
-                      match.home.teamName,
-                      winner: homeWon,
-                      alignment: Alignment.center,
-                      textAlign: TextAlign.center,
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildCalendarTeamName(
+                            match.home,
+                            winner: homeWon,
+                            textAlign: TextAlign.right,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        _buildCalendarTeamLogo(
+                          match.home.baseRosterId,
+                          match.home.teamName,
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 12),
                     Center(child: score),
-                    const SizedBox(height: 8),
-                    _buildCalendarTeamName(
-                      match.away.teamName,
-                      winner: awayWon,
-                      alignment: Alignment.center,
-                      textAlign: TextAlign.center,
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        _buildCalendarTeamLogo(
+                          match.away.baseRosterId,
+                          match.away.teamName,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildCalendarTeamName(
+                            match.away,
+                            winner: awayWon,
+                            textAlign: TextAlign.left,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                          ),
+                        ),
+                      ],
                     ),
                     if (liveAction != null) ...[
                       const SizedBox(height: 8),
@@ -1581,19 +1603,44 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
               return Row(
                 children: [
                   Expanded(
-                    child: _buildCalendarTeamName(
-                      match.home.teamName,
-                      winner: homeWon,
-                      alignment: Alignment.centerRight,
-                      textAlign: TextAlign.right,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Flexible(
+                          child: _buildCalendarTeamName(
+                            match.home,
+                            winner: homeWon,
+                            textAlign: TextAlign.right,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        _buildCalendarTeamLogo(
+                          match.home.baseRosterId,
+                          match.home.teamName,
+                        ),
+                      ],
                     ),
                   ),
-                  SizedBox(width: 80, child: score),
+                  SizedBox(width: 104, child: score),
                   Expanded(
-                    child: _buildCalendarTeamName(
-                      match.away.teamName,
-                      winner: awayWon,
-                      alignment: Alignment.centerLeft,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        _buildCalendarTeamLogo(
+                          match.away.baseRosterId,
+                          match.away.teamName,
+                        ),
+                        const SizedBox(width: 14),
+                        Flexible(
+                          child: _buildCalendarTeamName(
+                            match.away,
+                            winner: awayWon,
+                            textAlign: TextAlign.left,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   if (liveAction != null) liveAction,
@@ -2603,54 +2650,91 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
   }
 
   Widget _buildCalendarTeamName(
-    String teamName, {
+    MatchTeamInfo team, {
     required bool winner,
-    required Alignment alignment,
-    TextAlign textAlign = TextAlign.left,
+    required TextAlign textAlign,
+    required CrossAxisAlignment crossAxisAlignment,
   }) {
-    final content = Row(
+    return Column(
       mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: crossAxisAlignment,
       children: [
-        if (winner) ...[
-          Icon(
-            PhosphorIcons.crown(PhosphorIconsStyle.fill),
-            size: 13,
-            color: AppColors.success,
-          ),
-          const SizedBox(width: 5),
-        ],
-        Flexible(
-          child: Text(
-            teamName,
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (winner) ...[
+              Icon(
+                PhosphorIcons.crown(PhosphorIconsStyle.fill),
+                size: 14,
+                color: AppColors.success,
+              ),
+              const SizedBox(width: 6),
+            ],
+            Flexible(
+              child: Text(
+                team.teamName,
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: winner ? FontWeight.w800 : FontWeight.w600,
+                  color: winner ? AppColors.success : AppColors.textPrimary,
+                ),
+                textAlign: textAlign,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+        if (team.username.isNotEmpty) ...[
+          const SizedBox(height: 3),
+          Text(
+            team.username,
             style: TextStyle(
-              fontSize: 14,
-              fontWeight: winner ? FontWeight.w800 : FontWeight.w500,
-              color: winner ? AppColors.success : AppColors.textPrimary,
+              fontSize: 12,
+              color: AppColors.textMuted,
             ),
             textAlign: textAlign,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-        ),
+        ],
       ],
     );
+  }
 
-    return Align(
-      alignment: alignment,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 160),
-        padding: winner
-            ? const EdgeInsets.symmetric(horizontal: 9, vertical: 5)
-            : EdgeInsets.zero,
-        decoration: winner
-            ? BoxDecoration(
-                color: AppColors.success.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(999),
-                border: Border.all(color: AppColors.success.withOpacity(0.35)),
-              )
-            : null,
-        child: content,
-      ),
+  Widget _buildCalendarTeamLogo(String baseRosterId, String teamName) {
+    final fallbackLabel = teamName.isNotEmpty ? teamName[0].toUpperCase() : '?';
+    final assetPath =
+        baseRosterId.isNotEmpty ? 'assets/teams/$baseRosterId/logo.webp' : null;
+
+    return SizedBox(
+      width: 78,
+      height: 78,
+      child: assetPath == null
+          ? Center(
+              child: Text(
+                fallbackLabel,
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            )
+          : Image.asset(
+              assetPath,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => Center(
+                child: Text(
+                  fallbackLabel,
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ),
+            ),
     );
   }
 
@@ -2658,6 +2742,11 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
     final lang = ref.watch(localeProvider);
     final matchesAsync = ref.watch(matchesProvider(widget.leagueId));
     final visibleRound = _visibleRound(league);
+    final currentUserId = ref.watch(authStateProvider).valueOrNull?.user?.id;
+    final canEditCalendar = !_isDebugLeague &&
+        currentUserId != null &&
+        league.isCommissioner &&
+        league.status == LeagueStatus.active;
 
     return matchesAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -2669,41 +2758,12 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
 
         return SingleChildScrollView(
           padding: EdgeInsets.all(isWideScreen ? 24 : 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                trf(lang, 'leagueOverview.round', {'n': '$visibleRound'}),
-                style: TextStyle(
-                  fontFamily: AppTypography.displayFontFamily,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 24),
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: isWideScreen ? 2 : 1,
-                  mainAxisSpacing: 16,
-                  crossAxisSpacing: 16,
-                  childAspectRatio: 2,
-                ),
-                itemCount: currentRoundMatches.length,
-                itemBuilder: (context, index) {
-                  return MatchCard(
-                    match: currentRoundMatches[index],
-                    expanded: true,
-                    onTap: _isDebugLeague
-                        ? null
-                        : () =>
-                            _handleRoundMatchTap(currentRoundMatches[index]),
-                  );
-                },
-              ),
-            ],
+          child: _buildRoundSection(
+            visibleRound,
+            currentRoundMatches,
+            visibleRound,
+            league,
+            canEditCalendar,
           ),
         );
       },
@@ -2725,7 +2785,8 @@ class _LeagueOverviewScreenState extends ConsumerState<LeagueOverviewScreen>
       );
     }
 
-    final dashboardAsync = ref.watch(leagueDashboardStatsProvider(widget.leagueId));
+    final dashboardAsync =
+        ref.watch(leagueDashboardStatsProvider(widget.leagueId));
 
     return dashboardAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),

@@ -136,6 +136,12 @@ class _AppShellState extends ConsumerState<AppShell> {
         route: '/wiki/achievements',
       ),
       AppShellNavItem(
+        icon: PhosphorIcons.table(PhosphorIconsStyle.regular),
+        selectedIcon: PhosphorIcons.table(PhosphorIconsStyle.fill),
+        label: tr(lang, 'nav.wikiTables'),
+        route: '/wiki/tables',
+      ),
+      AppShellNavItem(
         icon: PhosphorIcons.crosshair(PhosphorIconsStyle.regular),
         selectedIcon: PhosphorIcons.crosshair(PhosphorIconsStyle.fill),
         label: tr(lang, 'nav.tactics'),
@@ -182,6 +188,9 @@ class _AppShellState extends ConsumerState<AppShell> {
     if (location.startsWith('/tactics')) return AppShellNavIndexes.tactics;
     if (location.startsWith('/wiki/achievements')) {
       return AppShellNavIndexes.wikiAchievements;
+    }
+    if (location.startsWith('/wiki/tables')) {
+      return AppShellNavIndexes.wikiTables;
     }
     if (location.startsWith('/wiki/passing')) {
       return AppShellNavIndexes.wikiPassing;

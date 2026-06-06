@@ -25,6 +25,7 @@ import '../../features/wiki/presentation/screens/wiki_injuries_screen.dart';
 import '../../features/wiki/presentation/screens/wiki_blocking_screen.dart';
 import '../../features/wiki/presentation/screens/wiki_passing_screen.dart';
 import '../../features/wiki/presentation/screens/wiki_achievements_screen.dart';
+import '../../features/wiki/presentation/screens/wiki_tables_screen.dart';
 import '../../features/tactics/presentation/screens/tactics_screen.dart';
 import '../../features/tactics/presentation/screens/my_tactics_screen.dart';
 import '../../features/auth/data/providers/auth_provider.dart';
@@ -246,6 +247,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: '/wiki/achievements',
             name: 'wiki-achievements',
             builder: (context, state) => const WikiAchievementsScreen(),
+          ),
+          GoRoute(
+            path: '/wiki/tables',
+            name: 'wiki-tables',
+            builder: (context, state) => const WikiTablesScreen(),
           ),
           GoRoute(
             path: '/tactics',

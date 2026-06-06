@@ -29,6 +29,7 @@ const _t = <String, Map<String, String>>{
   'nav.wikiBlocking': {'es': 'Wiki - Placajes', 'en': 'Wiki - Blocking'},
   'nav.wikiPassing': {'es': 'Wiki - Pases', 'en': 'Wiki - Passing'},
   'nav.wikiAchievements': {'es': 'Wiki - Logros', 'en': 'Wiki - Achievements'},
+  'nav.wikiTables': {'es': 'Wiki - Tablas', 'en': 'Wiki - Tables'},
   'nav.tactics': {'es': 'Tácticas', 'en': 'Tactics'},
   'nav.myTactics': {'es': 'Mis Tácticas', 'en': 'My Tactics'},
   'nav.quickMatch': {'es': 'Partido Rápido', 'en': 'Quick Match'},
@@ -40,6 +41,22 @@ const _t = <String, Map<String, String>>{
   'nav.wiki': {'es': 'WIKI', 'en': 'WIKI'},
   'nav.activeLeague': {'es': 'LIGA ACTIVA', 'en': 'ACTIVE LEAGUE'},
   'nav.coach': {'es': 'Coach', 'en': 'Coach'},
+
+  // ── Wiki Tables ────────────────────────────────────────────────────────
+  'wikiTables.title': {'es': 'Wiki - Tablas', 'en': 'Wiki - Tables'},
+  'wikiTables.subtitle': {
+    'es': 'Todas las tablas catalogadas del reglamento, reunidas en una sola vista y con índice anclado.',
+    'en': 'Every catalogued rules table gathered into a single view with an anchored index.',
+  },
+  'wikiTables.indexTitle': {'es': 'Índice de tablas', 'en': 'Table index'},
+  'wikiTables.catalogNotice': {
+    'es': 'Aquí están juntas todas las tablas que hoy tenemos catalogadas en el backend. Ganancias, puntos de liga y aficionados dedicados no aparecen porque el backend los modela como fórmulas y reglas, no como tablas.',
+    'en': 'This page gathers every table currently catalogued in the backend. Winnings, league points, and dedicated fans are not included because the backend models them as formulas and rules, not tables.',
+  },
+  'wikiTables.errorLoading': {
+    'es': 'No se pudieron cargar las tablas del catálogo: {err}',
+    'en': 'The catalog tables could not be loaded: {err}',
+  },
 
   // ── My Teams ───────────────────────────────────────────────────────────
   'myTeams.searchHint': {

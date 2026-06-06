@@ -168,7 +168,7 @@ class Match with _$Match {
   bool get isPending => status == 'scheduled' || status == 'pending';
   bool get isInProgress => status == 'in_progress';
   String get scoreDisplay =>
-      isPlayed || isInProgress ? '$scoreHome - $scoreAway' : '? - ?';
+      isPlayed || isInProgress ? '$scoreHome - $scoreAway' : '-';
 }
 
 @freezed

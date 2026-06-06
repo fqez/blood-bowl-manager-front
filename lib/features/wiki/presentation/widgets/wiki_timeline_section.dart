@@ -39,6 +39,8 @@ class WikiTimelineSection extends StatelessWidget {
     this.lineWidth = 6,
     this.itemSpacing = 14,
     this.showMarkerLabel = false,
+    this.railColor,
+    this.circleLineGap = 6,
   });
 
   final IconData headerIcon;
@@ -51,6 +53,8 @@ class WikiTimelineSection extends StatelessWidget {
   final double lineWidth;
   final double itemSpacing;
   final bool showMarkerLabel;
+  final Color? railColor;
+  final double circleLineGap;
 
   @override
   Widget build(BuildContext context) {
@@ -103,6 +107,7 @@ class WikiTimelineSection extends StatelessWidget {
     final titleFontSize = 18.0;
     final subtitleFontSize = 11.0;
     final descriptionFontSize = 12.0;
+    final effectiveRailColor = railColor ?? entry.color;
 
     return Column(
       children: [
@@ -119,8 +124,9 @@ class WikiTimelineSection extends StatelessWidget {
                       Expanded(
                         child: isFirst
                             ? const SizedBox.shrink()
-                            : _buildLineFill(entry.color),
+                            : _buildLineFill(effectiveRailColor),
                       ),
+                      if (!isFirst) SizedBox(height: circleLineGap),
                       Container(
                         width: circleSize,
                         height: circleSize,
@@ -152,10 +158,11 @@ class WikiTimelineSection extends StatelessWidget {
                               )
                             : null,
                       ),
+                      if (!isLast) SizedBox(height: circleLineGap),
                       Expanded(
                         child: isLast
                             ? const SizedBox.shrink()
-                            : _buildLineFill(entry.color),
+                            : _buildLineFill(effectiveRailColor),
                       ),
                     ],
                   ),
@@ -241,7 +248,7 @@ class WikiTimelineSection extends StatelessWidget {
                   width: railWidth,
                   child: Padding(
                     padding: const EdgeInsets.only(right: 12),
-                    child: _buildLineFill(entry.color),
+                    child: _buildLineFill(effectiveRailColor),
                   ),
                 ),
                 const Expanded(child: SizedBox.shrink()),

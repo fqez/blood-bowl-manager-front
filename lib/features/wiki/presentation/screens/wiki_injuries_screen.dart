@@ -10,6 +10,7 @@ import '../../../../core/l10n/translations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../widgets/wiki_dice_board.dart';
 import '../widgets/wiki_page_layout.dart';
+import '../widgets/wiki_timeline_section.dart';
 
 // ignore_for_file: deprecated_member_use
 
@@ -101,30 +102,30 @@ class WikiInjuriesScreen extends ConsumerWidget {
   Widget _buildArmourRollSection(String lang) {
     final es = lang == 'es';
     final steps = [
-      _ProcedureStep(
-        number: '1',
+      WikiTimelineEntry(
+        marker: '1',
         title: es ? 'TIRADA DE ARMADURA' : 'ARMOUR ROLL',
-        titleEn: es ? 'Armour Roll' : 'TIRADA DE ARMADURA',
+        subtitle: es ? 'Armour Roll' : 'TIRADA DE ARMADURA',
         icon: PhosphorIcons.shieldChevron(PhosphorIconsStyle.fill),
         color: const Color(0xFF78909C),
         description: es
             ? 'Cuando un jugador es derribado, el rival tira 2D6. Si supera el Armour Value, la armadura se rompe.'
             : 'When a player is Knocked Down, the opponent rolls 2D6. If the result beats the Armour Value, the armour is broken.',
       ),
-      _ProcedureStep(
-        number: '2',
+      WikiTimelineEntry(
+        marker: '2',
         title: es ? 'TIRADA DE LESION' : 'INJURY ROLL',
-        titleEn: es ? 'Injury Roll' : 'TIRADA DE LESION',
+        subtitle: es ? 'Injury Roll' : 'TIRADA DE LESION',
         icon: PhosphorIcons.firstAidKit(PhosphorIconsStyle.fill),
         color: const Color(0xFFEF5350),
         description: es
             ? 'Si la armadura se rompe, se tira en la tabla de Lesiones para ver si el jugador queda Aturdido, KO o sufre Casualty.'
             : 'If armour breaks, roll on the Injury table to see whether the player is Stunned, KO, or suffers a Casualty.',
       ),
-      _ProcedureStep(
-        number: '3',
+      WikiTimelineEntry(
+        marker: '3',
         title: es ? 'TABLA DE BAJAS' : 'CASUALTY TABLE',
-        titleEn: es ? 'Casualty Table' : 'TABLA DE BAJAS',
+        subtitle: es ? 'Casualty Table' : 'TABLA DE BAJAS',
         icon: PhosphorIcons.skull(PhosphorIconsStyle.fill),
         color: const Color(0xFFB71C1C),
         description: es
@@ -133,153 +134,23 @@ class WikiInjuriesScreen extends ConsumerWidget {
       ),
     ];
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.surfaceLight),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(PhosphorIcons.listNumbers(PhosphorIconsStyle.fill),
-                  color: AppColors.accent, size: 20),
-              const SizedBox(width: 10),
-              Text(
-                tr(lang, 'wikiInjuries.procedure'),
-                style: TextStyle(
-                  fontFamily: AppTypography.displayFontFamily,
-                  fontSize: AppTypography.wikiSectionTitleFontSize,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                  letterSpacing: 1,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(
-            es
-                ? 'Secuencia completa cuando un jugador es derribado.'
-                : 'Full sequence when a player is knocked down.',
-            style: TextStyle(fontSize: 12, color: AppColors.textMuted),
-          ),
-          const SizedBox(height: 20),
-          ...steps.map((s) => _buildProcedureStepCard(s, steps.length, lang)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProcedureStepCard(
-    _ProcedureStep step,
-    int totalSteps,
-    String lang,
-  ) {
-    final stepNum = int.parse(step.number);
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Column(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [step.color, step.color.withOpacity(0.6)],
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: step.color.withOpacity(0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Center(
-                  child: Text(
-                    step.number,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w900,
-                      fontSize: 18,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-              if (stepNum < totalSteps)
-                Container(
-                  width: 2,
-                  height: 24,
-                  color: step.color.withOpacity(0.3),
-                ),
-            ],
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    step.color.withOpacity(0.08),
-                    Colors.transparent,
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: step.color.withOpacity(0.2)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(step.icon, color: step.color, size: 18),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Row(
-                          children: [
-                            Text(
-                              step.title,
-                              style: TextStyle(
-                                fontFamily: AppTypography.displayFontFamily,
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold,
-                                color: step.color,
-                                letterSpacing: 1,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              step.titleEn,
-                              style: const TextStyle(
-                                fontSize: 11,
-                                color: AppColors.textMuted,
-                                fontStyle: FontStyle.italic,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  _buildRichDescription(step.description, lang: lang),
-                ],
-              ),
-            ),
-          ),
-        ],
+    return WikiTimelineSection(
+      headerIcon: PhosphorIcons.listNumbers(PhosphorIconsStyle.fill),
+      title: tr(lang, 'wikiInjuries.procedure'),
+      subtitle: es
+          ? 'Secuencia completa cuando un jugador es derribado.'
+          : 'Full sequence when a player is knocked down.',
+      entries: steps,
+      railColor: Colors.white.withOpacity(0.58),
+      railWidth: 52,
+      circleSize: 24,
+      lineWidth: 3,
+      itemSpacing: 6,
+      circleLineGap: 6,
+      descriptionBuilder: (context, entry, fontSize) => _buildRichDescription(
+        entry.description,
+        lang: lang,
+        fontSize: fontSize,
       ),
     );
   }
@@ -1181,24 +1052,6 @@ class _AttributeReductionSectionData {
     required this.intro,
     required this.note,
     required this.entries,
-  });
-}
-
-class _ProcedureStep {
-  final String number;
-  final String title;
-  final String titleEn;
-  final IconData icon;
-  final Color color;
-  final String description;
-
-  const _ProcedureStep({
-    required this.number,
-    required this.title,
-    required this.titleEn,
-    required this.icon,
-    required this.color,
-    required this.description,
   });
 }
 

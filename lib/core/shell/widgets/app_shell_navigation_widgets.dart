@@ -100,12 +100,13 @@ class AppShellSideNav extends ConsumerWidget {
                   _AppShellSectionLabel(label: tr(lang, 'nav.wiki')),
                 ..._buildTiles([
                   AppShellNavIndexes.wikiSkills,
+                  AppShellNavIndexes.wikiTables,
                   AppShellNavIndexes.wikiWeather,
-                  AppShellNavIndexes.wikiStars,
                   AppShellNavIndexes.wikiInjuries,
                   AppShellNavIndexes.wikiBlocking,
                   AppShellNavIndexes.wikiPassing,
                   AppShellNavIndexes.wikiAchievements,
+                  AppShellNavIndexes.wikiStars,
                   AppShellNavIndexes.tactics,
                 ]),
                 const Divider(height: 32),
@@ -257,13 +258,6 @@ class AppShellDrawer extends ConsumerWidget {
                   onNavigate: onNavigate,
                 ),
                 _AppShellNavTile(
-                  index: AppShellNavIndexes.tactics,
-                  item: navItems[AppShellNavIndexes.tactics],
-                  selectedIndex: selectedIndex,
-                  expanded: true,
-                  onNavigate: onNavigate,
-                ),
-                _AppShellNavTile(
                   index: AppShellNavIndexes.myTactics,
                   item: navItems[AppShellNavIndexes.myTactics],
                   selectedIndex: selectedIndex,
@@ -281,12 +275,14 @@ class AppShellDrawer extends ConsumerWidget {
                 _AppShellSectionLabel(label: tr(lang, 'nav.wiki')),
                 ..._buildTiles([
                   AppShellNavIndexes.wikiSkills,
+                  AppShellNavIndexes.wikiTables,
                   AppShellNavIndexes.wikiWeather,
-                  AppShellNavIndexes.wikiStars,
                   AppShellNavIndexes.wikiInjuries,
                   AppShellNavIndexes.wikiBlocking,
                   AppShellNavIndexes.wikiPassing,
                   AppShellNavIndexes.wikiAchievements,
+                  AppShellNavIndexes.wikiStars,
+                  AppShellNavIndexes.tactics,
                 ]),
                 const Divider(height: 32),
                 _AppShellSectionLabel(label: tr(lang, 'nav.activeLeague')),
@@ -682,9 +678,10 @@ abstract final class AppShellNavIndexes {
   static const int wikiBlocking = 12;
   static const int wikiPassing = 13;
   static const int wikiAchievements = 14;
-  static const int tactics = 15;
-  static const int myTactics = 16;
-  static const int quickMatch = 17;
-  static const int debugPostMatch = 18;
-  static const int debugLeague = 19;
+  static const int wikiTables = 15;
+  static const int tactics = 16;
+  static const int myTactics = 17;
+  static const int quickMatch = 18;
+  static const int debugPostMatch = 19;
+  static const int debugLeague = 20;
 }
