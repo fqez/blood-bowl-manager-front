@@ -814,8 +814,7 @@ class ThrowTeammateReward {
         eventType: json['event_type'] as String? ?? 'throw_teammate',
         thrownPlayerLandedSpp:
             (json['thrown_player_landed_spp'] as num?)?.toInt() ?? 1,
-        superbThrowerSpp:
-            (json['superb_thrower_spp'] as num?)?.toInt() ?? 1,
+        superbThrowerSpp: (json['superb_thrower_spp'] as num?)?.toInt() ?? 1,
         description: ExpensiveMistakeEffect._localized(json['description']),
       );
 

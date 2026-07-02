@@ -805,6 +805,198 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
         rules,
       );
 
+  Match? _currentMatchDetail() {
+    return _isQM
+        ? ref.read(_quickMatchDetailProvider(matchId)).valueOrNull
+        : ref
+            .read(_matchDetailProvider((leagueId: leagueId, matchId: matchId)))
+            .valueOrNull;
+  }
+
+  int _currentMatchTemporaryHireSpend(UserTeamDetail team) {
+    var total = 0;
+    for (final player in team.players) {
+      if (!player.temporaryForMatch || player.temporaryMatchId != matchId) {
+        continue;
+      }
+      if (player.baseType.startsWith('star_') || !player.journeyman) {
+        total += player.currentValue;
+      }
+    }
+    return total;
+  }
+
+  String _normalizeRuleKey(String value) => value
+      .toLowerCase()
+      .replaceAll('&', 'and')
+      .replaceAll(RegExp(r'[^a-z0-9]+'), ' ')
+      .trim();
+
+  bool _teamHasInducementRule(BaseTeam? baseRoster, String requiredRule) {
+    final required = _normalizeRuleKey(requiredRule);
+    return (baseRoster?.specialRules ?? const []).any((rule) {
+      final normalized = _normalizeRuleKey(rule);
+      return normalized == required ||
+          normalized.contains(required) ||
+          required.contains(normalized);
+    });
+  }
+
+  int _costOptionSpecificity(String appliesTo) {
+    if (appliesTo == 'any') return 0;
+    if (appliesTo.startsWith('roster:')) return 2;
+    if (appliesTo.startsWith('special_rule:')) return 2;
+    return 1;
+  }
+
+  bool _costOptionApplies(
+    InducementCostOption option,
+    UserTeamDetail team,
+    BaseTeam? baseRoster,
+  ) {
+    final appliesTo = option.appliesTo;
+    if (appliesTo == 'any') return true;
+    if (appliesTo.startsWith('special_rule:')) {
+      return _teamHasInducementRule(
+        baseRoster,
+        appliesTo.substring('special_rule:'.length),
+      );
+    }
+    if (appliesTo.startsWith('roster:')) {
+      final rosterId = _normalizeRuleKey(appliesTo.substring('roster:'.length));
+      return _normalizeRuleKey(team.baseRosterId) == rosterId ||
+          _normalizeRuleKey(baseRoster?.id ?? '') == rosterId;
+    }
+    return false;
+  }
+
+  int? _resolvedInducementCost(
+    InducementRule rule,
+    UserTeamDetail team,
+    BaseTeam? baseRoster,
+  ) {
+    if (rule.costOptions.isEmpty) return rule.cost;
+    final applicable = rule.costOptions
+        .where((option) => _costOptionApplies(option, team, baseRoster))
+        .toList();
+    if (applicable.isEmpty) return rule.cost;
+    applicable.sort((a, b) {
+      final specificity = _costOptionSpecificity(b.appliesTo) -
+          _costOptionSpecificity(a.appliesTo);
+      if (specificity != 0) return specificity;
+      return a.cost.compareTo(b.cost);
+    });
+    return applicable.first.cost;
+  }
+
+  int _matchInducementPurchaseSpend(
+    Match match,
+    String teamSide,
+    UserTeamDetail team,
+    BaseTeam? baseRoster,
+  ) {
+    final rules = ref.read(inducementRulesProvider).valueOrNull;
+    if (rules == null) return 0;
+    final purchases = teamSide == 'home'
+        ? match.homeInducementPurchases
+        : match.awayInducementPurchases;
+    var total = 0;
+    for (final rule in rules.inducements) {
+      final count = purchases[rule.id] ?? 0;
+      if (count <= 0) continue;
+      final cost = _resolvedInducementCost(rule, team, baseRoster);
+      if (cost != null) total += cost * count;
+    }
+    return total;
+  }
+
+  int _matchInducementTeamValue(UserTeamDetail team, BaseTeam? baseRoster) {
+    final ignoredPlayerTypes = <String>{};
+    if (baseRoster != null &&
+        _teamHasInducementRule(baseRoster, 'low cost linemen')) {
+      for (final position in baseRoster.positions) {
+        if (_isLinemanPosition(position)) {
+          ignoredPlayerTypes.add(position.id);
+        }
+      }
+    }
+
+    var playerValue = 0;
+    var unavailablePlayerValue = 0;
+    for (final player in team.players) {
+      if (player.status == 'dead') continue;
+      if (player.temporaryForMatch && player.temporaryMatchId == matchId) {
+        continue;
+      }
+      if (ignoredPlayerTypes.contains(player.baseType)) continue;
+      playerValue += player.currentValue;
+      if (player.status != 'healthy') {
+        unavailablePlayerValue += player.currentValue;
+      }
+    }
+
+    final rerollCost = baseRoster?.rerollCost ?? team.rerollCost;
+    final teamValue = playerValue +
+        (team.rerolls * rerollCost) +
+        (team.assistantCoaches * 10000) +
+        (team.cheerleaders * 10000) +
+        (team.apothecary ? 50000 : 0);
+    return max(0, teamValue - unavailablePlayerValue);
+  }
+
+  int _treasuryContributionForSpend(
+    int spent,
+    int pettyCash,
+    int treasuryAllowance, {
+    required bool isFavorite,
+  }) {
+    if (spent <= 0) return 0;
+    if (isFavorite) return spent;
+    final excess = spent - pettyCash;
+    if (excess <= 0) return 0;
+    return excess > treasuryAllowance ? treasuryAllowance : excess;
+  }
+
+  int _matchInducementTreasuryCharge(String teamSide) {
+    if (_isQM) return 0;
+    final match = _currentMatchDetail();
+    final homeTeam = _homeTeam;
+    final awayTeam = _awayTeam;
+    if (match == null || homeTeam == null || awayTeam == null) return 0;
+
+    final homeRoster = _homeBaseRoster;
+    final awayRoster = _awayBaseRoster;
+    final homeCtv = _matchInducementTeamValue(homeTeam, homeRoster);
+    final awayCtv = _matchInducementTeamValue(awayTeam, awayRoster);
+    final homeSpent = _currentMatchTemporaryHireSpend(homeTeam) +
+        _matchInducementPurchaseSpend(match, 'home', homeTeam, homeRoster);
+    final awaySpent = _currentMatchTemporaryHireSpend(awayTeam) +
+        _matchInducementPurchaseSpend(match, 'away', awayTeam, awayRoster);
+
+    if (homeCtv == awayCtv) return 0;
+
+    final isHome = teamSide == 'home';
+    final selectedTeam = isHome ? homeTeam : awayTeam;
+    final selectedSpent = isHome ? homeSpent : awaySpent;
+    final selectedCtv = isHome ? homeCtv : awayCtv;
+    final opponentCtv = isHome ? awayCtv : homeCtv;
+    final selectedIsFavorite = selectedCtv > opponentCtv;
+
+    if (selectedIsFavorite) {
+      return min(selectedSpent, selectedTeam.treasury);
+    }
+
+    final pettyCash =
+        (homeCtv - awayCtv).abs() + (homeCtv > awayCtv ? homeSpent : awaySpent);
+    final treasuryAllowance = min(selectedTeam.treasury, 50000);
+    return _treasuryContributionForSpend(
+      selectedSpent,
+      pettyCash,
+      treasuryAllowance,
+      isFavorite: false,
+    );
+  }
+
   Color _expensiveColor(String code) {
     switch (code) {
       case 'crisis_avoided':
@@ -993,7 +1185,8 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
     final winnings = teamSide == 'home'
         ? _currentHomeWinnings(rules)
         : _currentAwayWinnings(rules);
-    return team.treasury + winnings;
+    return max(0, team.treasury - _matchInducementTreasuryCharge(teamSide)) +
+        winnings;
   }
 
   int _temporaryKeepCost(String teamSide) {
@@ -3905,6 +4098,7 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
 
     final purchases = _pendingPurchases(teamSide);
     final injuryRules = ref.watch(injuryRulesProvider).valueOrNull;
+    final inducementCharge = _matchInducementTreasuryCharge(teamSide);
     final treasuryAfterWinnings =
         _baseTreasuryAfterWinnings(teamSide, winningsRules);
     final temporaryKeepCost = _temporaryKeepCost(teamSide);
@@ -4095,8 +4289,9 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
                 ),
               ),
               _fansStatusPill(
-                label:
-                    'Tesoreria + ganancias: ${_fmtGold(treasuryAfterWinnings)}',
+                label: inducementCharge > 0
+                    ? 'Tras incentivos + ganancias: ${_fmtGold(treasuryAfterWinnings)}'
+                    : 'Tesoreria + ganancias: ${_fmtGold(treasuryAfterWinnings)}',
                 color: color,
                 icon: PhosphorIcons.coins(PhosphorIconsStyle.fill),
               ),
@@ -4180,6 +4375,17 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
                 ),
               );
             }),
+          ],
+          if (inducementCharge > 0) ...[
+            const SizedBox(height: 10),
+            Text(
+              'Incentivos temporales cargados: ${_fmtGold(inducementCharge)}',
+              style: const TextStyle(
+                color: AppColors.textMuted,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ],
           const SizedBox(height: 10),
           Row(
@@ -4649,8 +4855,8 @@ class _AftermatchScreenState extends ConsumerState<AftermatchScreen> {
       final decisions = _storedTemporaryPlayerDecisionsForSide(teamSide);
       final usedNumber = parsedNumber != null &&
           (_pendingPurchases(teamSide).players.any(
-                (player) => player.number == parsedNumber,
-              ) ||
+                    (player) => player.number == parsedNumber,
+                  ) ||
               (_teamForSide(teamSide)?.players.any(
                         (player) =>
                             player.number == parsedNumber &&

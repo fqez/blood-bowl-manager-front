@@ -45,13 +45,17 @@ const _t = <String, Map<String, String>>{
   // ── Wiki Tables ────────────────────────────────────────────────────────
   'wikiTables.title': {'es': 'Wiki - Tablas', 'en': 'Wiki - Tables'},
   'wikiTables.subtitle': {
-    'es': 'Todas las tablas catalogadas del reglamento, reunidas en una sola vista y con índice anclado.',
-    'en': 'Every catalogued rules table gathered into a single view with an anchored index.',
+    'es':
+        'Todas las tablas catalogadas del reglamento, reunidas en una sola vista y con índice anclado.',
+    'en':
+        'Every catalogued rules table gathered into a single view with an anchored index.',
   },
   'wikiTables.indexTitle': {'es': 'Índice de tablas', 'en': 'Table index'},
   'wikiTables.catalogNotice': {
-    'es': 'Aquí están juntas todas las tablas que hoy tenemos catalogadas en el backend. Ganancias, puntos de liga y aficionados dedicados no aparecen porque el backend los modela como fórmulas y reglas, no como tablas.',
-    'en': 'This page gathers every table currently catalogued in the backend. Winnings, league points, and dedicated fans are not included because the backend models them as formulas and rules, not tables.',
+    'es':
+        'Aquí están juntas todas las tablas que hoy tenemos catalogadas en el backend. Ganancias, puntos de liga y aficionados dedicados no aparecen porque el backend los modela como fórmulas y reglas, no como tablas.',
+    'en':
+        'This page gathers every table currently catalogued in the backend. Winnings, league points, and dedicated fans are not included because the backend models them as formulas and rules, not tables.',
   },
   'wikiTables.errorLoading': {
     'es': 'No se pudieron cargar las tablas del catálogo: {err}',

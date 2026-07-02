@@ -153,7 +153,7 @@ class WikiWeatherScreen extends ConsumerWidget {
       railWidth: 52,
       circleSize: 24,
       lineWidth: 3,
-        itemSpacing: 6,
+      itemSpacing: 6,
       descriptionBuilder: (context, entry, fontSize) => _buildRichDescription(
           entry.description,
           lang: lang,

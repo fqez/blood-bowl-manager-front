@@ -31,6 +31,18 @@ extension _LiveMatchDialogs on _LiveMatchScreenState {
 
 // ----------------------------------------------
 
+  Future<void> _syncCurrentInducementsToServer() async {
+    if (_isQM) return;
+    await _updateState(
+      homeInducementPurchases: Map<String, int>.from(_homeInducementPurchases),
+      awayInducementPurchases: Map<String, int>.from(_awayInducementPurchases),
+      homeInducementUses: Map<String, int>.from(_homeInducementUses),
+      awayInducementUses: Map<String, int>.from(_awayInducementUses),
+      homeInducementDetails: _copyInducementDetails(_homeInducementDetails),
+      awayInducementDetails: _copyInducementDetails(_awayInducementDetails),
+    );
+  }
+
   void _showAddEventDialog(Match match, String lang, String eventType,
       {String initialTeam = 'home'}) {
     showMatchEventDialog(
@@ -734,150 +746,160 @@ extension _LiveMatchDialogs on _LiveMatchScreenState {
       ),
       clipBehavior: Clip.antiAlias,
       child: LayoutBuilder(
-        builder: (context, constraints) => SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minWidth: constraints.maxWidth),
-            child: DataTable(
-              headingRowColor: WidgetStateProperty.all(AppColors.card),
-              dataRowColor: WidgetStateProperty.all(Colors.transparent),
-              columnSpacing: 8,
-              horizontalMargin: 12,
-              headingRowHeight: 40,
-              dataRowMinHeight: 48,
-              dataRowMaxHeight: 64,
-              headingTextStyle: const TextStyle(
-                  color: AppColors.textMuted,
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 0.5),
-              columns: const [
-                DataColumn(label: Text('POS')),
-                DataColumn(label: Text('QTY'), numeric: true),
-                DataColumn(label: Text('MA'), numeric: true),
-                DataColumn(label: Text('ST'), numeric: true),
-                DataColumn(label: Text('AG'), numeric: true),
-                DataColumn(label: Text('PA'), numeric: true),
-                DataColumn(label: Text('AV'), numeric: true),
-                DataColumn(label: Text('SKILLS')),
-                DataColumn(label: Text('COST'), numeric: true),
-                DataColumn(label: Text('')),
-              ],
-              rows: positions.map((pos) {
-                final currentCount = countByType[pos.id] ?? 0;
-                final available = currentCount < pos.maxQuantity;
-                final cost = mercenary ? pos.cost + 30000 : 0;
-                final canAfford = !mercenary || team.treasury >= cost;
-                final canHire =
-                    available && canAfford && (mercenary || canHireSubstitutes);
-                final blockLabel = !available
-                    ? 'MAX'
-                    : !canAfford
-                        ? 'NO FUNDS'
-                        : !mercenary && !canHireSubstitutes
-                            ? '11 OK'
-                            : 'BLOCKED';
-                return DataRow(
-                  color: WidgetStateProperty.resolveWith((_) => canHire
-                      ? null
-                      : AppColors.surfaceLight.withValues(alpha: 0.1)),
-                  cells: [
-                    DataCell(Text(pos.name.toUpperCase(),
-                        style: TextStyle(
-                            color: canHire
-                                ? AppColors.textPrimary
-                                : AppColors.textMuted,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold))),
-                    DataCell(Text('$currentCount/${pos.maxQuantity}',
-                        style: _hireStatStyle(canHire))),
-                    DataCell(Text('${pos.stats.ma}',
-                        style: _hireStatStyle(canHire))),
-                    DataCell(Text('${pos.stats.st}',
-                        style: _hireStatStyle(canHire))),
-                    DataCell(Text('${pos.stats.ag}+',
-                        style: _hireStatStyle(canHire))),
-                    DataCell(Text('${pos.stats.pa}+',
-                        style: _hireStatStyle(canHire))),
-                    DataCell(Text('${pos.stats.av}+',
-                        style: _hireStatStyle(canHire))),
-                    DataCell(Wrap(
-                      spacing: 4,
-                      runSpacing: 2,
-                      children: pos.startingPerks
-                          .map((perk) => GestureDetector(
-                                onTap: () => showSkillPopup(context, ref,
-                                    skillName: perk.name),
-                                child: MouseRegion(
-                                  cursor: SystemMouseCursors.click,
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 6, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: canHire
-                                          ? AppColors.primary
-                                              .withValues(alpha: 0.12)
-                                          : AppColors.surfaceLight
-                                              .withValues(alpha: 0.4),
-                                      borderRadius: BorderRadius.circular(4),
+        builder: (context, constraints) {
+          final isHome = _homeTeam?.id == team.id;
+          final budget = _matchInducementBudget(
+            team: team,
+            isHome: isHome,
+            lang: lang,
+          );
+          return SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minWidth: constraints.maxWidth),
+              child: DataTable(
+                headingRowColor: WidgetStateProperty.all(AppColors.card),
+                dataRowColor: WidgetStateProperty.all(Colors.transparent),
+                columnSpacing: 8,
+                horizontalMargin: 12,
+                headingRowHeight: 40,
+                dataRowMinHeight: 48,
+                dataRowMaxHeight: 64,
+                headingTextStyle: const TextStyle(
+                    color: AppColors.textMuted,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5),
+                columns: const [
+                  DataColumn(label: Text('POS')),
+                  DataColumn(label: Text('QTY'), numeric: true),
+                  DataColumn(label: Text('MA'), numeric: true),
+                  DataColumn(label: Text('ST'), numeric: true),
+                  DataColumn(label: Text('AG'), numeric: true),
+                  DataColumn(label: Text('PA'), numeric: true),
+                  DataColumn(label: Text('AV'), numeric: true),
+                  DataColumn(label: Text('SKILLS')),
+                  DataColumn(label: Text('COST'), numeric: true),
+                  DataColumn(label: Text('')),
+                ],
+                rows: positions.map((pos) {
+                  final currentCount = countByType[pos.id] ?? 0;
+                  final available = currentCount < pos.maxQuantity;
+                  final cost = mercenary ? pos.cost + 30000 : 0;
+                  final canAfford = !mercenary || budget.remaining >= cost;
+                  final canHire = available &&
+                      canAfford &&
+                      (mercenary || canHireSubstitutes);
+                  final blockLabel = !available
+                      ? 'MAX'
+                      : !canAfford
+                          ? 'NO FUNDS'
+                          : !mercenary && !canHireSubstitutes
+                              ? '11 OK'
+                              : 'BLOCKED';
+                  return DataRow(
+                    color: WidgetStateProperty.resolveWith((_) => canHire
+                        ? null
+                        : AppColors.surfaceLight.withValues(alpha: 0.1)),
+                    cells: [
+                      DataCell(Text(pos.name.toUpperCase(),
+                          style: TextStyle(
+                              color: canHire
+                                  ? AppColors.textPrimary
+                                  : AppColors.textMuted,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold))),
+                      DataCell(Text('$currentCount/${pos.maxQuantity}',
+                          style: _hireStatStyle(canHire))),
+                      DataCell(Text('${pos.stats.ma}',
+                          style: _hireStatStyle(canHire))),
+                      DataCell(Text('${pos.stats.st}',
+                          style: _hireStatStyle(canHire))),
+                      DataCell(Text('${pos.stats.ag}+',
+                          style: _hireStatStyle(canHire))),
+                      DataCell(Text('${pos.stats.pa}+',
+                          style: _hireStatStyle(canHire))),
+                      DataCell(Text('${pos.stats.av}+',
+                          style: _hireStatStyle(canHire))),
+                      DataCell(Wrap(
+                        spacing: 4,
+                        runSpacing: 2,
+                        children: pos.startingPerks
+                            .map((perk) => GestureDetector(
+                                  onTap: () => showSkillPopup(context, ref,
+                                      skillName: perk.name),
+                                  child: MouseRegion(
+                                    cursor: SystemMouseCursors.click,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: canHire
+                                            ? AppColors.primary
+                                                .withValues(alpha: 0.12)
+                                            : AppColors.surfaceLight
+                                                .withValues(alpha: 0.4),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(perk.name.toUpperCase(),
+                                          style: TextStyle(
+                                              color: canHire
+                                                  ? AppColors.primaryLight
+                                                  : AppColors.textMuted,
+                                              fontSize: 8,
+                                              fontWeight: FontWeight.bold)),
                                     ),
-                                    child: Text(perk.name.toUpperCase(),
-                                        style: TextStyle(
-                                            color: canHire
-                                                ? AppColors.primaryLight
-                                                : AppColors.textMuted,
-                                            fontSize: 8,
-                                            fontWeight: FontWeight.bold)),
                                   ),
+                                ))
+                            .toList(),
+                      )),
+                      DataCell(Text(mercenary ? _fmtGold(cost) : '0',
+                          style: TextStyle(
+                              color: canAfford
+                                  ? AppColors.accent
+                                  : AppColors.error,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold))),
+                      DataCell(canHire
+                          ? SizedBox(
+                              height: 32,
+                              child: ElevatedButton(
+                                onPressed: () => _showHireNameDialog(
+                                  dialogContext,
+                                  team,
+                                  pos,
+                                  lang,
+                                  mercenary: mercenary,
+                                  cost: cost,
                                 ),
-                              ))
-                          .toList(),
-                    )),
-                    DataCell(Text(mercenary ? _fmtGold(cost) : '0',
-                        style: TextStyle(
-                            color:
-                                canAfford ? AppColors.accent : AppColors.error,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold))),
-                    DataCell(canHire
-                        ? SizedBox(
-                            height: 32,
-                            child: ElevatedButton(
-                              onPressed: () => _showHireNameDialog(
-                                dialogContext,
-                                team,
-                                pos,
-                                lang,
-                                mercenary: mercenary,
-                                cost: cost,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: mercenary
+                                      ? AppColors.primary
+                                      : AppColors.info,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(6)),
+                                ),
+                                child: const Text('HIRE',
+                                    style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold)),
                               ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: mercenary
-                                    ? AppColors.primary
-                                    : AppColors.info,
-                                foregroundColor: Colors.white,
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 16),
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(6)),
-                              ),
-                              child: const Text('HIRE',
-                                  style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold)),
-                            ),
-                          )
-                        : Text(blockLabel,
-                            style: const TextStyle(
-                                color: AppColors.textMuted,
-                                fontSize: 9,
-                                fontWeight: FontWeight.bold))),
-                  ],
-                );
-              }).toList(),
+                            )
+                          : Text(blockLabel,
+                              style: const TextStyle(
+                                  color: AppColors.textMuted,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold))),
+                    ],
+                  );
+                }).toList(),
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
@@ -896,174 +918,184 @@ extension _LiveMatchDialogs on _LiveMatchScreenState {
       ),
       clipBehavior: Clip.antiAlias,
       child: LayoutBuilder(
-        builder: (context, constraints) => SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minWidth: constraints.maxWidth),
-            child: DataTable(
-              headingRowColor: WidgetStateProperty.all(AppColors.card),
-              dataRowColor: WidgetStateProperty.all(Colors.transparent),
-              columnSpacing: 8,
-              horizontalMargin: 12,
-              headingRowHeight: 40,
-              dataRowMinHeight: 48,
-              dataRowMaxHeight: 64,
-              headingTextStyle: const TextStyle(
-                  color: AppColors.textMuted,
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 0.5),
-              columns: const [
-                DataColumn(label: Text('STAR PLAYER')),
-                DataColumn(label: Text('')),
-                DataColumn(label: Text('MA'), numeric: true),
-                DataColumn(label: Text('ST'), numeric: true),
-                DataColumn(label: Text('AG'), numeric: true),
-                DataColumn(label: Text('PA'), numeric: true),
-                DataColumn(label: Text('AV'), numeric: true),
-                DataColumn(label: Text('SKILLS')),
-                DataColumn(label: Text('COST'), numeric: true),
-                DataColumn(label: Text('')),
-              ],
-              rows: starPlayers.map((sp) {
-                final spId = sp['id'] as String? ?? '';
-                final spName = sp['name'] as String? ?? '';
-                final spCost = (sp['cost'] as num?)?.toInt() ?? 0;
-                final spStats = sp['stats'] as Map<String, dynamic>? ?? {};
-                final spSkills = (sp['skills'] as List?)?.cast<String>() ?? [];
-                final canAffordStar = team.treasury >= spCost;
-                final alreadyHired =
-                    activePlayers.any((p) => p.baseType == 'star_$spId');
-                final canHireStar =
-                    canAffordStar && !alreadyHired && activePlayers.length < 16;
-                final blockLabel = alreadyHired
-                    ? 'HIRED'
-                    : activePlayers.length >= 16
-                        ? 'FULL'
-                        : 'NO FUNDS';
-                return DataRow(
-                  color: WidgetStateProperty.resolveWith((_) => canHireStar
-                      ? null
-                      : AppColors.surfaceLight.withValues(alpha: 0.1)),
-                  cells: [
-                    DataCell(GestureDetector(
-                      onTap: () => _showStarPlayerDetail(sp, lang),
-                      child: MouseRegion(
-                        cursor: SystemMouseCursors.click,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(PhosphorIcons.star(PhosphorIconsStyle.fill),
-                                size: 12, color: AppColors.accent),
-                            const SizedBox(width: 4),
-                            Text(spName.toUpperCase(),
-                                style: TextStyle(
-                                    color: canHireStar
-                                        ? AppColors.accent
-                                        : AppColors.textMuted,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold)),
-                          ],
-                        ),
-                      ),
-                    )),
-                    DataCell(SizedBox(
-                      width: 28,
-                      height: 28,
-                      child: IconButton(
-                        onPressed: () => _showStarPlayerDetail(sp, lang),
-                        padding: EdgeInsets.zero,
-                        iconSize: 16,
-                        style: IconButton.styleFrom(
-                          side: BorderSide(
-                              color: AppColors.accent.withValues(alpha: 0.3)),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(6)),
-                        ),
-                        icon: Icon(PhosphorIcons.eye(PhosphorIconsStyle.fill),
-                            color: AppColors.accent, size: 14),
-                      ),
-                    )),
-                    DataCell(Text(_fmtStat(spStats['MA']),
-                        style: _hireStatStyle(canHireStar))),
-                    DataCell(Text(_fmtStat(spStats['ST']),
-                        style: _hireStatStyle(canHireStar))),
-                    DataCell(Text(_fmtStat(spStats['AG']),
-                        style: _hireStatStyle(canHireStar))),
-                    DataCell(Text(_fmtStat(spStats['PA']),
-                        style: _hireStatStyle(canHireStar))),
-                    DataCell(Text(_fmtStat(spStats['AV']),
-                        style: _hireStatStyle(canHireStar))),
-                    DataCell(Wrap(
-                      spacing: 4,
-                      runSpacing: 2,
-                      children: spSkills
-                          .map((s) => GestureDetector(
-                                onTap: () =>
-                                    showSkillPopup(context, ref, skillName: s),
-                                child: MouseRegion(
-                                  cursor: SystemMouseCursors.click,
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 6, vertical: 2),
-                                    decoration: BoxDecoration(
+        builder: (context, constraints) {
+          final isHome = _homeTeam?.id == team.id;
+          final budget = _matchInducementBudget(
+            team: team,
+            isHome: isHome,
+            lang: lang,
+          );
+          return SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minWidth: constraints.maxWidth),
+              child: DataTable(
+                headingRowColor: WidgetStateProperty.all(AppColors.card),
+                dataRowColor: WidgetStateProperty.all(Colors.transparent),
+                columnSpacing: 8,
+                horizontalMargin: 12,
+                headingRowHeight: 40,
+                dataRowMinHeight: 48,
+                dataRowMaxHeight: 64,
+                headingTextStyle: const TextStyle(
+                    color: AppColors.textMuted,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5),
+                columns: const [
+                  DataColumn(label: Text('STAR PLAYER')),
+                  DataColumn(label: Text('')),
+                  DataColumn(label: Text('MA'), numeric: true),
+                  DataColumn(label: Text('ST'), numeric: true),
+                  DataColumn(label: Text('AG'), numeric: true),
+                  DataColumn(label: Text('PA'), numeric: true),
+                  DataColumn(label: Text('AV'), numeric: true),
+                  DataColumn(label: Text('SKILLS')),
+                  DataColumn(label: Text('COST'), numeric: true),
+                  DataColumn(label: Text('')),
+                ],
+                rows: starPlayers.map((sp) {
+                  final spId = sp['id'] as String? ?? '';
+                  final spName = sp['name'] as String? ?? '';
+                  final spCost = (sp['cost'] as num?)?.toInt() ?? 0;
+                  final spStats = sp['stats'] as Map<String, dynamic>? ?? {};
+                  final spSkills =
+                      (sp['skills'] as List?)?.cast<String>() ?? [];
+                  final canAffordStar = budget.remaining >= spCost;
+                  final alreadyHired =
+                      activePlayers.any((p) => p.baseType == 'star_$spId');
+                  final canHireStar = canAffordStar &&
+                      !alreadyHired &&
+                      activePlayers.length < 16;
+                  final blockLabel = alreadyHired
+                      ? 'HIRED'
+                      : activePlayers.length >= 16
+                          ? 'FULL'
+                          : 'NO FUNDS';
+                  return DataRow(
+                    color: WidgetStateProperty.resolveWith((_) => canHireStar
+                        ? null
+                        : AppColors.surfaceLight.withValues(alpha: 0.1)),
+                    cells: [
+                      DataCell(GestureDetector(
+                        onTap: () => _showStarPlayerDetail(sp, lang),
+                        child: MouseRegion(
+                          cursor: SystemMouseCursors.click,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(PhosphorIcons.star(PhosphorIconsStyle.fill),
+                                  size: 12, color: AppColors.accent),
+                              const SizedBox(width: 4),
+                              Text(spName.toUpperCase(),
+                                  style: TextStyle(
                                       color: canHireStar
                                           ? AppColors.accent
-                                              .withValues(alpha: 0.12)
-                                          : AppColors.surfaceLight
-                                              .withValues(alpha: 0.4),
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                    child: Text(s.toUpperCase(),
-                                        style: TextStyle(
-                                            color: canHireStar
-                                                ? AppColors.accent
-                                                : AppColors.textMuted,
-                                            fontSize: 8,
-                                            fontWeight: FontWeight.bold)),
-                                  ),
-                                ),
-                              ))
-                          .toList(),
-                    )),
-                    DataCell(Text(_fmtGold(spCost),
-                        style: TextStyle(
-                            color: canAffordStar
-                                ? AppColors.accent
-                                : AppColors.error,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold))),
-                    DataCell(canHireStar
-                        ? SizedBox(
-                            height: 32,
-                            child: ElevatedButton(
-                              onPressed: () => _showHireStarNameDialog(
-                                  dialogContext, team, sp, lang),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.accent,
-                                foregroundColor: Colors.black,
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 16),
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(6)),
-                              ),
-                              child: const Text('HIRE',
-                                  style: TextStyle(
-                                      fontSize: 11,
+                                          : AppColors.textMuted,
+                                      fontSize: 12,
                                       fontWeight: FontWeight.bold)),
-                            ),
-                          )
-                        : Text(blockLabel,
-                            style: const TextStyle(
-                                color: AppColors.textMuted,
-                                fontSize: 9,
-                                fontWeight: FontWeight.bold))),
-                  ],
-                );
-              }).toList(),
+                            ],
+                          ),
+                        ),
+                      )),
+                      DataCell(SizedBox(
+                        width: 28,
+                        height: 28,
+                        child: IconButton(
+                          onPressed: () => _showStarPlayerDetail(sp, lang),
+                          padding: EdgeInsets.zero,
+                          iconSize: 16,
+                          style: IconButton.styleFrom(
+                            side: BorderSide(
+                                color: AppColors.accent.withValues(alpha: 0.3)),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(6)),
+                          ),
+                          icon: Icon(PhosphorIcons.eye(PhosphorIconsStyle.fill),
+                              color: AppColors.accent, size: 14),
+                        ),
+                      )),
+                      DataCell(Text(_fmtStat(spStats['MA']),
+                          style: _hireStatStyle(canHireStar))),
+                      DataCell(Text(_fmtStat(spStats['ST']),
+                          style: _hireStatStyle(canHireStar))),
+                      DataCell(Text(_fmtStat(spStats['AG']),
+                          style: _hireStatStyle(canHireStar))),
+                      DataCell(Text(_fmtStat(spStats['PA']),
+                          style: _hireStatStyle(canHireStar))),
+                      DataCell(Text(_fmtStat(spStats['AV']),
+                          style: _hireStatStyle(canHireStar))),
+                      DataCell(Wrap(
+                        spacing: 4,
+                        runSpacing: 2,
+                        children: spSkills
+                            .map((s) => GestureDetector(
+                                  onTap: () => showSkillPopup(context, ref,
+                                      skillName: s),
+                                  child: MouseRegion(
+                                    cursor: SystemMouseCursors.click,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: canHireStar
+                                            ? AppColors.accent
+                                                .withValues(alpha: 0.12)
+                                            : AppColors.surfaceLight
+                                                .withValues(alpha: 0.4),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(s.toUpperCase(),
+                                          style: TextStyle(
+                                              color: canHireStar
+                                                  ? AppColors.accent
+                                                  : AppColors.textMuted,
+                                              fontSize: 8,
+                                              fontWeight: FontWeight.bold)),
+                                    ),
+                                  ),
+                                ))
+                            .toList(),
+                      )),
+                      DataCell(Text(_fmtGold(spCost),
+                          style: TextStyle(
+                              color: canAffordStar
+                                  ? AppColors.accent
+                                  : AppColors.error,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold))),
+                      DataCell(canHireStar
+                          ? SizedBox(
+                              height: 32,
+                              child: ElevatedButton(
+                                onPressed: () => _showHireStarNameDialog(
+                                    dialogContext, team, sp, lang),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.accent,
+                                  foregroundColor: Colors.black,
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(6)),
+                                ),
+                                child: const Text('HIRE',
+                                    style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold)),
+                              ),
+                            )
+                          : Text(blockLabel,
+                              style: const TextStyle(
+                                  color: AppColors.textMuted,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold))),
+                    ],
+                  );
+                }).toList(),
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
@@ -1162,6 +1194,7 @@ extension _LiveMatchDialogs on _LiveMatchScreenState {
       int? number,
       required bool mercenary}) async {
     try {
+      await _syncCurrentInducementsToServer();
       final teamRepo = ref.read(teamRepositoryProvider);
       await teamRepo.hirePlayer(teamId,
           baseType: baseType,
@@ -1169,7 +1202,8 @@ extension _LiveMatchDialogs on _LiveMatchScreenState {
           number: number,
           temporaryForMatch: true,
           temporaryMatchId: widget.matchId,
-          mercenary: mercenary);
+          mercenary: mercenary,
+          leagueId: widget.leagueId);
       // After refresh, find the newly added player and mark as temp
       await _doRefreshPreMatch();
       _refresh();
@@ -1302,17 +1336,17 @@ extension _LiveMatchDialogs on _LiveMatchScreenState {
   }
 
   Future<void> _hireStarPlayer(String teamId,
-      {required String starPlayerId,
-      String? name,
-      int? number}) async {
+      {required String starPlayerId, String? name, int? number}) async {
     try {
+      await _syncCurrentInducementsToServer();
       final teamRepo = ref.read(teamRepositoryProvider);
       await teamRepo.hireStarPlayer(teamId,
           starPlayerId: starPlayerId,
           name: name,
           number: number,
           temporaryForMatch: true,
-          temporaryMatchId: widget.matchId);
+          temporaryMatchId: widget.matchId,
+          leagueId: widget.leagueId);
       // After refresh, find the newly added star and mark as temp
       await _doRefreshPreMatch();
       _refresh();

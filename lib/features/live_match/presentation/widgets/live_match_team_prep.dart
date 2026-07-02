@@ -75,7 +75,6 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
     final rosterPlayers = _preMatchRosterPlayers(team, isHome);
     final availablePlayers = _preMatchAvailablePlayers(team, isHome);
     final rosterPlayerIds = rosterPlayers.map((player) => player.id).toSet();
-    final activeCount = availablePlayers.length;
     final woundedCount = rosterPlayers
         .where((p) => p.status != 'healthy' && p.status != 'dead')
         .length;
@@ -170,7 +169,10 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
                   ],
                 );
 
-                final currentTeamValue = _teamCurrentValue(team);
+                final currentTeamValue = _matchInducementTeamValue(
+                  team,
+                  isHome ? _homeBaseRoster : _awayBaseRoster,
+                );
                 final teamValueLabel =
                     tr(lang, 'team.teamValueShort').toUpperCase();
                 final currentTeamValueLabel =
@@ -1226,17 +1228,31 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
       .replaceAll(RegExp(r'[^a-z0-9]+'), ' ')
       .trim();
 
+  int _currentMatchTemporaryHireSpend(UserTeamDetail team) {
+    var total = 0;
+    for (final player in team.players) {
+      if (!player.temporaryForMatch ||
+          player.temporaryMatchId != widget.matchId) {
+        continue;
+      }
+      if (player.baseType.startsWith('star_') || !player.journeyman) {
+        total += player.currentValue;
+      }
+    }
+    return total;
+  }
+
   int _matchInducementsTotal(
     UserTeamDetail team,
     BaseTeam? baseRoster,
     bool isHome,
     String lang,
   ) {
+    var total = _currentMatchTemporaryHireSpend(team);
     final rules = ref.read(inducementRulesProvider).valueOrNull;
-    if (rules == null) return 0;
+    if (rules == null) return total;
     final purchases =
         isHome ? _homeInducementPurchases : _awayInducementPurchases;
-    var total = 0;
     for (final rule in rules.inducements) {
       final count = purchases[rule.id] ?? 0;
       if (count == 0) continue;
@@ -1254,7 +1270,10 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
     final homeTeam = _homeTeam;
     final awayTeam = _awayTeam;
     if (homeTeam == null || awayTeam == null) {
-      final ctv = _teamCurrentValue(team);
+      final ctv = _matchInducementTeamValue(
+        team,
+        isHome ? _homeBaseRoster : _awayBaseRoster,
+      );
       return _InducementBudget(
         teamCurrentValue: ctv,
         opponentCurrentValue: 0,
@@ -1272,8 +1291,8 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
       );
     }
 
-    final homeCtv = _teamCurrentValue(homeTeam);
-    final awayCtv = _teamCurrentValue(awayTeam);
+    final homeCtv = _matchInducementTeamValue(homeTeam, _homeBaseRoster);
+    final awayCtv = _matchInducementTeamValue(awayTeam, _awayBaseRoster);
     final homeLocalSpent = _matchInducementsTotal(
       homeTeam,
       _homeBaseRoster,
@@ -1286,8 +1305,8 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
       false,
       lang,
     );
-    final homeSpent = _trackedInducementSpend(true, homeLocalSpent);
-    final awaySpent = _trackedInducementSpend(false, awayLocalSpent);
+    final homeSpent = homeLocalSpent;
+    final awaySpent = awayLocalSpent;
     final selectedTeam = isHome ? homeTeam : awayTeam;
     final selectedSpent = isHome ? homeSpent : awaySpent;
     final selectedCtv = isHome ? homeCtv : awayCtv;
@@ -1316,7 +1335,7 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
     final ctvDifference = (homeCtv - awayCtv).abs();
 
     if (selectedIsFavorite) {
-      final totalAvailable = selectedTeam.treasury + selectedSpent;
+      final totalAvailable = selectedTeam.treasury;
       final remaining = totalAvailable - selectedSpent;
       return _InducementBudget(
         teamCurrentValue: selectedCtv,
@@ -1337,15 +1356,12 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
 
     final favoriteSpent = homeIsFavorite ? homeSpent : awaySpent;
     final pettyCash = ctvDifference + favoriteSpent;
+    final treasuryAllowance = _treasuryTopUpAllowance(selectedTeam);
     final treasuryContribution = _treasuryContributionForSpend(
       selectedSpent,
       pettyCash,
-      50000,
+      treasuryAllowance,
       isFavorite: false,
-    );
-    final treasuryAllowance = _treasuryTopUpAllowance(
-      selectedTeam,
-      treasuryContribution,
     );
     final totalAvailable = pettyCash + treasuryAllowance;
     final remaining = totalAvailable - selectedSpent;
@@ -1366,29 +1382,46 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
     );
   }
 
-  int _teamCurrentValue(UserTeamDetail team) =>
-      team.currentTeamValue > 0 ? team.currentTeamValue : team.teamValue;
+  int _matchInducementTeamValue(UserTeamDetail team, BaseTeam? baseRoster) {
+    final ignoredPlayerTypes = <String>{};
+    if (baseRoster != null &&
+        _teamHasSpecialRule(baseRoster, 'low cost linemen')) {
+      for (final position in baseRoster.positions) {
+        if ((position.position ?? position.name).toLowerCase() == 'lineman') {
+          ignoredPlayerTypes.add(position.id);
+        }
+      }
+    }
 
-  int _trackedInducementSpend(bool isHome, int localSpent) {
-    final tracked = isHome ? _homeInducementSpent : _awayInducementSpent;
-    final baseline = isHome
-        ? _homeInducementTreasuryBaseline
-        : _awayInducementTreasuryBaseline;
-    final team = isHome ? _homeTeam : _awayTeam;
-    final treasuryDrop =
-        baseline != null && team != null ? baseline - team.treasury : 0;
-    final restored = treasuryDrop > 0 ? treasuryDrop : 0;
-    final bestLocal = tracked > localSpent ? tracked : localSpent;
-    return restored > bestLocal ? restored : bestLocal;
+    var playerValue = 0;
+    var unavailablePlayerValue = 0;
+    for (final player in team.players) {
+      if (player.status == 'dead') continue;
+      if (player.temporaryForMatch &&
+          player.temporaryMatchId == widget.matchId) {
+        continue;
+      }
+      if (ignoredPlayerTypes.contains(player.baseType)) continue;
+      playerValue += player.currentValue;
+      if (player.status != 'healthy') {
+        unavailablePlayerValue += player.currentValue;
+      }
+    }
+
+    final rerollCost = baseRoster?.rerollCost ?? team.rerollCost;
+    final sidelineStaffValue = (team.rerolls * rerollCost) +
+        (team.assistantCoaches * 10000) +
+        (team.cheerleaders * 10000) +
+        (team.apothecary ? 50000 : 0);
+    final teamValue = playerValue + sidelineStaffValue;
+    return teamValue - unavailablePlayerValue < 0
+        ? 0
+        : teamValue - unavailablePlayerValue;
   }
 
-  int _treasuryTopUpAllowance(
-    UserTeamDetail team,
-    int currentTreasuryContribution,
-  ) {
-    final treasuryCapacity = team.treasury + currentTreasuryContribution;
-    if (treasuryCapacity <= 0) return 0;
-    return treasuryCapacity < 50000 ? treasuryCapacity : 50000;
+  int _treasuryTopUpAllowance(UserTeamDetail team) {
+    if (team.treasury <= 0) return 0;
+    return team.treasury < 50000 ? team.treasury : 50000;
   }
 
   int _treasuryContributionForSpend(
@@ -1894,17 +1927,6 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
     if (nextSpent < 0) return;
     if (delta > 0 && nextSpent > budget.totalAvailable) return;
 
-    final nextTreasuryContribution = _treasuryContributionForSpend(
-      nextSpent,
-      budget.pettyCash,
-      budget.treasuryAllowance,
-      isFavorite: budget.isFavorite,
-    );
-    final treasuryDelta =
-        nextTreasuryContribution - budget.treasuryContribution;
-    final nextTreasury = team.treasury - treasuryDelta;
-    if (nextTreasury < 0) return;
-
     final key = '${team.id}:${rule.id}';
     _updateLocalState(() => _inducementMutatingKeys.add(key));
     try {
@@ -1944,7 +1966,6 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
         }
       }
 
-      final teamRepo = ref.read(teamRepositoryProvider);
       var updatedTeam = team;
       if (delta < 0 && rule.id == 'riotous_rookies') {
         updatedTeam = await _releaseRiotousRookies(
@@ -1952,10 +1973,6 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
           isHome: isHome,
         );
       }
-      updatedTeam = await teamRepo.patchTeamStaff(
-        updatedTeam.id,
-        treasury: nextTreasury,
-      );
       if (riotousRoll != null) {
         updatedTeam = await _hireRiotousRookies(
           team: updatedTeam,
@@ -1996,10 +2013,8 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
           awayInducementDetails: nextAwayDetails,
         );
         if (isHome) {
-          _homeInducementSpent = nextSpent;
           _homeTeam = updatedTeam;
         } else {
-          _awayInducementSpent = nextSpent;
           _awayTeam = updatedTeam;
         }
       });

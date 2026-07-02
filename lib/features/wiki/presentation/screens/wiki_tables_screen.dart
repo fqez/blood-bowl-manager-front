@@ -9,7 +9,8 @@ import '../../../shared/data/team_repository.dart';
 import '../widgets/wiki_dice_board.dart';
 import '../widgets/wiki_page_layout.dart';
 
-final _wikiTablesCatalogProvider = FutureProvider<_WikiTablesCatalog>((ref) async {
+final _wikiTablesCatalogProvider =
+    FutureProvider<_WikiTablesCatalog>((ref) async {
   final repo = ref.watch(teamRepositoryProvider);
   return _WikiTablesCatalog(
     weather: await repo.getWeatherRules(),
@@ -168,10 +169,12 @@ class _WikiTablesScreenState extends ConsumerState<WikiTablesScreen> {
                         vertical: 10,
                       ),
                       decoration: BoxDecoration(
-                        color: section.entries.first.color.withValues(alpha: 0.14),
+                        color:
+                            section.entries.first.color.withValues(alpha: 0.14),
                         borderRadius: BorderRadius.circular(999),
                         border: Border.all(
-                          color: section.entries.first.color.withValues(alpha: 0.28),
+                          color: section.entries.first.color
+                              .withValues(alpha: 0.28),
                         ),
                       ),
                       child: Text(
@@ -208,7 +211,8 @@ class _WikiTablesScreenState extends ConsumerState<WikiTablesScreen> {
       _buildRangeSection(
         id: 'weather',
         title: _text(lang, 'Tabla de clima', 'Weather Table'),
-        subtitle: _text(lang, 'Catálogo backend · 2D6', 'Backend catalogue · 2D6'),
+        subtitle:
+            _text(lang, 'Catálogo backend · 2D6', 'Backend catalogue · 2D6'),
         headerIcon: PhosphorIcons.cloudSun(PhosphorIconsStyle.bold),
         diceAssetPath: 'assets/images/dice/2D6.png',
         entries: catalog.weather.table
@@ -218,7 +222,8 @@ class _WikiTablesScreenState extends ConsumerState<WikiTablesScreen> {
               (entry) => _diceEntry(
                 roll: entry.value.rollLabel,
                 title: entry.value.localizedLabel(lang),
-                description: _firstSentence(entry.value.localizedDescription(lang)),
+                description:
+                    _firstSentence(entry.value.localizedDescription(lang)),
                 color: _palette(entry.key),
                 icon: PhosphorIcons.cloudSun(PhosphorIconsStyle.regular),
               ),
@@ -228,7 +233,8 @@ class _WikiTablesScreenState extends ConsumerState<WikiTablesScreen> {
       _buildRangeSection(
         id: 'kickoff',
         title: _text(lang, 'Tabla de evento de saque', 'Kick-off Event Table'),
-        subtitle: _text(lang, 'Catálogo backend · 2D6', 'Backend catalogue · 2D6'),
+        subtitle:
+            _text(lang, 'Catálogo backend · 2D6', 'Backend catalogue · 2D6'),
         headerIcon: PhosphorIcons.football(PhosphorIconsStyle.bold),
         diceAssetPath: 'assets/images/dice/2D6.png',
         entries: catalog.kickoffEvents.table
@@ -238,7 +244,8 @@ class _WikiTablesScreenState extends ConsumerState<WikiTablesScreen> {
               (entry) => _diceEntry(
                 roll: entry.value.rollLabel,
                 title: entry.value.localizedLabel(lang),
-                description: _firstSentence(entry.value.localizedDescription(lang)),
+                description:
+                    _firstSentence(entry.value.localizedDescription(lang)),
                 color: _palette(entry.key),
                 icon: PhosphorIcons.football(PhosphorIconsStyle.regular),
               ),
@@ -248,7 +255,8 @@ class _WikiTablesScreenState extends ConsumerState<WikiTablesScreen> {
       _buildRangeSection(
         id: 'injury',
         title: _text(lang, 'Tabla de lesiones', 'Injury Table'),
-        subtitle: _text(lang, 'Catálogo backend · 2D6', 'Backend catalogue · 2D6'),
+        subtitle:
+            _text(lang, 'Catálogo backend · 2D6', 'Backend catalogue · 2D6'),
         headerIcon: PhosphorIcons.heartBreak(PhosphorIconsStyle.bold),
         diceAssetPath: 'assets/images/dice/2D6.png',
         entries: catalog.injuries.injuryTable
@@ -258,7 +266,8 @@ class _WikiTablesScreenState extends ConsumerState<WikiTablesScreen> {
               (entry) => _diceEntry(
                 roll: entry.value.rangeLabel,
                 title: entry.value.localizedLabel(lang),
-                description: _firstSentence(entry.value.localizedDescription(lang)),
+                description:
+                    _firstSentence(entry.value.localizedDescription(lang)),
                 color: _palette(entry.key),
                 icon: PhosphorIcons.heartBreak(PhosphorIconsStyle.regular),
               ),
@@ -268,7 +277,8 @@ class _WikiTablesScreenState extends ConsumerState<WikiTablesScreen> {
       _buildRangeSection(
         id: 'stunty-injury',
         title: _text(lang, 'Tabla de lesiones stunty', 'Stunty Injury Table'),
-        subtitle: _text(lang, 'Catálogo backend · 2D6', 'Backend catalogue · 2D6'),
+        subtitle:
+            _text(lang, 'Catálogo backend · 2D6', 'Backend catalogue · 2D6'),
         headerIcon: PhosphorIcons.heartBreak(PhosphorIconsStyle.bold),
         diceAssetPath: 'assets/images/dice/2D6.png',
         entries: catalog.injuries.stuntyInjuryTable
@@ -278,7 +288,8 @@ class _WikiTablesScreenState extends ConsumerState<WikiTablesScreen> {
               (entry) => _diceEntry(
                 roll: entry.value.rangeLabel,
                 title: entry.value.localizedLabel(lang),
-                description: _firstSentence(entry.value.localizedDescription(lang)),
+                description:
+                    _firstSentence(entry.value.localizedDescription(lang)),
                 color: _palette(entry.key + 1),
                 icon: PhosphorIcons.heartBreak(PhosphorIconsStyle.regular),
               ),
@@ -288,7 +299,8 @@ class _WikiTablesScreenState extends ConsumerState<WikiTablesScreen> {
       _buildRangeSection(
         id: 'casualty',
         title: _text(lang, 'Tabla de bajas', 'Casualty Table'),
-        subtitle: _text(lang, 'Catálogo backend · 1D16', 'Backend catalogue · 1D16'),
+        subtitle:
+            _text(lang, 'Catálogo backend · 1D16', 'Backend catalogue · 1D16'),
         headerIcon: PhosphorIcons.heartBreak(PhosphorIconsStyle.bold),
         diceAssetPath: 'assets/images/dice/1D16.png',
         entries: catalog.injuries.casualtyTable
@@ -307,8 +319,10 @@ class _WikiTablesScreenState extends ConsumerState<WikiTablesScreen> {
       ),
       _buildRangeSection(
         id: 'lasting-injury',
-        title: _text(lang, 'Tabla de lesión persistente', 'Lasting Injury Table'),
-        subtitle: _text(lang, 'Catálogo backend · 1D6', 'Backend catalogue · 1D6'),
+        title:
+            _text(lang, 'Tabla de lesión persistente', 'Lasting Injury Table'),
+        subtitle:
+            _text(lang, 'Catálogo backend · 1D6', 'Backend catalogue · 1D6'),
         headerIcon: PhosphorIcons.heartBreak(PhosphorIconsStyle.bold),
         diceAssetPath: 'assets/images/dice/1D6.png',
         entries: catalog.injuries.lastingInjuryTable
@@ -328,7 +342,8 @@ class _WikiTablesScreenState extends ConsumerState<WikiTablesScreen> {
       _buildRangeSection(
         id: 'spp-rewards',
         title: _text(lang, 'Recompensas de SPP', 'SPP Rewards'),
-        subtitle: _text(lang, 'Catálogo backend · Logros y MVP', 'Backend catalogue · Achievements and MVP'),
+        subtitle: _text(lang, 'Catálogo backend · Logros y MVP',
+            'Backend catalogue · Achievements and MVP'),
         headerIcon: PhosphorIcons.trophy(PhosphorIconsStyle.bold),
         diceAssetPath: 'assets/images/dice/1D6.png',
         entries: _buildSppEntries(lang, catalog.sppRewards),
@@ -338,8 +353,10 @@ class _WikiTablesScreenState extends ConsumerState<WikiTablesScreen> {
       ),
       _buildRangeSection(
         id: 'advancement-costs',
-        title: _text(lang, 'Tabla de coste de avances', 'Advancement Cost Table'),
-        subtitle: _text(lang, 'Catálogo backend · 1 a 6 avances', 'Backend catalogue · 1 to 6 advancements'),
+        title:
+            _text(lang, 'Tabla de coste de avances', 'Advancement Cost Table'),
+        subtitle: _text(lang, 'Catálogo backend · 1 a 6 avances',
+            'Backend catalogue · 1 to 6 advancements'),
         headerIcon: PhosphorIcons.star(PhosphorIconsStyle.bold),
         diceAssetPath: 'assets/images/dice/1D6.png',
         entries: catalog.advancements.costTable
@@ -360,8 +377,10 @@ class _WikiTablesScreenState extends ConsumerState<WikiTablesScreen> {
       ),
       _buildRangeSection(
         id: 'characteristics',
-        title: _text(lang, 'Tabla de mejora de característica', 'Characteristic Improvement Table'),
-        subtitle: _text(lang, 'Catálogo backend · 1D8', 'Backend catalogue · 1D8'),
+        title: _text(lang, 'Tabla de mejora de característica',
+            'Characteristic Improvement Table'),
+        subtitle:
+            _text(lang, 'Catálogo backend · 1D8', 'Backend catalogue · 1D8'),
         headerIcon: PhosphorIcons.star(PhosphorIconsStyle.bold),
         diceAssetPath: 'assets/images/dice/1D8.png',
         entries: catalog.advancements.characteristicTable
@@ -371,7 +390,8 @@ class _WikiTablesScreenState extends ConsumerState<WikiTablesScreen> {
               (entry) => _diceEntry(
                 roll: _rangeLabel(entry.value.minRoll, entry.value.maxRoll),
                 title: entry.value.choices.join(' / '),
-                description: _firstSentence(_localized(entry.value.description, lang)),
+                description:
+                    _firstSentence(_localized(entry.value.description, lang)),
                 color: _palette(entry.key + 1),
                 icon: PhosphorIcons.star(PhosphorIconsStyle.regular),
               ),
@@ -381,7 +401,8 @@ class _WikiTablesScreenState extends ConsumerState<WikiTablesScreen> {
       _buildRangeSection(
         id: 'value-increases',
         title: _text(lang, 'Tabla de aumento de valor', 'Value Increase Table'),
-        subtitle: _text(lang, 'Catálogo backend · Impacto en TV', 'Backend catalogue · Team value impact'),
+        subtitle: _text(lang, 'Catálogo backend · Impacto en TV',
+            'Backend catalogue · Team value impact'),
         headerIcon: PhosphorIcons.star(PhosphorIconsStyle.bold),
         diceAssetPath: 'assets/images/dice/1D6.png',
         entries: catalog.advancements.valueIncreases
@@ -405,8 +426,10 @@ class _WikiTablesScreenState extends ConsumerState<WikiTablesScreen> {
       ),
       _buildRangeSection(
         id: 'skill-categories',
-        title: _text(lang, 'Tabla de categorías de habilidades', 'Skill Categories Table'),
-        subtitle: _text(lang, 'Catálogo backend · Claves oficiales', 'Backend catalogue · Official shorthands'),
+        title: _text(lang, 'Tabla de categorías de habilidades',
+            'Skill Categories Table'),
+        subtitle: _text(lang, 'Catálogo backend · Claves oficiales',
+            'Backend catalogue · Official shorthands'),
         headerIcon: PhosphorIcons.book(PhosphorIconsStyle.bold),
         diceAssetPath: 'assets/images/dice/1D6.png',
         entries: catalog.advancements.skillCategories
@@ -429,8 +452,10 @@ class _WikiTablesScreenState extends ConsumerState<WikiTablesScreen> {
       ),
       _buildRangeSection(
         id: 'random-primary-skills',
-        title: _text(lang, 'Tabla de primaria aleatoria', 'Random Primary Skill Table'),
-        subtitle: _text(lang, 'Catálogo backend · 2D6', 'Backend catalogue · 2D6'),
+        title: _text(
+            lang, 'Tabla de primaria aleatoria', 'Random Primary Skill Table'),
+        subtitle:
+            _text(lang, 'Catálogo backend · 2D6', 'Backend catalogue · 2D6'),
         headerIcon: PhosphorIcons.book(PhosphorIconsStyle.bold),
         diceAssetPath: 'assets/images/dice/2D6.png',
         entries: catalog.advancements.randomPrimarySkillTable
@@ -452,7 +477,8 @@ class _WikiTablesScreenState extends ConsumerState<WikiTablesScreen> {
       _buildRangeSection(
         id: 'inducements',
         title: _text(lang, 'Catálogo de incentivos', 'Inducement Catalogue'),
-        subtitle: _text(lang, 'Catálogo backend · Compra previa al partido', 'Backend catalogue · Pre-match purchases'),
+        subtitle: _text(lang, 'Catálogo backend · Compra previa al partido',
+            'Backend catalogue · Pre-match purchases'),
         headerIcon: PhosphorIcons.shield(PhosphorIconsStyle.bold),
         diceAssetPath: 'assets/images/dice/1D6.png',
         entries: catalog.inducements.inducements
@@ -474,8 +500,10 @@ class _WikiTablesScreenState extends ConsumerState<WikiTablesScreen> {
       ),
       _buildRangeSection(
         id: 'prayers-to-nuffle',
-        title: _text(lang, 'Tabla de plegarias a Nuffle', 'Prayers to Nuffle Table'),
-        subtitle: _text(lang, 'Catálogo backend · 1D16', 'Backend catalogue · 1D16'),
+        title: _text(
+            lang, 'Tabla de plegarias a Nuffle', 'Prayers to Nuffle Table'),
+        subtitle:
+            _text(lang, 'Catálogo backend · 1D16', 'Backend catalogue · 1D16'),
         headerIcon: PhosphorIcons.shield(PhosphorIconsStyle.bold),
         diceAssetPath: 'assets/images/dice/1D16.png',
         entries: catalog.inducements.prayersToNuffle
@@ -485,7 +513,8 @@ class _WikiTablesScreenState extends ConsumerState<WikiTablesScreen> {
               (entry) => _diceEntry(
                 roll: '${entry.value.roll}',
                 title: entry.value.localizedName(lang),
-                description: _firstSentence(entry.value.localizedDescription(lang)),
+                description:
+                    _firstSentence(entry.value.localizedDescription(lang)),
                 color: _palette(entry.key + 1),
                 icon: PhosphorIcons.shield(PhosphorIconsStyle.regular),
               ),
@@ -494,8 +523,10 @@ class _WikiTablesScreenState extends ConsumerState<WikiTablesScreen> {
       ),
       _buildRangeSection(
         id: 'expensive-mistakes',
-        title: _text(lang, 'Tabla de errores caros', 'Expensive Mistakes Table'),
-        subtitle: _text(lang, 'Catálogo backend · Bandas de tesorería + D6', 'Backend catalogue · Treasury bands + D6'),
+        title:
+            _text(lang, 'Tabla de errores caros', 'Expensive Mistakes Table'),
+        subtitle: _text(lang, 'Catálogo backend · Bandas de tesorería + D6',
+            'Backend catalogue · Treasury bands + D6'),
         headerIcon: PhosphorIcons.coins(PhosphorIconsStyle.bold),
         diceAssetPath: 'assets/images/dice/1D6.png',
         entries: catalog.expensiveMistakes.bands
@@ -641,7 +672,8 @@ String _inducementSummary(String lang, InducementRule rule) {
       'Max ${rule.maxPerTeam} per team',
     ),
   );
-  summary.add(_text(lang, 'Duración ${_formatId(rule.duration)}', 'Duration ${_formatId(rule.duration)}'));
+  summary.add(_text(lang, 'Duración ${_formatId(rule.duration)}',
+      'Duration ${_formatId(rule.duration)}'));
   if (rule.requiredSpecialRules.isNotEmpty) {
     summary.add(
       _text(
@@ -659,7 +691,8 @@ String _inducementRoll(InducementRule rule) {
     return _formatGold(rule.cost!);
   }
   if (rule.costOptions.isNotEmpty) {
-    final values = rule.costOptions.map((option) => option.cost).toList()..sort();
+    final values = rule.costOptions.map((option) => option.cost).toList()
+      ..sort();
     return '${_formatGold(values.first)}-${_formatGold(values.last)}';
   }
   return _formatId(rule.category);
@@ -714,7 +747,8 @@ String _advancementTypeLabel(String lang, String value) {
     case 'choose_secondary_skill':
       return _text(lang, 'Secundaria elegida', 'Chosen secondary skill');
     case 'characteristic_improvement':
-      return _text(lang, 'Mejora de característica', 'Characteristic improvement');
+      return _text(
+          lang, 'Mejora de característica', 'Characteristic improvement');
     default:
       return _formatId(value);
   }
@@ -752,7 +786,8 @@ String _text(String lang, String es, String en) {
   return lang == 'en' ? en : es;
 }
 
-String _localized(Map<String, String> values, String lang, [String fallback = '']) {
+String _localized(Map<String, String> values, String lang,
+    [String fallback = '']) {
   return values[lang] ?? values['en'] ?? fallback;
 }
 

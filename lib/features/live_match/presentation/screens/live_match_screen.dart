@@ -66,8 +66,7 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
   Timer? _clockTimer;
   Timer? _inducementBudgetTimer;
   Duration _elapsed = Duration.zero;
-  final ValueNotifier<Duration> _elapsedNotifier =
-      ValueNotifier(Duration.zero);
+  final ValueNotifier<Duration> _elapsedNotifier = ValueNotifier(Duration.zero);
   DateTime? _matchStartedAt;
 
   List<UserPlayer>? _homePlayers;
@@ -108,12 +107,8 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
   final Map<String, List<String>> _homeInducementDetails = {};
   final Map<String, List<String>> _awayInducementDetails = {};
   final Set<String> _inducementMutatingKeys = {};
-  int _homeInducementSpent = 0;
-  int _awayInducementSpent = 0;
   int _homeRerollAdjustment = 0;
   int _awayRerollAdjustment = 0;
-  int? _homeInducementTreasuryBaseline;
-  int? _awayInducementTreasuryBaseline;
 
   // ── Quick-match helpers ──
   bool get _isQM => widget.isQuickMatch;
@@ -534,8 +529,6 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
     if (_isQM) return;
     final prefs = await SharedPreferences.getInstance();
     final prefix = _inducementStoragePrefix;
-    final storedHomeSpent = prefs.getInt('$prefix:homeSpent');
-    final storedAwaySpent = prefs.getInt('$prefix:awaySpent');
     final storedHomePurchases = _decodeInducementPurchases(
         prefs.getStringList('$prefix:homePurchases'));
     final storedAwayPurchases = _decodeInducementPurchases(
@@ -544,17 +537,11 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
         _decodeInducementPurchases(prefs.getStringList('$prefix:homeUses'));
     final storedAwayUses =
         _decodeInducementPurchases(prefs.getStringList('$prefix:awayUses'));
-    final homeSpent = storedHomeSpent ?? _homeInducementSpent;
-    final awaySpent = storedAwaySpent ?? _awayInducementSpent;
-    final storedHomeBaseline = prefs.getInt('$prefix:homeTreasuryBaseline');
-    final storedAwayBaseline = prefs.getInt('$prefix:awayTreasuryBaseline');
     final storedHomeRerollAdjustment =
         prefs.getInt('$prefix:homeRerollAdjustment');
     final storedAwayRerollAdjustment =
         prefs.getInt('$prefix:awayRerollAdjustment');
 
-    _homeInducementSpent = homeSpent;
-    _awayInducementSpent = awaySpent;
     if (storedHomePurchases.isNotEmpty && _homeInducementPurchases.isEmpty) {
       _homeInducementPurchases
         ..clear()
@@ -577,29 +564,6 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
     }
     _homeRerollAdjustment = storedHomeRerollAdjustment ?? _homeRerollAdjustment;
     _awayRerollAdjustment = storedAwayRerollAdjustment ?? _awayRerollAdjustment;
-    _homeInducementTreasuryBaseline =
-        storedHomeBaseline ?? home.treasury + homeSpent;
-    _awayInducementTreasuryBaseline =
-        storedAwayBaseline ?? away.treasury + awaySpent;
-
-    if (storedHomeBaseline == null) {
-      await prefs.setInt(
-        '$prefix:homeTreasuryBaseline',
-        _homeInducementTreasuryBaseline!,
-      );
-    }
-    if (storedAwayBaseline == null) {
-      await prefs.setInt(
-        '$prefix:awayTreasuryBaseline',
-        _awayInducementTreasuryBaseline!,
-      );
-    }
-    if (storedHomeSpent == null) {
-      await prefs.setInt('$prefix:homeSpent', _homeInducementSpent);
-    }
-    if (storedAwaySpent == null) {
-      await prefs.setInt('$prefix:awaySpent', _awayInducementSpent);
-    }
     if (storedHomePurchases.isEmpty && _homeInducementPurchases.isNotEmpty) {
       await prefs.setStringList(
         '$prefix:homePurchases',
@@ -661,8 +625,6 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
     if (_isQM) return;
     final prefs = await SharedPreferences.getInstance();
     final prefix = _inducementStoragePrefix;
-    await prefs.setInt('$prefix:homeSpent', _homeInducementSpent);
-    await prefs.setInt('$prefix:awaySpent', _awayInducementSpent);
     await prefs.setStringList(
       '$prefix:homePurchases',
       _encodeInducementPurchases(_homeInducementPurchases),
@@ -681,14 +643,6 @@ class _LiveMatchScreenState extends ConsumerState<LiveMatchScreen> {
     );
     await prefs.setInt('$prefix:homeRerollAdjustment', _homeRerollAdjustment);
     await prefs.setInt('$prefix:awayRerollAdjustment', _awayRerollAdjustment);
-    final homeBaseline = _homeInducementTreasuryBaseline;
-    final awayBaseline = _awayInducementTreasuryBaseline;
-    if (homeBaseline != null) {
-      await prefs.setInt('$prefix:homeTreasuryBaseline', homeBaseline);
-    }
-    if (awayBaseline != null) {
-      await prefs.setInt('$prefix:awayTreasuryBaseline', awayBaseline);
-    }
   }
 
   List<String> _encodeInducementPurchases(Map<String, int> purchases) {

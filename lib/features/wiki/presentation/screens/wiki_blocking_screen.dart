@@ -468,4 +468,3 @@ Widget _buildRichDescription(
 }
 
 // ── Data classes ────────────────────────────────────────────────────────────
-
