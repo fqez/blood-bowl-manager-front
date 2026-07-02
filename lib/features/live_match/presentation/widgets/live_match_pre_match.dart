@@ -127,6 +127,12 @@ extension _LiveMatchPreMatch on _LiveMatchScreenState {
                 Builder(builder: (context) {
                   final currentUserId =
                       ref.read(authStateProvider).valueOrNull?.user?.id;
+                  final league = _isQM
+                      ? null
+                      : ref
+                          .watch(_liveMatchLeagueProvider(widget.leagueId))
+                          .valueOrNull;
+                  final isCommissioner = league?.isCommissioner == true;
                   return Column(children: [
                     _buildTeamPrepCard(
                       team: _homeTeam!,
@@ -134,7 +140,8 @@ extension _LiveMatchPreMatch on _LiveMatchScreenState {
                       match: match,
                       lang: lang,
                       isHome: true,
-                      canEdit: match.home.userId == currentUserId,
+                      canEdit:
+                          match.home.userId == currentUserId || isCommissioner,
                     ),
                     const SizedBox(height: 16),
                     _buildTeamPrepCard(
@@ -143,7 +150,8 @@ extension _LiveMatchPreMatch on _LiveMatchScreenState {
                       match: match,
                       lang: lang,
                       isHome: false,
-                      canEdit: match.away.userId == currentUserId,
+                      canEdit:
+                          match.away.userId == currentUserId || isCommissioner,
                     ),
                   ]);
                 }),

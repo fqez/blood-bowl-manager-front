@@ -18,7 +18,6 @@ import '../../../shared/data/repositories.dart';
 import '../../../shared/utils/player_advancement.dart';
 import '../../../shared/utils/player_position_labels.dart';
 import '../../domain/models/team.dart';
-import '../screens/roster_screen.dart';
 import '../utils/player_image_picker.dart';
 import '../../../shared/presentation/widgets/skill_popup.dart';
 
@@ -50,6 +49,101 @@ final _playerUserTeamDetailProvider = FutureProvider.autoDispose
   }
   return ref.watch(teamRepositoryProvider).getUserTeamDetail(teamId);
 });
+
+final _playerTeamProvider =
+    FutureProvider.autoDispose.family<Team, String>((ref, teamKey) async {
+  final detail = await ref.watch(_playerUserTeamDetailProvider(teamKey).future);
+  return _teamFromUserTeamDetail(detail, teamKey: teamKey);
+});
+
+Team _teamFromUserTeamDetail(
+  UserTeamDetail detail, {
+  required String teamKey,
+}) {
+  final leagueId = teamKey.startsWith('league|')
+      ? teamKey.substring(7, teamKey.indexOf('|', 7))
+      : null;
+
+  return Team(
+    id: detail.id,
+    name: detail.name,
+    baseTeamId: detail.baseRosterId,
+    ownerId: detail.userId,
+    treasury: detail.treasury,
+    teamValue: detail.teamValue,
+    currentTeamValue: detail.currentTeamValue,
+    rerolls: detail.rerolls,
+    rerollCost: detail.rerollCost,
+    fanFactor: detail.fanFactor,
+    assistantCoaches: detail.assistantCoaches,
+    cheerleaders: detail.cheerleaders,
+    apothecary: detail.apothecary,
+    characters: detail.players.map(_characterFromUserPlayer).toList(),
+    createdAt: detail.createdAt,
+    leagueId: leagueId,
+  );
+}
+
+Character _characterFromUserPlayer(UserPlayer player) {
+  return Character(
+    id: player.id,
+    name: player.name,
+    position: player.positionLabel,
+    positionId: player.baseType,
+    number: player.number,
+    stats: Stats(
+      ma: player.stats.ma,
+      st: player.stats.st,
+      ag: _rollValueToInt(player.stats.ag, fallback: 3),
+      pa: _rollValueToInt(player.stats.pa, fallback: 0),
+      av: _rollValueToInt(player.stats.av, fallback: 9),
+    ),
+    skills: player.perks
+        .map(
+          (perk) => Skill(
+            id: perk.id,
+            name: perk.name,
+            family: perk.category ?? '',
+            parameter: perk.parameter,
+          ),
+        )
+        .toList(),
+    spp: player.spp,
+    level: player.level,
+    cost: player.currentValue,
+    status: _playerStatusFromUserStatus(player.status),
+    career: PlayerCareerStats(
+      games: player.career.games,
+      touchdowns: player.career.touchdowns,
+      casualties: player.career.casualties,
+      interceptions: player.career.interceptions,
+      completions: player.career.completions,
+      mvpAwards: player.career.mvpAwards,
+    ),
+    missNextGame: player.status == 'missing_next_game',
+  );
+}
+
+int _rollValueToInt(String? value, {required int fallback}) {
+  if (value == null) return fallback;
+  final sanitized = value.replaceAll('+', '').trim();
+  return int.tryParse(sanitized) ?? fallback;
+}
+
+PlayerStatus _playerStatusFromUserStatus(String status) {
+  switch (status) {
+    case 'dead':
+      return PlayerStatus.dead;
+    case 'missing_next_game':
+    case 'sent_off':
+      return PlayerStatus.mng;
+    case 'badly_hurt':
+    case 'seriously_injured':
+      return PlayerStatus.injured;
+    default:
+      return PlayerStatus.healthy;
+  }
+}
 
 class _SkillAdvancementChoice {
   final Map<String, dynamic>? perk;
@@ -151,7 +245,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
   List<String>? _hatredKeywordCache;
 
   void _refresh() {
-    ref.invalidate(teamProvider(teamId));
+    ref.invalidate(_playerTeamProvider(_teamDetailKey));
     ref.invalidate(_playerUserTeamDetailProvider(_teamDetailKey));
   }
 
@@ -3133,7 +3227,7 @@ class _PlayerCardScreenState extends ConsumerState<PlayerCardScreen> {
   @override
   Widget build(BuildContext context) {
     final lang = ref.watch(localeProvider);
-    final teamAsync = ref.watch(teamProvider(teamId));
+    final teamAsync = ref.watch(_playerTeamProvider(_teamDetailKey));
     final currentUserId = ref.watch(authStateProvider).valueOrNull?.user?.id;
     final isWide = MediaQuery.of(context).size.width >= 900;
 

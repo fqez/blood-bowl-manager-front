@@ -40,6 +40,12 @@ final _quickMatchDetailProvider =
   return repo.getMatchDetail(matchId);
 });
 
+final _liveMatchLeagueProvider =
+    FutureProvider.autoDispose.family<League, String>((ref, leagueId) async {
+  final repo = ref.read(leagueRepositoryProvider);
+  return repo.getLeague(leagueId);
+});
+
 class LiveMatchScreen extends ConsumerStatefulWidget {
   final String leagueId;
   final String matchId;

@@ -133,12 +133,6 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
     if (_isMutating) return false;
     setState(() => _isMutating = true);
     try {
-      final isCommissioner = widget.leagueId != null &&
-          (ref
-                  .read(_leagueContextProvider(widget.leagueId!))
-                  .valueOrNull
-                  ?.isCommissioner ??
-              false);
       await ref.read(teamRepositoryProvider).patchTeamStaff(
             widget.teamId,
             name: name,
@@ -151,7 +145,6 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
             notes: notes,
             favouredOf: favouredOf,
             leagueId: widget.leagueId,
-            commissionerEdit: isCommissioner,
           );
       ref.invalidate(userTeamDetailProvider(_detailKey));
       return true;
@@ -870,10 +863,9 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
   int _healthyRosterCount(Iterable<UserPlayer> players) =>
       players.where((player) => player.status == 'healthy').length;
 
-  int _injuredRosterCount(Iterable<UserPlayer> players) =>
-      players
-          .where((player) => !player.isDead && player.status != 'healthy')
-          .length;
+  int _injuredRosterCount(Iterable<UserPlayer> players) => players
+      .where((player) => !player.isDead && player.status != 'healthy')
+      .length;
 
   bool _isValidRosterCount(int rosterCount) => rosterCount >= 11;
 
@@ -890,8 +882,8 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
     return 'Faltan $missing jugadores no muertos para llegar al minimo de 11.';
   }
 
-  bool _leagueHasStarted(UserTeamDetail team) => team.leagueMemberships
-      .any((league) => league.status != 'draft' && league.status != 'cancelled');
+  bool _leagueHasStarted(UserTeamDetail team) => team.leagueMemberships.any(
+      (league) => league.status != 'draft' && league.status != 'cancelled');
 
   String _shareCode(UserTeamDetail team) =>
       team.shareCode.isNotEmpty ? team.shareCode : team.id;
@@ -1060,7 +1052,8 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
               ],
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
                 decoration: BoxDecoration(
                   color: AppColors.surface,
                   borderRadius: BorderRadius.circular(14),
@@ -1145,7 +1138,8 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
               const SizedBox(height: 12),
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                 decoration: BoxDecoration(
                   color: AppColors.background,
                   borderRadius: BorderRadius.circular(12),
@@ -1206,7 +1200,10 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
   Widget _buildRosterSummaryDivider({required Axis axis}) {
     final color = AppColors.surfaceLight.withValues(alpha: 0.9);
     if (axis == Axis.vertical) {
-      return Container(width: 1, margin: const EdgeInsets.symmetric(horizontal: 14), color: color);
+      return Container(
+          width: 1,
+          margin: const EdgeInsets.symmetric(horizontal: 14),
+          color: color);
     }
 
     return Container(
@@ -1431,10 +1428,10 @@ class _MyTeamDetailScreenState extends ConsumerState<MyTeamDetailScreen> {
         label: 'REROLLS',
         subtitle: '${rerollCost ~/ 1000}k c/u',
         count: team.rerolls,
-      note: leagueHasStarted
-        ? 'No se pueden restar tras empezar la liga.'
-        : null,
-      onDec: isOwner && team.rerolls > 0 && !_isMutating && !leagueHasStarted
+        note: leagueHasStarted
+            ? 'No se pueden restar tras empezar la liga.'
+            : null,
+        onDec: isOwner && team.rerolls > 0 && !_isMutating && !leagueHasStarted
             ? () => _patch(rerolls: team.rerolls - 1)
             : null,
         onInc: isOwner && team.treasury >= rerollCost && !_isMutating
