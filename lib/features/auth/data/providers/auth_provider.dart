@@ -25,7 +25,7 @@ class AuthNotifier extends StateNotifier<AsyncValue<AuthState>> {
       final accessToken = await _repository.getStoredAccessToken();
       final refreshToken = await _repository.getStoredRefreshToken();
 
-      if (accessToken != null) {
+      if (accessToken != null || refreshToken != null) {
         final user = await _repository.getCurrentUser();
         if (user != null) {
           final latestAccessToken = await _repository.getStoredAccessToken();

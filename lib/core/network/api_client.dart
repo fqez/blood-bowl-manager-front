@@ -120,9 +120,14 @@ class AuthInterceptor extends Interceptor {
           key: AppConfig.refreshTokenKey, value: newRefreshToken);
 
       return newAccessToken;
+    } on DioException catch (e) {
+      final statusCode = e.response?.statusCode;
+      if (statusCode == 401 || statusCode == 403) {
+        await storage.delete(key: AppConfig.accessTokenKey);
+        await storage.delete(key: AppConfig.refreshTokenKey);
+      }
+      return null;
     } catch (_) {
-      await storage.delete(key: AppConfig.accessTokenKey);
-      await storage.delete(key: AppConfig.refreshTokenKey);
       return null;
     }
   }

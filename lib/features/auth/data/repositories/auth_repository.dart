@@ -82,19 +82,20 @@ class AuthRepository {
   Future<void> logout() async {
     final refreshToken = await _storage.read(key: AppConfig.refreshTokenKey);
 
-    await _storage.delete(key: AppConfig.accessTokenKey);
-    await _storage.delete(key: AppConfig.refreshTokenKey);
-
-    if (refreshToken == null) {
-      return;
-    }
-
     try {
-      await _dio.post('/auth/logout', data: {
-        'refresh_token': refreshToken,
-      });
+      await _dio.post(
+        '/auth/logout',
+        data: refreshToken == null
+            ? null
+            : {
+                'refresh_token': refreshToken,
+              },
+      );
     } catch (_) {
       // Ignore logout errors
+    } finally {
+      await _storage.delete(key: AppConfig.accessTokenKey);
+      await _storage.delete(key: AppConfig.refreshTokenKey);
     }
   }
 
