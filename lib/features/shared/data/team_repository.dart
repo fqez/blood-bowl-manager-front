@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -957,8 +959,14 @@ class LastingInjuryTableEntry extends DiceTableEntry {
 
 class TeamRepository {
   final Dio _dio;
+  Future<List<UserTeamSummary>>? _userTeamsInFlight;
+  final Map<String, Future<UserTeamDetail>> _userTeamDetailsInFlight = {};
 
   TeamRepository({required Dio dio}) : _dio = dio;
+
+  String _userTeamDetailRequestKey(String teamId, {String? leagueId}) {
+    return '$teamId|${leagueId ?? ''}';
+  }
 
   Future<List<Team>> getMyTeams() async {
     try {
@@ -1221,7 +1229,25 @@ class TeamRepository {
     }
   }
 
-  Future<List<UserTeamSummary>> getUserTeams() async {
+  Future<List<UserTeamSummary>> getUserTeams() {
+    final inFlight = _userTeamsInFlight;
+    if (inFlight != null) {
+      return inFlight;
+    }
+
+    final future = _fetchUserTeams();
+    _userTeamsInFlight = future;
+    unawaited(
+      future.whenComplete(() {
+        if (identical(_userTeamsInFlight, future)) {
+          _userTeamsInFlight = null;
+        }
+      }),
+    );
+    return future;
+  }
+
+  Future<List<UserTeamSummary>> _fetchUserTeams() async {
     try {
       final response = await _dio.get('/user-teams/');
       return (response.data as List)
@@ -1232,7 +1258,26 @@ class TeamRepository {
     }
   }
 
-  Future<UserTeamDetail> getUserTeamDetail(String teamId,
+  Future<UserTeamDetail> getUserTeamDetail(String teamId, {String? leagueId}) {
+    final requestKey = _userTeamDetailRequestKey(teamId, leagueId: leagueId);
+    final inFlight = _userTeamDetailsInFlight[requestKey];
+    if (inFlight != null) {
+      return inFlight;
+    }
+
+    final future = _fetchUserTeamDetail(teamId, leagueId: leagueId);
+    _userTeamDetailsInFlight[requestKey] = future;
+    unawaited(
+      future.whenComplete(() {
+        if (identical(_userTeamDetailsInFlight[requestKey], future)) {
+          _userTeamDetailsInFlight.remove(requestKey);
+        }
+      }),
+    );
+    return future;
+  }
+
+  Future<UserTeamDetail> _fetchUserTeamDetail(String teamId,
       {String? leagueId}) async {
     try {
       final response = await _dio.get(
