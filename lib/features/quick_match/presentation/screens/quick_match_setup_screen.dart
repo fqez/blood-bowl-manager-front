@@ -10,8 +10,7 @@ import '../../../my_teams/domain/models/user_team.dart';
 import '../../../league/domain/models/league.dart';
 import '../../../shared/data/repositories.dart';
 
-final _userTeamsProvider =
-    FutureProvider.autoDispose<List<UserTeamSummary>>((ref) async {
+final _userTeamsProvider = FutureProvider<List<UserTeamSummary>>((ref) async {
   final repo = ref.read(teamRepositoryProvider);
   return repo.getUserTeams();
 });

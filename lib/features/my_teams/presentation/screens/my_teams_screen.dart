@@ -9,8 +9,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../shared/data/repositories.dart';
 import '../../domain/models/user_team.dart';
 
-final myUserTeamsProvider =
-    FutureProvider.autoDispose<List<UserTeamSummary>>((ref) async {
+final myUserTeamsProvider = FutureProvider<List<UserTeamSummary>>((ref) async {
   return ref.watch(teamRepositoryProvider).getUserTeams();
 });
 
