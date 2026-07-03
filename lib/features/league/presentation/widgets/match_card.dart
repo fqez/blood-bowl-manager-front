@@ -87,76 +87,37 @@ class MatchCard extends ConsumerWidget {
   Widget _buildTeams() {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final stackTeams = constraints.maxWidth < (expanded ? 620 : 520);
+        final stackTeams = constraints.maxWidth < (expanded ? 420 : 360);
 
         if (stackTeams) {
           return Column(
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildTeamText(
-                      match.home,
-                      alignEnd: true,
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  _buildTeamIcon(match.home.baseRosterId, match.home.teamName),
-                ],
-              ),
+              _buildTeamBlock(match.home),
               const SizedBox(height: 10),
               _buildScore(),
               const SizedBox(height: 10),
-              Row(
-                children: [
-                  _buildTeamIcon(match.away.baseRosterId, match.away.teamName),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: _buildTeamText(
-                      match.away,
-                      alignEnd: false,
-                    ),
-                  ),
-                ],
-              ),
+              _buildTeamBlock(match.away),
             ],
           );
         }
 
         return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Flexible(
-                    child: _buildTeamText(
-                      match.home,
-                      alignEnd: true,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  _buildTeamIcon(match.home.baseRosterId, match.home.teamName),
-                ],
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: _buildTeamBlock(match.home),
               ),
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 18),
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
               child: _buildScore(),
             ),
             Expanded(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  _buildTeamIcon(match.away.baseRosterId, match.away.teamName),
-                  const SizedBox(width: 16),
-                  Flexible(
-                    child: _buildTeamText(
-                      match.away,
-                      alignEnd: false,
-                    ),
-                  ),
-                ],
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: _buildTeamBlock(match.away),
               ),
             ),
           ],
@@ -165,14 +126,24 @@ class MatchCard extends ConsumerWidget {
     );
   }
 
-  Widget _buildTeamText(
-    MatchTeamInfo team, {
-    required bool alignEnd,
-  }) {
+  Widget _buildTeamBlock(MatchTeamInfo team) {
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: expanded ? 180 : 160),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildTeamIcon(team.baseRosterId, team.teamName),
+          const SizedBox(height: 10),
+          _buildTeamText(team),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTeamText(MatchTeamInfo team) {
     return Column(
       mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment:
-          alignEnd ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Text(
           team.teamName,
@@ -181,8 +152,8 @@ class MatchCard extends ConsumerWidget {
             fontWeight: FontWeight.w700,
             color: AppColors.textPrimary,
           ),
-          textAlign: alignEnd ? TextAlign.right : TextAlign.left,
-          maxLines: 1,
+          textAlign: TextAlign.center,
+          maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),
         if (team.username.isNotEmpty) ...[
@@ -193,7 +164,7 @@ class MatchCard extends ConsumerWidget {
               fontSize: 12,
               color: AppColors.textMuted,
             ),
-            textAlign: alignEnd ? TextAlign.right : TextAlign.left,
+            textAlign: TextAlign.center,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -208,8 +179,8 @@ class MatchCard extends ConsumerWidget {
         baseRosterId.isNotEmpty ? 'assets/teams/$baseRosterId/logo.webp' : null;
 
     return SizedBox(
-      width: expanded ? 104 : 92,
-      height: expanded ? 104 : 92,
+      width: expanded ? 96 : 88,
+      height: expanded ? 96 : 88,
       child: assetPath == null
           ? _buildTeamFallback(fallbackLabel)
           : Image.asset(
