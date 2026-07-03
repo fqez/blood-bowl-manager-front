@@ -30,7 +30,8 @@ class AuthState with _$AuthState {
     String? error,
   }) = _AuthState;
 
-  bool get isAuthenticated => user != null && accessToken != null;
+  bool get isAuthenticated =>
+      user != null && (accessToken != null || refreshToken != null);
 }
 
 @freezed

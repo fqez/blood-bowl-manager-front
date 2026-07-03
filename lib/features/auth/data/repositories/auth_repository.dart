@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -94,6 +96,7 @@ class AuthRepository {
     } catch (_) {
       // Ignore logout errors
     } finally {
+      await _storage.delete(key: AppConfig.userKey);
       await _storage.delete(key: AppConfig.accessTokenKey);
       await _storage.delete(key: AppConfig.refreshTokenKey);
     }
@@ -102,12 +105,36 @@ class AuthRepository {
   Future<User?> getCurrentUser() async {
     try {
       final response = await _dio.get('/auth/me');
-      return User.fromJson(response.data);
+      final user = User.fromJson(response.data);
+      await _storage.write(
+        key: AppConfig.userKey,
+        value: jsonEncode(user.toJson()),
+      );
+      return user;
     } on DioException catch (e) {
       if (e.response?.statusCode == 401) {
+        await _storage.delete(key: AppConfig.userKey);
         return null;
       }
       throw ApiException.fromDioException(e);
+    }
+  }
+
+  Future<User?> getCachedUser() async {
+    final rawUser = await _storage.read(key: AppConfig.userKey);
+    if (rawUser == null || rawUser.isEmpty) {
+      return null;
+    }
+
+    try {
+      final decoded = jsonDecode(rawUser);
+      if (decoded is! Map<String, dynamic>) {
+        return null;
+      }
+      return User.fromJson(decoded);
+    } catch (_) {
+      await _storage.delete(key: AppConfig.userKey);
+      return null;
     }
   }
 

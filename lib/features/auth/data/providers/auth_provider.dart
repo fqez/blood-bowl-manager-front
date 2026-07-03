@@ -24,6 +24,16 @@ class AuthNotifier extends StateNotifier<AsyncValue<AuthState>> {
     try {
       final accessToken = await _repository.getStoredAccessToken();
       final refreshToken = await _repository.getStoredRefreshToken();
+      final cachedUser = await _repository.getCachedUser();
+
+      if (cachedUser != null && (accessToken != null || refreshToken != null)) {
+        state = AsyncValue.data(AuthState(
+          user: cachedUser,
+          accessToken: accessToken,
+          refreshToken: refreshToken,
+          isLoading: true,
+        ));
+      }
 
       if (accessToken != null || refreshToken != null) {
         final user = await _repository.getCurrentUser();
@@ -37,10 +47,35 @@ class AuthNotifier extends StateNotifier<AsyncValue<AuthState>> {
           ));
           return;
         }
+
+        final latestAccessToken = await _repository.getStoredAccessToken();
+        final latestRefreshToken = await _repository.getStoredRefreshToken();
+        if (cachedUser != null &&
+            (latestAccessToken != null || latestRefreshToken != null)) {
+          state = AsyncValue.data(AuthState(
+            user: cachedUser,
+            accessToken: latestAccessToken ?? accessToken,
+            refreshToken: latestRefreshToken ?? refreshToken,
+          ));
+          return;
+        }
       }
 
       state = const AsyncValue.data(AuthState());
     } catch (e) {
+      final accessToken = await _repository.getStoredAccessToken();
+      final refreshToken = await _repository.getStoredRefreshToken();
+      final cachedUser = await _repository.getCachedUser();
+
+      if (cachedUser != null && (accessToken != null || refreshToken != null)) {
+        state = AsyncValue.data(AuthState(
+          user: cachedUser,
+          accessToken: accessToken,
+          refreshToken: refreshToken,
+        ));
+        return;
+      }
+
       state = const AsyncValue.data(AuthState());
     }
   }

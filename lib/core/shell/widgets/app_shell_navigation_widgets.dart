@@ -420,7 +420,8 @@ class AppShellUserSection extends ConsumerWidget {
     final authState = ref.watch(authStateProvider);
     final lang = ref.watch(localeProvider);
     final user = authState.valueOrNull?.user;
-    final initial = user?.username.substring(0, 1).toUpperCase() ?? 'U';
+    final initial = user?.username.substring(0, 1).toUpperCase() ??
+        (authState.isLoading ? '...' : 'U');
 
     if (!expanded) {
       return Container(
@@ -469,7 +470,7 @@ class AppShellUserSection extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  user?.username ?? 'Coach',
+                  user?.username ?? (authState.isLoading ? '...' : 'Coach'),
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
