@@ -1398,7 +1398,7 @@ extension _LiveMatchTeamPrep on _LiveMatchScreenState {
     for (final player in team.players) {
       if (player.status == 'dead') continue;
       if (player.temporaryForMatch &&
-          player.temporaryMatchId == widget.matchId) {
+          !(player.temporaryMatchId == widget.matchId && player.journeyman)) {
         continue;
       }
       if (ignoredPlayerTypes.contains(player.baseType)) continue;
